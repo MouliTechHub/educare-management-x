@@ -24,6 +24,14 @@ export interface Student {
   } | null;
 }
 
+// Simplified student type for dropdowns and selections
+export interface StudentBasic {
+  id: string;
+  first_name: string;
+  last_name: string;
+  admission_number: string;
+}
+
 export interface Parent {
   id: string;
   first_name: string;
