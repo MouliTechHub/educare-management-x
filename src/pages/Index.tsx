@@ -1,6 +1,5 @@
 
 import { useState } from "react";
-import { Navigate } from "react-router-dom";
 import { SidebarProvider } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/layout/AppSidebar";
 import { Header } from "@/components/layout/Header";
@@ -15,20 +14,33 @@ import { ExamGrading } from "@/components/modules/ExamGrading";
 import { TimetableScheduling } from "@/components/modules/TimetableScheduling";
 import { Reports } from "@/components/modules/Reports";
 import { Settings } from "@/components/modules/Settings";
-import { LoginPage } from "@/components/auth/LoginPage";
+import { AuthPage } from "@/components/auth/AuthPage";
+import { useAuth } from "@/contexts/AuthContext";
 
 const Index = () => {
-  const [currentUser, setCurrentUser] = useState<{
-    id: string;
-    username: string;
-    role: "Admin" | "Teacher" | "Parent" | "Accountant";
-  } | null>(null);
-  
+  const { user, loading, signOut } = useAuth();
   const [activeModule, setActiveModule] = useState("dashboard");
 
-  if (!currentUser) {
-    return <LoginPage onLogin={setCurrentUser} />;
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-blue-600"></div>
+          <p className="mt-4 text-gray-600">Loading...</p>
+        </div>
+      </div>
+    );
   }
+
+  if (!user) {
+    return <AuthPage />;
+  }
+
+  const currentUser = {
+    id: user.id,
+    username: user.email || 'User',
+    role: "Admin" as const, // For now, all users are Admin
+  };
 
   const renderModule = () => {
     switch (activeModule) {
@@ -68,7 +80,7 @@ const Index = () => {
           onModuleChange={setActiveModule}
         />
         <div className="flex-1 flex flex-col overflow-hidden">
-          <Header user={currentUser} onLogout={() => setCurrentUser(null)} />
+          <Header user={currentUser} onLogout={signOut} />
           <main className="flex-1 overflow-auto p-6">
             {renderModule()}
           </main>

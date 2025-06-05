@@ -1,5 +1,5 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -8,84 +8,99 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { Search, Plus, Edit, Trash2, Eye } from "lucide-react";
+import { Search, Plus, Edit, Trash2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { supabase } from "@/integrations/supabase/client";
 
 interface Student {
-  _id: string;
-  firstName: string;
-  lastName: string;
-  admissionNumber: string;
-  classId: string;
-  className: string;
-  status: "Active" | "Inactive" | "Alumni";
-  dob: string;
+  id: string;
+  first_name: string;
+  last_name: string;
+  admission_number: string;
+  date_of_birth: string;
   gender: "Male" | "Female" | "Other";
-  address: {
-    line1: string;
-    line2: string;
-    city: string;
-    state: string;
-    pinCode: string;
-  };
+  class_id?: string;
+  address_line1?: string;
+  address_line2?: string;
+  city?: string;
+  state?: string;
+  pin_code?: string;
+  photo_url?: string;
+  status: "Active" | "Inactive" | "Alumni";
+  classes?: { name: string; section?: string };
+}
+
+interface Class {
+  id: string;
+  name: string;
+  section?: string;
 }
 
 export function StudentManagement() {
-  const [students, setStudents] = useState<Student[]>([
-    {
-      _id: "1",
-      firstName: "John",
-      lastName: "Doe",
-      admissionNumber: "ADM001",
-      classId: "class1",
-      className: "Grade 10-A",
-      status: "Active",
-      dob: "2008-05-15",
-      gender: "Male",
-      address: {
-        line1: "123 Main St",
-        line2: "Apt 4B",
-        city: "Mumbai",
-        state: "Maharashtra",
-        pinCode: "400001",
-      },
-    },
-    {
-      _id: "2",
-      firstName: "Jane",
-      lastName: "Smith",
-      admissionNumber: "ADM002",
-      classId: "class2",
-      className: "Grade 9-B",
-      status: "Active",
-      dob: "2009-03-22",
-      gender: "Female",
-      address: {
-        line1: "456 Oak Ave",
-        line2: "",
-        city: "Delhi",
-        state: "Delhi",
-        pinCode: "110001",
-      },
-    },
-  ]);
-
+  const [students, setStudents] = useState<Student[]>([]);
+  const [classes, setClasses] = useState<Class[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [currentStudent, setCurrentStudent] = useState<Partial<Student>>({});
   const [isEditing, setIsEditing] = useState(false);
+  const [loading, setLoading] = useState(true);
   const { toast } = useToast();
+
+  useEffect(() => {
+    fetchStudents();
+    fetchClasses();
+  }, []);
+
+  const fetchStudents = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('students')
+        .select(`
+          *,
+          classes (
+            name,
+            section
+          )
+        `)
+        .order('admission_number');
+
+      if (error) throw error;
+      setStudents(data || []);
+    } catch (error) {
+      console.error('Error fetching students:', error);
+      toast({
+        title: "Error",
+        description: "Failed to fetch students.",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const fetchClasses = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('classes')
+        .select('id, name, section')
+        .order('name');
+
+      if (error) throw error;
+      setClasses(data || []);
+    } catch (error) {
+      console.error('Error fetching classes:', error);
+    }
+  };
 
   const filteredStudents = students.filter(
     (student) =>
-      student.firstName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      student.lastName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      student.admissionNumber.toLowerCase().includes(searchTerm.toLowerCase())
+      student.first_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      student.last_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      student.admission_number.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
-  const handleSaveStudent = () => {
-    // Validate required fields
-    if (!currentStudent.firstName || !currentStudent.lastName || !currentStudent.admissionNumber) {
+  const handleSaveStudent = async () => {
+    if (!currentStudent.first_name || !currentStudent.last_name || !currentStudent.admission_number || !currentStudent.date_of_birth || !currentStudent.gender) {
       toast({
         title: "Validation Error",
         description: "Please fill in all required fields.",
@@ -94,38 +109,95 @@ export function StudentManagement() {
       return;
     }
 
-    // Check if admission number already exists (when adding new)
-    if (!isEditing && students.some(s => s.admissionNumber === currentStudent.admissionNumber)) {
+    if (currentStudent.pin_code && (currentStudent.pin_code.length !== 6 || !/^\d+$/.test(currentStudent.pin_code))) {
       toast({
-        title: "Validation Error", 
-        description: "Admission Number already exists.",
+        title: "Validation Error",
+        description: "Pin code must be exactly 6 digits.",
         variant: "destructive",
       });
       return;
     }
 
-    if (isEditing) {
-      setStudents(prev => prev.map(s => s._id === currentStudent._id ? currentStudent as Student : s));
+    try {
+      if (isEditing) {
+        const { error } = await supabase
+          .from('students')
+          .update({
+            first_name: currentStudent.first_name,
+            last_name: currentStudent.last_name,
+            admission_number: currentStudent.admission_number,
+            date_of_birth: currentStudent.date_of_birth,
+            gender: currentStudent.gender,
+            class_id: currentStudent.class_id || null,
+            address_line1: currentStudent.address_line1 || null,
+            address_line2: currentStudent.address_line2 || null,
+            city: currentStudent.city || null,
+            state: currentStudent.state || null,
+            pin_code: currentStudent.pin_code || null,
+            status: currentStudent.status,
+          })
+          .eq('id', currentStudent.id);
+
+        if (error) throw error;
+
+        toast({
+          title: "Success",
+          description: `Student ${currentStudent.first_name} ${currentStudent.last_name} updated successfully.`,
+        });
+      } else {
+        // Check if admission number already exists
+        const { data: existingStudent } = await supabase
+          .from('students')
+          .select('id')
+          .eq('admission_number', currentStudent.admission_number)
+          .single();
+
+        if (existingStudent) {
+          toast({
+            title: "Validation Error",
+            description: "Admission Number already exists.",
+            variant: "destructive",
+          });
+          return;
+        }
+
+        const { error } = await supabase
+          .from('students')
+          .insert({
+            first_name: currentStudent.first_name,
+            last_name: currentStudent.last_name,
+            admission_number: currentStudent.admission_number,
+            date_of_birth: currentStudent.date_of_birth,
+            gender: currentStudent.gender,
+            class_id: currentStudent.class_id || null,
+            address_line1: currentStudent.address_line1 || null,
+            address_line2: currentStudent.address_line2 || null,
+            city: currentStudent.city || null,
+            state: currentStudent.state || null,
+            pin_code: currentStudent.pin_code || null,
+            status: currentStudent.status || 'Active',
+          });
+
+        if (error) throw error;
+
+        toast({
+          title: "Success",
+          description: `Student ${currentStudent.first_name} ${currentStudent.last_name} created successfully.`,
+        });
+      }
+
+      setIsAddModalOpen(false);
+      setCurrentStudent({});
+      setIsEditing(false);
+      fetchStudents();
+    } catch (error: any) {
+      console.error('Error saving student:', error);
       toast({
-        title: "Success",
-        description: `Student ${currentStudent.firstName} ${currentStudent.lastName} updated successfully.`,
-      });
-    } else {
-      const newStudent = {
-        ...currentStudent,
-        _id: Date.now().toString(),
-        className: "Grade 10-A", // This would come from class selection
-      } as Student;
-      setStudents(prev => [...prev, newStudent]);
-      toast({
-        title: "Success",
-        description: `Student ${currentStudent.firstName} ${currentStudent.lastName} created successfully.`,
+        title: "Error",
+        description: error.message || "Failed to save student.",
+        variant: "destructive",
       });
     }
-
-    setIsAddModalOpen(false);
-    setCurrentStudent({});
-    setIsEditing(false);
   };
 
   const handleEditStudent = (student: Student) => {
@@ -134,32 +206,55 @@ export function StudentManagement() {
     setIsAddModalOpen(true);
   };
 
-  const handleDeleteStudent = (studentId: string) => {
-    setStudents(prev => prev.filter(s => s._id !== studentId));
-    toast({
-      title: "Success",
-      description: "Student deleted successfully.",
-    });
+  const handleDeleteStudent = async (studentId: string) => {
+    try {
+      const { error } = await supabase
+        .from('students')
+        .delete()
+        .eq('id', studentId);
+
+      if (error) throw error;
+
+      toast({
+        title: "Success",
+        description: "Student deleted successfully.",
+      });
+      fetchStudents();
+    } catch (error: any) {
+      console.error('Error deleting student:', error);
+      toast({
+        title: "Error",
+        description: error.message || "Failed to delete student.",
+        variant: "destructive",
+      });
+    }
   };
 
   const openAddModal = () => {
     setCurrentStudent({
-      firstName: "",
-      lastName: "",
-      admissionNumber: "",
-      status: "Active",
+      first_name: "",
+      last_name: "",
+      admission_number: "",
+      date_of_birth: "",
       gender: "Male",
-      address: {
-        line1: "",
-        line2: "",
-        city: "",
-        state: "",
-        pinCode: "",
-      },
+      status: "Active",
+      address_line1: "",
+      address_line2: "",
+      city: "",
+      state: "",
+      pin_code: "",
     });
     setIsEditing(false);
     setIsAddModalOpen(true);
   };
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -188,8 +283,8 @@ export function StudentManagement() {
                 <Input
                   id="firstName"
                   placeholder="Enter first name"
-                  value={currentStudent.firstName || ""}
-                  onChange={(e) => setCurrentStudent({...currentStudent, firstName: e.target.value})}
+                  value={currentStudent.first_name || ""}
+                  onChange={(e) => setCurrentStudent({...currentStudent, first_name: e.target.value})}
                 />
               </div>
               <div className="space-y-2">
@@ -197,17 +292,17 @@ export function StudentManagement() {
                 <Input
                   id="lastName"
                   placeholder="Enter last name"
-                  value={currentStudent.lastName || ""}
-                  onChange={(e) => setCurrentStudent({...currentStudent, lastName: e.target.value})}
+                  value={currentStudent.last_name || ""}
+                  onChange={(e) => setCurrentStudent({...currentStudent, last_name: e.target.value})}
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="admissionNumber">Admission Number* (unique)</Label>
+                <Label htmlFor="admissionNumber">Admission Number*</Label>
                 <Input
                   id="admissionNumber"
                   placeholder="e.g., ADM001"
-                  value={currentStudent.admissionNumber || ""}
-                  onChange={(e) => setCurrentStudent({...currentStudent, admissionNumber: e.target.value})}
+                  value={currentStudent.admission_number || ""}
+                  onChange={(e) => setCurrentStudent({...currentStudent, admission_number: e.target.value})}
                 />
               </div>
               <div className="space-y-2">
@@ -231,9 +326,28 @@ export function StudentManagement() {
                 <Input
                   id="dob"
                   type="date"
-                  value={currentStudent.dob || ""}
-                  onChange={(e) => setCurrentStudent({...currentStudent, dob: e.target.value})}
+                  value={currentStudent.date_of_birth || ""}
+                  onChange={(e) => setCurrentStudent({...currentStudent, date_of_birth: e.target.value})}
                 />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="class">Class</Label>
+                <Select
+                  value={currentStudent.class_id || ""}
+                  onValueChange={(value) => setCurrentStudent({...currentStudent, class_id: value || undefined})}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select class" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="">No Class Assigned</SelectItem>
+                    {classes.map((cls) => (
+                      <SelectItem key={cls.id} value={cls.id}>
+                        {cls.name} {cls.section ? `- ${cls.section}` : ''}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
               <div className="space-y-2">
                 <Label htmlFor="status">Status*</Label>
@@ -252,38 +366,38 @@ export function StudentManagement() {
                 </Select>
               </div>
               <div className="col-span-2 space-y-2">
-                <Label htmlFor="addressLine1">Address Line 1*</Label>
+                <Label htmlFor="addressLine1">Address Line 1</Label>
                 <Input
                   id="addressLine1"
                   placeholder="Enter address line 1"
-                  value={currentStudent.address?.line1 || ""}
+                  value={currentStudent.address_line1 || ""}
                   onChange={(e) => setCurrentStudent({
                     ...currentStudent,
-                    address: {...currentStudent.address, line1: e.target.value}
+                    address_line1: e.target.value
                   })}
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="city">City*</Label>
+                <Label htmlFor="city">City</Label>
                 <Input
                   id="city"
                   placeholder="Enter city"
-                  value={currentStudent.address?.city || ""}
+                  value={currentStudent.city || ""}
                   onChange={(e) => setCurrentStudent({
                     ...currentStudent,
-                    address: {...currentStudent.address, city: e.target.value}
+                    city: e.target.value
                   })}
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="pinCode">Pin Code* (6 digits)</Label>
+                <Label htmlFor="pinCode">Pin Code (6 digits)</Label>
                 <Input
                   id="pinCode"
                   placeholder="Enter 6-digit pin code"
-                  value={currentStudent.address?.pinCode || ""}
+                  value={currentStudent.pin_code || ""}
                   onChange={(e) => setCurrentStudent({
                     ...currentStudent,
-                    address: {...currentStudent.address, pinCode: e.target.value}
+                    pin_code: e.target.value
                   })}
                 />
               </div>
@@ -329,14 +443,16 @@ export function StudentManagement() {
             </TableHeader>
             <TableBody>
               {filteredStudents.map((student) => (
-                <TableRow key={student._id}>
+                <TableRow key={student.id}>
                   <TableCell className="font-medium">
-                    {student.admissionNumber}
+                    {student.admission_number}
                   </TableCell>
                   <TableCell>
-                    {student.firstName} {student.lastName}
+                    {student.first_name} {student.last_name}
                   </TableCell>
-                  <TableCell>{student.className}</TableCell>
+                  <TableCell>
+                    {student.classes ? `${student.classes.name}${student.classes.section ? ` - ${student.classes.section}` : ''}` : 'Not Assigned'}
+                  </TableCell>
                   <TableCell>
                     <Badge 
                       variant={student.status === "Active" ? "default" : "secondary"}
@@ -357,7 +473,7 @@ export function StudentManagement() {
                       <Button
                         variant="ghost"
                         size="sm"
-                        onClick={() => handleDeleteStudent(student._id)}
+                        onClick={() => handleDeleteStudent(student.id)}
                         className="text-red-600 hover:text-red-700"
                       >
                         <Trash2 className="w-4 h-4" />
