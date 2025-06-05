@@ -2,46 +2,38 @@
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Search, Plus, Edit, Trash2 } from "lucide-react";
+import { Plus, Search, Edit, Trash2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
-
-interface Parent {
-  id: string;
-  first_name: string;
-  last_name: string;
-  relation: "Mother" | "Father" | "Guardian" | "Other";
-  phone_number: string;
-  email: string;
-  address_line1?: string;
-  address_line2?: string;
-  city?: string;
-  state?: string;
-  pin_code?: string;
-}
-
-interface Student {
-  id: string;
-  first_name: string;
-  last_name: string;
-  admission_number: string;
-}
+import { Parent, Student } from "@/types/database";
 
 export function ParentManagement() {
   const [parents, setParents] = useState<Parent[]>([]);
   const [students, setStudents] = useState<Student[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
-  const [isAddModalOpen, setIsAddModalOpen] = useState(false);
-  const [currentParent, setCurrentParent] = useState<Partial<Parent>>({});
-  const [selectedStudents, setSelectedStudents] = useState<string[]>([]);
-  const [isEditing, setIsEditing] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const [editingParent, setEditingParent] = useState<Parent | null>(null);
   const { toast } = useToast();
+
+  // Form state
+  const [formData, setFormData] = useState({
+    first_name: "",
+    last_name: "",
+    relation: "" as "Mother" | "Father" | "Guardian" | "Other" | "",
+    phone_number: "",
+    email: "",
+    address_line1: "",
+    address_line2: "",
+    city: "",
+    state: "",
+    pin_code: "",
+  });
 
   useEffect(() => {
     fetchParents();
@@ -50,18 +42,23 @@ export function ParentManagement() {
 
   const fetchParents = async () => {
     try {
+      setLoading(true);
       const { data, error } = await supabase
         .from('parents')
         .select('*')
         .order('first_name');
 
       if (error) throw error;
-      setParents(data || []);
-    } catch (error) {
-      console.error('Error fetching parents:', error);
+      
+      // Type assertion with proper relation type
+      setParents((data as any[])?.map(parent => ({
+        ...parent,
+        relation: parent.relation as 'Mother' | 'Father' | 'Guardian' | 'Other'
+      })) || []);
+    } catch (error: any) {
       toast({
-        title: "Error",
-        description: "Failed to fetch parents.",
+        title: "Error fetching parents",
+        description: error.message,
         variant: "destructive",
       });
     } finally {
@@ -74,222 +71,149 @@ export function ParentManagement() {
       const { data, error } = await supabase
         .from('students')
         .select('id, first_name, last_name, admission_number')
-        .eq('status', 'Active')
         .order('admission_number');
 
       if (error) throw error;
       setStudents(data || []);
-    } catch (error) {
-      console.error('Error fetching students:', error);
+    } catch (error: any) {
+      toast({
+        title: "Error fetching students",
+        description: error.message,
+        variant: "destructive",
+      });
     }
   };
 
-  const fetchParentStudents = async (parentId: string) => {
-    try {
-      const { data, error } = await supabase
-        .from('student_parent_links')
-        .select('student_id')
-        .eq('parent_id', parentId);
-
-      if (error) throw error;
-      return data?.map(link => link.student_id) || [];
-    } catch (error) {
-      console.error('Error fetching parent students:', error);
-      return [];
-    }
-  };
-
-  const filteredParents = parents.filter(
-    (parent) =>
-      parent.first_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      parent.last_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      parent.phone_number.includes(searchTerm)
-  );
-
-  const validateEmail = (email: string) => {
-    return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
-  };
-
-  const validatePhone = (phone: string) => {
-    return /^\d{10}$/.test(phone);
-  };
-
-  const handleSaveParent = async () => {
-    if (!currentParent.first_name || !currentParent.last_name || !currentParent.relation || !currentParent.phone_number || !currentParent.email) {
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (!formData.first_name || !formData.last_name || !formData.relation || 
+        !formData.phone_number || !formData.email) {
       toast({
         title: "Validation Error",
-        description: "Please fill in all required fields.",
+        description: "Please fill in all required fields",
         variant: "destructive",
       });
       return;
     }
 
-    if (!validateEmail(currentParent.email)) {
+    // Validate phone number
+    if (!/^\d{10}$/.test(formData.phone_number)) {
       toast({
         title: "Validation Error",
-        description: "Please enter a valid email address.",
+        description: "Phone number must be 10 digits",
         variant: "destructive",
       });
       return;
     }
 
-    if (!validatePhone(currentParent.phone_number)) {
+    // Validate PIN code if provided
+    if (formData.pin_code && !/^\d{6}$/.test(formData.pin_code)) {
       toast({
         title: "Validation Error",
-        description: "Phone number must be exactly 10 digits.",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    if (currentParent.pin_code && (currentParent.pin_code.length !== 6 || !/^\d+$/.test(currentParent.pin_code))) {
-      toast({
-        title: "Validation Error",
-        description: "Pin code must be exactly 6 digits.",
+        description: "PIN code must be 6 digits",
         variant: "destructive",
       });
       return;
     }
 
     try {
-      let parentId = currentParent.id;
+      const parentData = {
+        ...formData,
+        address_line1: formData.address_line1 || null,
+        address_line2: formData.address_line2 || null,
+        city: formData.city || null,
+        state: formData.state || null,
+        pin_code: formData.pin_code || null,
+      };
 
-      if (isEditing) {
+      if (editingParent) {
         const { error } = await supabase
           .from('parents')
-          .update({
-            first_name: currentParent.first_name,
-            last_name: currentParent.last_name,
-            relation: currentParent.relation,
-            phone_number: currentParent.phone_number,
-            email: currentParent.email,
-            address_line1: currentParent.address_line1 || null,
-            address_line2: currentParent.address_line2 || null,
-            city: currentParent.city || null,
-            state: currentParent.state || null,
-            pin_code: currentParent.pin_code || null,
-          })
-          .eq('id', currentParent.id);
+          .update(parentData)
+          .eq('id', editingParent.id);
 
         if (error) throw error;
-
-        // Delete existing student links
-        await supabase
-          .from('student_parent_links')
-          .delete()
-          .eq('parent_id', parentId);
+        
+        toast({
+          title: "Parent Updated",
+          description: `${formData.first_name} ${formData.last_name} has been updated successfully.`,
+        });
       } else {
-        // Check if email already exists
-        const { data: existingParent } = await supabase
+        const { error } = await supabase
           .from('parents')
-          .select('id')
-          .eq('email', currentParent.email)
-          .single();
-
-        if (existingParent) {
-          toast({
-            title: "Validation Error",
-            description: "Email already exists.",
-            variant: "destructive",
-          });
-          return;
-        }
-
-        const { data, error } = await supabase
-          .from('parents')
-          .insert({
-            first_name: currentParent.first_name,
-            last_name: currentParent.last_name,
-            relation: currentParent.relation,
-            phone_number: currentParent.phone_number,
-            email: currentParent.email,
-            address_line1: currentParent.address_line1 || null,
-            address_line2: currentParent.address_line2 || null,
-            city: currentParent.city || null,
-            state: currentParent.state || null,
-            pin_code: currentParent.pin_code || null,
-          })
-          .select()
-          .single();
+          .insert(parentData);
 
         if (error) throw error;
-        parentId = data.id;
+        
+        toast({
+          title: "Parent Added",
+          description: `${formData.first_name} ${formData.last_name} has been added successfully.`,
+        });
       }
 
-      // Insert new student links
-      if (selectedStudents.length > 0) {
-        const links = selectedStudents.map(studentId => ({
-          parent_id: parentId,
-          student_id: studentId,
-        }));
-
-        const { error: linkError } = await supabase
-          .from('student_parent_links')
-          .insert(links);
-
-        if (linkError) throw linkError;
-      }
-
-      toast({
-        title: "Success",
-        description: `Parent ${currentParent.first_name} ${currentParent.last_name} ${isEditing ? 'updated' : 'created'} successfully.`,
-      });
-
-      setIsAddModalOpen(false);
-      setCurrentParent({});
-      setSelectedStudents([]);
-      setIsEditing(false);
+      setDialogOpen(false);
+      resetForm();
       fetchParents();
     } catch (error: any) {
-      console.error('Error saving parent:', error);
       toast({
         title: "Error",
-        description: error.message || "Failed to save parent.",
+        description: error.message,
         variant: "destructive",
       });
     }
   };
 
-  const handleEditParent = async (parent: Parent) => {
-    setCurrentParent(parent);
-    setIsEditing(true);
-    
-    // Fetch linked students
-    const linkedStudents = await fetchParentStudents(parent.id);
-    setSelectedStudents(linkedStudents);
-    
-    setIsAddModalOpen(true);
+  const handleEdit = (parent: Parent) => {
+    setEditingParent(parent);
+    setFormData({
+      first_name: parent.first_name,
+      last_name: parent.last_name,
+      relation: parent.relation,
+      phone_number: parent.phone_number,
+      email: parent.email,
+      address_line1: parent.address_line1 || "",
+      address_line2: parent.address_line2 || "",
+      city: parent.city || "",
+      state: parent.state || "",
+      pin_code: parent.pin_code || "",
+    });
+    setDialogOpen(true);
   };
 
-  const handleDeleteParent = async (parentId: string) => {
+  const handleDelete = async (parent: Parent) => {
+    if (!confirm(`Are you sure you want to delete ${parent.first_name} ${parent.last_name}?`)) {
+      return;
+    }
+
     try {
       const { error } = await supabase
         .from('parents')
         .delete()
-        .eq('id', parentId);
+        .eq('id', parent.id);
 
       if (error) throw error;
-
+      
       toast({
-        title: "Success",
-        description: "Parent deleted successfully.",
+        title: "Parent Deleted",
+        description: `${parent.first_name} ${parent.last_name} has been deleted.`,
       });
+      
       fetchParents();
     } catch (error: any) {
-      console.error('Error deleting parent:', error);
       toast({
-        title: "Error",
-        description: error.message || "Failed to delete parent.",
+        title: "Error deleting parent",
+        description: error.message,
         variant: "destructive",
       });
     }
   };
 
-  const openAddModal = () => {
-    setCurrentParent({
+  const resetForm = () => {
+    setFormData({
       first_name: "",
       last_name: "",
-      relation: "Mother",
+      relation: "",
       phone_number: "",
       email: "",
       address_line1: "",
@@ -298,15 +222,22 @@ export function ParentManagement() {
       state: "",
       pin_code: "",
     });
-    setSelectedStudents([]);
-    setIsEditing(false);
-    setIsAddModalOpen(true);
+    setEditingParent(null);
   };
+
+  const filteredParents = parents.filter(parent =>
+    parent.first_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    parent.last_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    parent.phone_number.includes(searchTerm)
+  );
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-64">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+      <div className="flex items-center justify-center p-8">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
+          <p className="mt-2 text-gray-600">Loading parents...</p>
+        </div>
       </div>
     );
   }
@@ -315,156 +246,151 @@ export function ParentManagement() {
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">Parent Management</h1>
-          <p className="text-gray-600 mt-2">Manage parent records and student relationships</p>
+          <h2 className="text-3xl font-bold text-gray-900">Parent Management</h2>
+          <p className="text-gray-600">Manage parent records and contact information</p>
         </div>
-        <Dialog open={isAddModalOpen} onOpenChange={setIsAddModalOpen}>
+        <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
           <DialogTrigger asChild>
-            <Button onClick={openAddModal} className="bg-blue-600 hover:bg-blue-700">
+            <Button onClick={resetForm}>
               <Plus className="w-4 h-4 mr-2" />
               Add Parent
             </Button>
           </DialogTrigger>
-          <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+          <DialogContent className="max-w-2xl">
             <DialogHeader>
-              <DialogTitle>{isEditing ? "Edit Parent" : "Add New Parent"}</DialogTitle>
-              <DialogDescription>
-                {isEditing ? "Update parent information" : "Enter parent details below"}
-              </DialogDescription>
+              <DialogTitle>
+                {editingParent ? "Edit Parent" : "Add New Parent"}
+              </DialogTitle>
             </DialogHeader>
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="firstName">First Name*</Label>
-                <Input
-                  id="firstName"
-                  placeholder="Enter first name"
-                  value={currentParent.first_name || ""}
-                  onChange={(e) => setCurrentParent({...currentParent, first_name: e.target.value})}
-                />
+            <form onSubmit={handleSubmit} className="space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="first_name">First Name *</Label>
+                  <Input
+                    id="first_name"
+                    value={formData.first_name}
+                    onChange={(e) => setFormData({ ...formData, first_name: e.target.value })}
+                    required
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="last_name">Last Name *</Label>
+                  <Input
+                    id="last_name"
+                    value={formData.last_name}
+                    onChange={(e) => setFormData({ ...formData, last_name: e.target.value })}
+                    required
+                  />
+                </div>
               </div>
-              <div className="space-y-2">
-                <Label htmlFor="lastName">Last Name*</Label>
-                <Input
-                  id="lastName"
-                  placeholder="Enter last name"
-                  value={currentParent.last_name || ""}
-                  onChange={(e) => setCurrentParent({...currentParent, last_name: e.target.value})}
-                />
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="relation">Relation *</Label>
+                  <Select value={formData.relation} onValueChange={(value: "Mother" | "Father" | "Guardian" | "Other") => setFormData({ ...formData, relation: value })}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select relation" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="Mother">Mother</SelectItem>
+                      <SelectItem value="Father">Father</SelectItem>
+                      <SelectItem value="Guardian">Guardian</SelectItem>
+                      <SelectItem value="Other">Other</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
+                  <Label htmlFor="phone_number">Phone Number *</Label>
+                  <Input
+                    id="phone_number"
+                    value={formData.phone_number}
+                    onChange={(e) => setFormData({ ...formData, phone_number: e.target.value })}
+                    pattern="[0-9]{10}"
+                    title="Phone number must be 10 digits"
+                    required
+                  />
+                </div>
               </div>
-              <div className="space-y-2">
-                <Label htmlFor="relation">Relation*</Label>
-                <Select
-                  value={currentParent.relation}
-                  onValueChange={(value) => setCurrentParent({...currentParent, relation: value as "Mother" | "Father" | "Guardian" | "Other"})}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select relation" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="Mother">Mother</SelectItem>
-                    <SelectItem value="Father">Father</SelectItem>
-                    <SelectItem value="Guardian">Guardian</SelectItem>
-                    <SelectItem value="Other">Other</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="phone">Phone Number*</Label>
-                <Input
-                  id="phone"
-                  placeholder="10-digit phone number"
-                  value={currentParent.phone_number || ""}
-                  onChange={(e) => setCurrentParent({...currentParent, phone_number: e.target.value})}
-                />
-              </div>
-              <div className="col-span-2 space-y-2">
-                <Label htmlFor="email">Email*</Label>
+
+              <div>
+                <Label htmlFor="email">Email *</Label>
                 <Input
                   id="email"
                   type="email"
-                  placeholder="Enter email address"
-                  value={currentParent.email || ""}
-                  onChange={(e) => setCurrentParent({...currentParent, email: e.target.value})}
+                  value={formData.email}
+                  onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                  required
                 />
               </div>
-              <div className="col-span-2 space-y-2">
-                <Label htmlFor="addressLine1">Address Line 1</Label>
-                <Input
-                  id="addressLine1"
-                  placeholder="Enter address line 1"
-                  value={currentParent.address_line1 || ""}
-                  onChange={(e) => setCurrentParent({
-                    ...currentParent,
-                    address_line1: e.target.value
-                  })}
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="city">City</Label>
-                <Input
-                  id="city"
-                  placeholder="Enter city"
-                  value={currentParent.city || ""}
-                  onChange={(e) => setCurrentParent({
-                    ...currentParent,
-                    city: e.target.value
-                  })}
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="pinCode">Pin Code</Label>
-                <Input
-                  id="pinCode"
-                  placeholder="Enter 6-digit pin code"
-                  value={currentParent.pin_code || ""}
-                  onChange={(e) => setCurrentParent({
-                    ...currentParent,
-                    pin_code: e.target.value
-                  })}
-                />
-              </div>
-              <div className="col-span-2 space-y-2">
-                <Label>Linked Students</Label>
-                <div className="max-h-32 overflow-y-auto border rounded p-2">
-                  {students.map((student) => (
-                    <div key={student.id} className="flex items-center space-x-2">
-                      <input
-                        type="checkbox"
-                        id={`student-${student.id}`}
-                        checked={selectedStudents.includes(student.id)}
-                        onChange={(e) => {
-                          if (e.target.checked) {
-                            setSelectedStudents([...selectedStudents, student.id]);
-                          } else {
-                            setSelectedStudents(selectedStudents.filter(id => id !== student.id));
-                          }
-                        }}
-                      />
-                      <label htmlFor={`student-${student.id}`} className="text-sm">
-                        {student.admission_number} - {student.first_name} {student.last_name}
-                      </label>
-                    </div>
-                  ))}
+
+              <div className="space-y-4">
+                <h3 className="font-medium">Address Information</h3>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <Label htmlFor="address_line1">Address Line 1</Label>
+                    <Input
+                      id="address_line1"
+                      value={formData.address_line1}
+                      onChange={(e) => setFormData({ ...formData, address_line1: e.target.value })}
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="address_line2">Address Line 2</Label>
+                    <Input
+                      id="address_line2"
+                      value={formData.address_line2}
+                      onChange={(e) => setFormData({ ...formData, address_line2: e.target.value })}
+                    />
+                  </div>
+                </div>
+                <div className="grid grid-cols-3 gap-4">
+                  <div>
+                    <Label htmlFor="city">City</Label>
+                    <Input
+                      id="city"
+                      value={formData.city}
+                      onChange={(e) => setFormData({ ...formData, city: e.target.value })}
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="state">State</Label>
+                    <Input
+                      id="state"
+                      value={formData.state}
+                      onChange={(e) => setFormData({ ...formData, state: e.target.value })}
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="pin_code">PIN Code</Label>
+                    <Input
+                      id="pin_code"
+                      value={formData.pin_code}
+                      onChange={(e) => setFormData({ ...formData, pin_code: e.target.value })}
+                      pattern="[0-9]{6}"
+                      title="PIN code must be 6 digits"
+                    />
+                  </div>
                 </div>
               </div>
-            </div>
-            <div className="flex justify-end space-x-2 mt-6">
-              <Button variant="outline" onClick={() => setIsAddModalOpen(false)}>
-                Cancel
-              </Button>
-              <Button onClick={handleSaveParent}>
-                {isEditing ? "Update" : "Save"}
-              </Button>
-            </div>
+
+              <div className="flex justify-end space-x-2 pt-4">
+                <Button type="button" variant="outline" onClick={() => setDialogOpen(false)}>
+                  Cancel
+                </Button>
+                <Button type="submit">
+                  {editingParent ? "Update Parent" : "Add Parent"}
+                </Button>
+              </div>
+            </form>
           </DialogContent>
         </Dialog>
       </div>
 
       <Card>
         <CardHeader>
-          <CardTitle>Parent Records</CardTitle>
+          <CardTitle>Parents</CardTitle>
           <CardDescription>
-            View and manage all parent information
+            Total Parents: {parents.length}
           </CardDescription>
           <div className="flex items-center space-x-2">
             <Search className="w-4 h-4 text-gray-400" />
@@ -490,27 +416,16 @@ export function ParentManagement() {
             <TableBody>
               {filteredParents.map((parent) => (
                 <TableRow key={parent.id}>
-                  <TableCell className="font-medium">
-                    {parent.first_name} {parent.last_name}
-                  </TableCell>
+                  <TableCell className="font-medium">{parent.first_name} {parent.last_name}</TableCell>
                   <TableCell>{parent.relation}</TableCell>
                   <TableCell>{parent.phone_number}</TableCell>
                   <TableCell>{parent.email}</TableCell>
                   <TableCell>
-                    <div className="flex items-center space-x-2">
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => handleEditParent(parent)}
-                      >
+                    <div className="flex space-x-2">
+                      <Button size="sm" variant="outline" onClick={() => handleEdit(parent)}>
                         <Edit className="w-4 h-4" />
                       </Button>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => handleDeleteParent(parent.id)}
-                        className="text-red-600 hover:text-red-700"
-                      >
+                      <Button size="sm" variant="outline" onClick={() => handleDelete(parent)}>
                         <Trash2 className="w-4 h-4" />
                       </Button>
                     </div>
@@ -519,6 +434,11 @@ export function ParentManagement() {
               ))}
             </TableBody>
           </Table>
+          {filteredParents.length === 0 && (
+            <div className="text-center py-8 text-gray-500">
+              No parents found matching your search criteria.
+            </div>
+          )}
         </CardContent>
       </Card>
     </div>
