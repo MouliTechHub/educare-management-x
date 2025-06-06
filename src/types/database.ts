@@ -80,3 +80,22 @@ export interface Subject {
   code: string;
   created_at: string;
 }
+
+// Simplified types for join queries
+export interface TeacherBasic {
+  id: string;
+  first_name: string;
+  last_name: string;
+}
+
+export interface ClassBasic {
+  id: string;
+  name: string;
+  section: string | null;
+}
+
+export interface SubjectBasic {
+  id: string;
+  name: string;
+  code: string;
+}

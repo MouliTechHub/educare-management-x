@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -10,7 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { Plus, Search, Edit, Trash2, Users, BookOpen } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
-import { Class, Teacher, Subject } from "@/types/database";
+import { Class, Teacher, Subject, TeacherBasic } from "@/types/database";
 import { useForm } from "react-hook-form";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 
@@ -21,7 +20,7 @@ interface ClassFormData {
 }
 
 interface ClassWithDetails extends Class {
-  teacher?: Teacher;
+  teacher?: TeacherBasic;
   student_count?: number;
   subjects?: Subject[];
 }
@@ -56,7 +55,7 @@ export function ClassManagement() {
         .from("classes")
         .select(`
           *,
-          teachers:homeroom_teacher_id (first_name, last_name)
+          teachers:homeroom_teacher_id (id, first_name, last_name)
         `)
         .order("name");
 
@@ -73,7 +72,11 @@ export function ClassManagement() {
           return {
             ...classItem,
             student_count: count || 0,
-            teacher: classItem.teachers
+            teacher: classItem.teachers ? {
+              id: classItem.teachers.id,
+              first_name: classItem.teachers.first_name,
+              last_name: classItem.teachers.last_name
+            } : undefined
           };
         })
       );
@@ -99,7 +102,14 @@ export function ClassManagement() {
         .order("first_name");
 
       if (error) throw error;
-      setTeachers(data || []);
+      
+      // Type cast the status field
+      const typedTeachers = (data || []).map(teacher => ({
+        ...teacher,
+        status: teacher.status as 'Active' | 'On Leave' | 'Retired'
+      }));
+      
+      setTeachers(typedTeachers);
     } catch (error: any) {
       console.error("Error fetching teachers:", error);
     }

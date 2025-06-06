@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -10,7 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { Plus, Search, GraduationCap, FileText } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
-import { Class, Subject, StudentBasic } from "@/types/database";
+import { Class, Subject, StudentBasic, ClassBasic, SubjectBasic } from "@/types/database";
 import { useForm } from "react-hook-form";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 
@@ -20,7 +19,7 @@ interface Exam {
   exam_date: string;
   class_id: string;
   created_at: string;
-  class?: Class;
+  class?: ClassBasic;
 }
 
 interface Grade {
@@ -32,7 +31,7 @@ interface Grade {
   grade: string;
   remarks?: string;
   student?: StudentBasic;
-  subject?: Subject;
+  subject?: SubjectBasic;
 }
 
 interface ExamFormData {
@@ -116,7 +115,11 @@ export function ExamGrading() {
 
       const examsWithClasses = (data || []).map(exam => ({
         ...exam,
-        class: exam.classes
+        class: exam.classes ? {
+          id: exam.classes.id,
+          name: exam.classes.name,
+          section: exam.classes.section
+        } : undefined
       }));
 
       setExams(examsWithClasses);
@@ -148,8 +151,17 @@ export function ExamGrading() {
 
       const gradesWithDetails = (data || []).map(grade => ({
         ...grade,
-        student: grade.students,
-        subject: grade.subjects
+        student: grade.students ? {
+          id: grade.students.id,
+          first_name: grade.students.first_name,
+          last_name: grade.students.last_name,
+          admission_number: grade.students.admission_number
+        } : undefined,
+        subject: grade.subjects ? {
+          id: grade.subjects.id,
+          name: grade.subjects.name,
+          code: grade.subjects.code
+        } : undefined
       }));
 
       setGrades(gradesWithDetails);

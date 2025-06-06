@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -65,7 +64,14 @@ export function TeacherManagement() {
         .order("created_at", { ascending: false });
 
       if (error) throw error;
-      setTeachers(data || []);
+      
+      // Type cast the status field to match our enum
+      const typedTeachers = (data || []).map(teacher => ({
+        ...teacher,
+        status: teacher.status as 'Active' | 'On Leave' | 'Retired'
+      }));
+      
+      setTeachers(typedTeachers);
     } catch (error: any) {
       toast({
         title: "Error fetching teachers",

@@ -1,14 +1,12 @@
-
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Search, Edit, Trash2, FileText } from "lucide-react";
+import { Plus, Search, Edit, Trash2, User, Calendar } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { Student, Class } from "@/types/database";
@@ -23,7 +21,6 @@ interface StudentFormData {
   gender: string;
   class_id?: string;
   address_line1?: string;
-  address_line2?: string;
   city?: string;
   state?: string;
   pin_code?: string;
@@ -48,7 +45,6 @@ export function StudentManagement() {
       gender: "Male",
       class_id: "",
       address_line1: "",
-      address_line2: "",
       city: "",
       state: "",
       pin_code: "",
@@ -65,11 +61,22 @@ export function StudentManagement() {
     try {
       const { data, error } = await supabase
         .from("students")
-        .select("*, classes(id, name, section)")
+        .select(`
+          *,
+          classes(id, name, section)
+        `)
         .order("created_at", { ascending: false });
 
       if (error) throw error;
-      setStudents(data || []);
+      
+      // Type cast the gender and status fields
+      const typedStudents = (data || []).map(student => ({
+        ...student,
+        gender: student.gender as 'Male' | 'Female' | 'Other',
+        status: student.status as 'Active' | 'Inactive' | 'Alumni'
+      }));
+      
+      setStudents(typedStudents);
     } catch (error: any) {
       toast({
         title: "Error fetching students",
@@ -97,10 +104,15 @@ export function StudentManagement() {
 
   const onSubmit = async (data: StudentFormData) => {
     try {
+      const studentData = {
+        ...data,
+        class_id: data.class_id || null,
+      };
+
       if (selectedStudent) {
         const { error } = await supabase
           .from("students")
-          .update(data)
+          .update(studentData)
           .eq("id", selectedStudent.id);
 
         if (error) throw error;
@@ -108,7 +120,7 @@ export function StudentManagement() {
       } else {
         const { error } = await supabase
           .from("students")
-          .insert([data]);
+          .insert([studentData]);
 
         if (error) throw error;
         toast({ title: "Student created successfully" });
@@ -156,9 +168,8 @@ export function StudentManagement() {
       admission_number: student.admission_number,
       date_of_birth: student.date_of_birth,
       gender: student.gender,
-      class_id: student.class_id || undefined,
+      class_id: student.class_id || "",
       address_line1: student.address_line1 || "",
-      address_line2: student.address_line2 || "",
       city: student.city || "",
       state: student.state || "",
       pin_code: student.pin_code || "",
@@ -185,7 +196,7 @@ export function StudentManagement() {
       <div className="flex justify-between items-center">
         <div>
           <h1 className="text-3xl font-bold text-gray-900">Student Management</h1>
-          <p className="text-gray-600 mt-2">Manage student records and information</p>
+          <p className="text-gray-600 mt-2">Manage student enrollment and information</p>
         </div>
         <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
           <DialogTrigger asChild>
@@ -291,14 +302,14 @@ export function StudentManagement() {
                     render={({ field }) => (
                       <FormItem>
                         <FormLabel>Class</FormLabel>
-                        <Select onValueChange={field.onChange} value={field.value || ""}>
+                        <Select onValueChange={field.onChange} value={field.value}>
                           <FormControl>
                             <SelectTrigger>
                               <SelectValue placeholder="Select a class" />
                             </SelectTrigger>
                           </FormControl>
                           <SelectContent>
-                            <SelectItem value="">Not Assigned</SelectItem>
+                            <SelectItem value="">No class assigned</SelectItem>
                             {classes.map((classItem) => (
                               <SelectItem key={classItem.id} value={classItem.id}>
                                 {classItem.name} {classItem.section && `- ${classItem.section}`}
@@ -316,20 +327,7 @@ export function StudentManagement() {
                   name="address_line1"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Address Line 1</FormLabel>
-                      <FormControl>
-                        <Input {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={form.control}
-                  name="address_line2"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Address Line 2</FormLabel>
+                      <FormLabel>Address</FormLabel>
                       <FormControl>
                         <Input {...field} />
                       </FormControl>
@@ -419,7 +417,7 @@ export function StudentManagement() {
           <div className="flex items-center justify-between">
             <div>
               <CardTitle>Students</CardTitle>
-              <CardDescription>Manage student records</CardDescription>
+              <CardDescription>Manage student enrollment</CardDescription>
             </div>
             <div className="flex items-center space-x-2">
               <Search className="w-4 h-4 text-gray-400" />
@@ -436,10 +434,10 @@ export function StudentManagement() {
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Name</TableHead>
-                <TableHead>Admission #</TableHead>
+                <TableHead>Student</TableHead>
+                <TableHead>Admission No.</TableHead>
                 <TableHead>Class</TableHead>
-                <TableHead>Gender</TableHead>
+                <TableHead>Date of Birth</TableHead>
                 <TableHead>Status</TableHead>
                 <TableHead>Actions</TableHead>
               </TableRow>
@@ -449,25 +447,29 @@ export function StudentManagement() {
                 <TableRow key={student.id}>
                   <TableCell>
                     <div className="flex items-center space-x-2">
-                      <FileText className="w-4 h-4 text-blue-600" />
-                      <span className="font-medium">{student.first_name} {student.last_name}</span>
+                      <User className="w-4 h-4 text-blue-600" />
+                      <div>
+                        <div className="font-medium">{student.first_name} {student.last_name}</div>
+                        <div className="text-sm text-gray-500">{student.gender}</div>
+                      </div>
                     </div>
                   </TableCell>
                   <TableCell>{student.admission_number}</TableCell>
                   <TableCell>
                     {student.classes ? (
-                      `${student.classes.name} ${student.classes.section || ""}`
+                      <span>{student.classes.name} {student.classes.section && `- ${student.classes.section}`}</span>
                     ) : (
                       <span className="text-gray-400">Not assigned</span>
                     )}
                   </TableCell>
-                  <TableCell>{student.gender}</TableCell>
                   <TableCell>
-                    <Badge variant={
-                      student.status === "Active" ? "default" : 
-                      student.status === "Alumni" ? "outline" : 
-                      "secondary"
-                    }>
+                    <div className="flex items-center space-x-1">
+                      <Calendar className="w-4 h-4 text-gray-400" />
+                      <span>{new Date(student.date_of_birth).toLocaleDateString()}</span>
+                    </div>
+                  </TableCell>
+                  <TableCell>
+                    <Badge variant={student.status === "Active" ? "default" : "secondary"}>
                       {student.status}
                     </Badge>
                   </TableCell>

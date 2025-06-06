@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -10,7 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { Plus, Clock, Calendar, User, BookOpen } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
-import { Class, Teacher, Subject } from "@/types/database";
+import { Class, Teacher, Subject, ClassBasic, TeacherBasic, SubjectBasic } from "@/types/database";
 import { useForm } from "react-hook-form";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 
@@ -24,9 +23,9 @@ interface Timetable {
   start_time: string;
   end_time: string;
   created_at: string;
-  class?: Class;
-  subject?: Subject;
-  teacher?: Teacher;
+  class?: ClassBasic;
+  subject?: SubjectBasic;
+  teacher?: TeacherBasic;
 }
 
 interface TimetableFormData {
@@ -101,9 +100,21 @@ export function TimetableScheduling() {
 
       const timetablesWithDetails = (data || []).map(timetable => ({
         ...timetable,
-        class: timetable.classes,
-        subject: timetable.subjects,
-        teacher: timetable.teachers
+        class: timetable.classes ? {
+          id: timetable.classes.id,
+          name: timetable.classes.name,
+          section: timetable.classes.section
+        } : undefined,
+        subject: timetable.subjects ? {
+          id: timetable.subjects.id,
+          name: timetable.subjects.name,
+          code: timetable.subjects.code
+        } : undefined,
+        teacher: timetable.teachers ? {
+          id: timetable.teachers.id,
+          first_name: timetable.teachers.first_name,
+          last_name: timetable.teachers.last_name
+        } : undefined
       }));
 
       setTimetables(timetablesWithDetails);
@@ -155,7 +166,14 @@ export function TimetableScheduling() {
         .order("first_name");
 
       if (error) throw error;
-      setTeachers(data || []);
+      
+      // Type cast the status field
+      const typedTeachers = (data || []).map(teacher => ({
+        ...teacher,
+        status: teacher.status as 'Active' | 'On Leave' | 'Retired'
+      }));
+      
+      setTeachers(typedTeachers);
     } catch (error: any) {
       console.error("Error fetching teachers:", error);
     }
