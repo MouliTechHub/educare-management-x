@@ -1,17 +1,34 @@
 
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Search, Edit, Trash2 } from "lucide-react";
+import { Plus, Search, Edit, Trash2, FileText } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { Student, Class } from "@/types/database";
+import { useForm } from "react-hook-form";
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
+
+interface StudentFormData {
+  first_name: string;
+  last_name: string;
+  admission_number: string;
+  date_of_birth: string;
+  gender: string;
+  class_id?: string;
+  address_line1?: string;
+  address_line2?: string;
+  city?: string;
+  state?: string;
+  pin_code?: string;
+  status: string;
+}
 
 export function StudentManagement() {
   const [students, setStudents] = useState<Student[]>([]);
@@ -19,23 +36,24 @@ export function StudentManagement() {
   const [searchTerm, setSearchTerm] = useState("");
   const [loading, setLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
-  const [editingStudent, setEditingStudent] = useState<Student | null>(null);
+  const [selectedStudent, setSelectedStudent] = useState<Student | null>(null);
   const { toast } = useToast();
 
-  // Form state
-  const [formData, setFormData] = useState({
-    first_name: "",
-    last_name: "",
-    admission_number: "",
-    date_of_birth: "",
-    gender: "" as "Male" | "Female" | "Other" | "",
-    class_id: "",
-    address_line1: "",
-    address_line2: "",
-    city: "",
-    state: "",
-    pin_code: "",
-    status: "Active" as "Active" | "Inactive" | "Alumni"
+  const form = useForm<StudentFormData>({
+    defaultValues: {
+      first_name: "",
+      last_name: "",
+      admission_number: "",
+      date_of_birth: "",
+      gender: "Male",
+      class_id: "",
+      address_line1: "",
+      address_line2: "",
+      city: "",
+      state: "",
+      pin_code: "",
+      status: "Active",
+    },
   });
 
   useEffect(() => {
@@ -45,27 +63,13 @@ export function StudentManagement() {
 
   const fetchStudents = async () => {
     try {
-      setLoading(true);
       const { data, error } = await supabase
-        .from('students')
-        .select(`
-          *,
-          classes (
-            id,
-            name,
-            section
-          )
-        `)
-        .order('admission_number');
+        .from("students")
+        .select("*, classes(id, name, section)")
+        .order("created_at", { ascending: false });
 
       if (error) throw error;
-      
-      // Type assertion since we know the data structure
-      setStudents((data as any[])?.map(student => ({
-        ...student,
-        gender: student.gender as 'Male' | 'Female' | 'Other',
-        status: student.status as 'Active' | 'Inactive' | 'Alumni'
-      })) || []);
+      setStudents(data || []);
     } catch (error: any) {
       toast({
         title: "Error fetching students",
@@ -80,119 +84,60 @@ export function StudentManagement() {
   const fetchClasses = async () => {
     try {
       const { data, error } = await supabase
-        .from('classes')
-        .select('*')
-        .order('name');
+        .from("classes")
+        .select("*")
+        .order("name");
 
       if (error) throw error;
       setClasses(data || []);
     } catch (error: any) {
-      toast({
-        title: "Error fetching classes",
-        description: error.message,
-        variant: "destructive",
-      });
+      console.error("Error fetching classes:", error);
     }
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    
-    if (!formData.first_name || !formData.last_name || !formData.admission_number || 
-        !formData.date_of_birth || !formData.gender) {
-      toast({
-        title: "Validation Error",
-        description: "Please fill in all required fields",
-        variant: "destructive",
-      });
-      return;
-    }
-
+  const onSubmit = async (data: StudentFormData) => {
     try {
-      const studentData = {
-        ...formData,
-        class_id: formData.class_id || null,
-        address_line1: formData.address_line1 || null,
-        address_line2: formData.address_line2 || null,
-        city: formData.city || null,
-        state: formData.state || null,
-        pin_code: formData.pin_code || null,
-      };
-
-      if (editingStudent) {
+      if (selectedStudent) {
         const { error } = await supabase
-          .from('students')
-          .update(studentData)
-          .eq('id', editingStudent.id);
+          .from("students")
+          .update(data)
+          .eq("id", selectedStudent.id);
 
         if (error) throw error;
-        
-        toast({
-          title: "Student Updated",
-          description: `${formData.first_name} ${formData.last_name} has been updated successfully.`,
-        });
+        toast({ title: "Student updated successfully" });
       } else {
         const { error } = await supabase
-          .from('students')
-          .insert(studentData);
+          .from("students")
+          .insert([data]);
 
         if (error) throw error;
-        
-        toast({
-          title: "Student Added",
-          description: `${formData.first_name} ${formData.last_name} has been added successfully.`,
-        });
+        toast({ title: "Student created successfully" });
       }
 
-      setDialogOpen(false);
-      resetForm();
       fetchStudents();
+      setDialogOpen(false);
+      setSelectedStudent(null);
+      form.reset();
     } catch (error: any) {
       toast({
-        title: "Error",
+        title: "Error saving student",
         description: error.message,
         variant: "destructive",
       });
     }
   };
 
-  const handleEdit = (student: Student) => {
-    setEditingStudent(student);
-    setFormData({
-      first_name: student.first_name,
-      last_name: student.last_name,
-      admission_number: student.admission_number,
-      date_of_birth: student.date_of_birth,
-      gender: student.gender,
-      class_id: student.class_id || "",
-      address_line1: student.address_line1 || "",
-      address_line2: student.address_line2 || "",
-      city: student.city || "",
-      state: student.state || "",
-      pin_code: student.pin_code || "",
-      status: student.status
-    });
-    setDialogOpen(true);
-  };
-
-  const handleDelete = async (student: Student) => {
-    if (!confirm(`Are you sure you want to delete ${student.first_name} ${student.last_name}?`)) {
-      return;
-    }
+  const deleteStudent = async (id: string) => {
+    if (!confirm("Are you sure you want to delete this student?")) return;
 
     try {
       const { error } = await supabase
-        .from('students')
+        .from("students")
         .delete()
-        .eq('id', student.id);
+        .eq("id", id);
 
       if (error) throw error;
-      
-      toast({
-        title: "Student Deleted",
-        description: `${student.first_name} ${student.last_name} has been deleted.`,
-      });
-      
+      toast({ title: "Student deleted successfully" });
       fetchStudents();
     } catch (error: any) {
       toast({
@@ -203,37 +148,34 @@ export function StudentManagement() {
     }
   };
 
-  const resetForm = () => {
-    setFormData({
-      first_name: "",
-      last_name: "",
-      admission_number: "",
-      date_of_birth: "",
-      gender: "",
-      class_id: "",
-      address_line1: "",
-      address_line2: "",
-      city: "",
-      state: "",
-      pin_code: "",
-      status: "Active"
+  const openEditDialog = (student: Student) => {
+    setSelectedStudent(student);
+    form.reset({
+      first_name: student.first_name,
+      last_name: student.last_name,
+      admission_number: student.admission_number,
+      date_of_birth: student.date_of_birth,
+      gender: student.gender,
+      class_id: student.class_id || undefined,
+      address_line1: student.address_line1 || "",
+      address_line2: student.address_line2 || "",
+      city: student.city || "",
+      state: student.state || "",
+      pin_code: student.pin_code || "",
+      status: student.status,
     });
-    setEditingStudent(null);
+    setDialogOpen(true);
   };
 
-  const filteredStudents = students.filter(student =>
-    student.first_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    student.last_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+  const filteredStudents = students.filter((student) =>
+    `${student.first_name} ${student.last_name}`.toLowerCase().includes(searchTerm.toLowerCase()) ||
     student.admission_number.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center p-8">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
-          <p className="mt-2 text-gray-600">Loading students...</p>
-        </div>
+      <div className="flex items-center justify-center min-h-[400px]">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
       </div>
     );
   }
@@ -242,182 +184,260 @@ export function StudentManagement() {
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <div>
-          <h2 className="text-3xl font-bold text-gray-900">Student Management</h2>
-          <p className="text-gray-600">Manage student records and information</p>
+          <h1 className="text-3xl font-bold text-gray-900">Student Management</h1>
+          <p className="text-gray-600 mt-2">Manage student records and information</p>
         </div>
         <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
           <DialogTrigger asChild>
-            <Button onClick={resetForm}>
+            <Button onClick={() => {
+              setSelectedStudent(null);
+              form.reset();
+            }}>
               <Plus className="w-4 h-4 mr-2" />
               Add Student
             </Button>
           </DialogTrigger>
           <DialogContent className="max-w-2xl">
             <DialogHeader>
-              <DialogTitle>
-                {editingStudent ? "Edit Student" : "Add New Student"}
-              </DialogTitle>
+              <DialogTitle>{selectedStudent ? "Edit Student" : "Add New Student"}</DialogTitle>
+              <DialogDescription>
+                {selectedStudent ? "Update student information" : "Enter student details to add to the system"}
+              </DialogDescription>
             </DialogHeader>
-            <form onSubmit={handleSubmit} className="space-y-4">
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <Label htmlFor="first_name">First Name *</Label>
-                  <Input
-                    id="first_name"
-                    value={formData.first_name}
-                    onChange={(e) => setFormData({ ...formData, first_name: e.target.value })}
-                    required
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="last_name">Last Name *</Label>
-                  <Input
-                    id="last_name"
-                    value={formData.last_name}
-                    onChange={(e) => setFormData({ ...formData, last_name: e.target.value })}
-                    required
-                  />
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <Label htmlFor="admission_number">Admission Number *</Label>
-                  <Input
-                    id="admission_number"
-                    value={formData.admission_number}
-                    onChange={(e) => setFormData({ ...formData, admission_number: e.target.value })}
-                    required
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="date_of_birth">Date of Birth *</Label>
-                  <Input
-                    id="date_of_birth"
-                    type="date"
-                    value={formData.date_of_birth}
-                    onChange={(e) => setFormData({ ...formData, date_of_birth: e.target.value })}
-                    required
-                  />
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <Label htmlFor="gender">Gender *</Label>
-                  <Select value={formData.gender} onValueChange={(value: "Male" | "Female" | "Other") => setFormData({ ...formData, gender: value })}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select gender" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="Male">Male</SelectItem>
-                      <SelectItem value="Female">Female</SelectItem>
-                      <SelectItem value="Other">Other</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div>
-                  <Label htmlFor="class_id">Class</Label>
-                  <Select value={formData.class_id} onValueChange={(value) => setFormData({ ...formData, class_id: value })}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select class" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {classes.map((cls) => (
-                        <SelectItem key={cls.id} value={cls.id}>
-                          {cls.name} {cls.section && `- ${cls.section}`}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-
-              <div className="space-y-4">
-                <h3 className="font-medium">Address Information</h3>
+            <Form {...form}>
+              <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
                 <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <Label htmlFor="address_line1">Address Line 1</Label>
-                    <Input
-                      id="address_line1"
-                      value={formData.address_line1}
-                      onChange={(e) => setFormData({ ...formData, address_line1: e.target.value })}
-                    />
-                  </div>
-                  <div>
-                    <Label htmlFor="address_line2">Address Line 2</Label>
-                    <Input
-                      id="address_line2"
-                      value={formData.address_line2}
-                      onChange={(e) => setFormData({ ...formData, address_line2: e.target.value })}
-                    />
-                  </div>
+                  <FormField
+                    control={form.control}
+                    name="first_name"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>First Name</FormLabel>
+                        <FormControl>
+                          <Input {...field} required />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name="last_name"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Last Name</FormLabel>
+                        <FormControl>
+                          <Input {...field} required />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
                 </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <FormField
+                    control={form.control}
+                    name="admission_number"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Admission Number</FormLabel>
+                        <FormControl>
+                          <Input {...field} required />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name="date_of_birth"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Date of Birth</FormLabel>
+                        <FormControl>
+                          <Input {...field} type="date" required />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <FormField
+                    control={form.control}
+                    name="gender"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Gender</FormLabel>
+                        <Select onValueChange={field.onChange} value={field.value}>
+                          <FormControl>
+                            <SelectTrigger>
+                              <SelectValue />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            <SelectItem value="Male">Male</SelectItem>
+                            <SelectItem value="Female">Female</SelectItem>
+                            <SelectItem value="Other">Other</SelectItem>
+                          </SelectContent>
+                        </Select>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name="class_id"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Class</FormLabel>
+                        <Select onValueChange={field.onChange} value={field.value || ""}>
+                          <FormControl>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Select a class" />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            <SelectItem value="">Not Assigned</SelectItem>
+                            {classes.map((classItem) => (
+                              <SelectItem key={classItem.id} value={classItem.id}>
+                                {classItem.name} {classItem.section && `- ${classItem.section}`}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
+                <FormField
+                  control={form.control}
+                  name="address_line1"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Address Line 1</FormLabel>
+                      <FormControl>
+                        <Input {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="address_line2"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Address Line 2</FormLabel>
+                      <FormControl>
+                        <Input {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
                 <div className="grid grid-cols-3 gap-4">
-                  <div>
-                    <Label htmlFor="city">City</Label>
-                    <Input
-                      id="city"
-                      value={formData.city}
-                      onChange={(e) => setFormData({ ...formData, city: e.target.value })}
-                    />
-                  </div>
-                  <div>
-                    <Label htmlFor="state">State</Label>
-                    <Input
-                      id="state"
-                      value={formData.state}
-                      onChange={(e) => setFormData({ ...formData, state: e.target.value })}
-                    />
-                  </div>
-                  <div>
-                    <Label htmlFor="pin_code">PIN Code</Label>
-                    <Input
-                      id="pin_code"
-                      value={formData.pin_code}
-                      onChange={(e) => setFormData({ ...formData, pin_code: e.target.value })}
-                      pattern="[0-9]{6}"
-                      title="PIN code must be 6 digits"
-                    />
-                  </div>
+                  <FormField
+                    control={form.control}
+                    name="city"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>City</FormLabel>
+                        <FormControl>
+                          <Input {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name="state"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>State</FormLabel>
+                        <FormControl>
+                          <Input {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name="pin_code"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>PIN Code</FormLabel>
+                        <FormControl>
+                          <Input {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
                 </div>
-              </div>
-
-              <div className="flex justify-end space-x-2 pt-4">
-                <Button type="button" variant="outline" onClick={() => setDialogOpen(false)}>
-                  Cancel
-                </Button>
-                <Button type="submit">
-                  {editingStudent ? "Update Student" : "Add Student"}
-                </Button>
-              </div>
-            </form>
+                <FormField
+                  control={form.control}
+                  name="status"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Status</FormLabel>
+                      <Select onValueChange={field.onChange} value={field.value}>
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          <SelectItem value="Active">Active</SelectItem>
+                          <SelectItem value="Inactive">Inactive</SelectItem>
+                          <SelectItem value="Alumni">Alumni</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <div className="flex justify-end space-x-2 pt-4">
+                  <Button type="button" variant="outline" onClick={() => setDialogOpen(false)}>
+                    Cancel
+                  </Button>
+                  <Button type="submit">
+                    {selectedStudent ? "Update" : "Create"} Student
+                  </Button>
+                </div>
+              </form>
+            </Form>
           </DialogContent>
         </Dialog>
       </div>
 
       <Card>
         <CardHeader>
-          <CardTitle>Students</CardTitle>
-          <CardDescription>
-            Total Students: {students.length}
-          </CardDescription>
-          <div className="flex items-center space-x-2">
-            <Search className="w-4 h-4 text-gray-400" />
-            <Input
-              placeholder="Search by name or admission number..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="max-w-sm"
-            />
+          <div className="flex items-center justify-between">
+            <div>
+              <CardTitle>Students</CardTitle>
+              <CardDescription>Manage student records</CardDescription>
+            </div>
+            <div className="flex items-center space-x-2">
+              <Search className="w-4 h-4 text-gray-400" />
+              <Input
+                placeholder="Search students..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="w-64"
+              />
+            </div>
           </div>
         </CardHeader>
         <CardContent>
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Admission No.</TableHead>
                 <TableHead>Name</TableHead>
+                <TableHead>Admission #</TableHead>
                 <TableHead>Class</TableHead>
                 <TableHead>Gender</TableHead>
                 <TableHead>Status</TableHead>
@@ -427,23 +447,44 @@ export function StudentManagement() {
             <TableBody>
               {filteredStudents.map((student) => (
                 <TableRow key={student.id}>
-                  <TableCell className="font-medium">{student.admission_number}</TableCell>
-                  <TableCell>{student.first_name} {student.last_name}</TableCell>
                   <TableCell>
-                    {student.classes ? `${student.classes.name}${student.classes.section ? ` - ${student.classes.section}` : ''}` : 'Not Assigned'}
+                    <div className="flex items-center space-x-2">
+                      <FileText className="w-4 h-4 text-blue-600" />
+                      <span className="font-medium">{student.first_name} {student.last_name}</span>
+                    </div>
+                  </TableCell>
+                  <TableCell>{student.admission_number}</TableCell>
+                  <TableCell>
+                    {student.classes ? (
+                      `${student.classes.name} ${student.classes.section || ""}`
+                    ) : (
+                      <span className="text-gray-400">Not assigned</span>
+                    )}
                   </TableCell>
                   <TableCell>{student.gender}</TableCell>
                   <TableCell>
-                    <Badge variant={student.status === 'Active' ? 'default' : 'secondary'}>
+                    <Badge variant={
+                      student.status === "Active" ? "default" : 
+                      student.status === "Alumni" ? "outline" : 
+                      "secondary"
+                    }>
                       {student.status}
                     </Badge>
                   </TableCell>
                   <TableCell>
-                    <div className="flex space-x-2">
-                      <Button size="sm" variant="outline" onClick={() => handleEdit(student)}>
+                    <div className="flex items-center space-x-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => openEditDialog(student)}
+                      >
                         <Edit className="w-4 h-4" />
                       </Button>
-                      <Button size="sm" variant="outline" onClick={() => handleDelete(student)}>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => deleteStudent(student.id)}
+                      >
                         <Trash2 className="w-4 h-4" />
                       </Button>
                     </div>
@@ -452,11 +493,6 @@ export function StudentManagement() {
               ))}
             </TableBody>
           </Table>
-          {filteredStudents.length === 0 && (
-            <div className="text-center py-8 text-gray-500">
-              No students found matching your search criteria.
-            </div>
-          )}
         </CardContent>
       </Card>
     </div>

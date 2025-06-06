@@ -1,5 +1,5 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { SidebarProvider } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/layout/AppSidebar";
 import { Header } from "@/components/layout/Header";
@@ -16,10 +16,41 @@ import { Reports } from "@/components/modules/Reports";
 import { Settings } from "@/components/modules/Settings";
 import { AuthPage } from "@/components/auth/AuthPage";
 import { useAuth } from "@/contexts/AuthContext";
+import { supabase } from "@/integrations/supabase/client";
 
 const Index = () => {
   const { user, loading, signOut } = useAuth();
   const [activeModule, setActiveModule] = useState("dashboard");
+  const [userRole, setUserRole] = useState<"Admin" | "Teacher" | "Parent" | "Accountant">("Admin");
+
+  useEffect(() => {
+    if (user) {
+      fetchUserProfile();
+    }
+  }, [user]);
+
+  const fetchUserProfile = async () => {
+    if (!user) return;
+
+    try {
+      const { data, error } = await supabase
+        .from("profiles")
+        .select("role")
+        .eq("id", user.id)
+        .single();
+
+      if (error) {
+        console.error("Error fetching user profile:", error);
+        return;
+      }
+
+      if (data) {
+        setUserRole(data.role as "Admin" | "Teacher" | "Parent" | "Accountant");
+      }
+    } catch (error) {
+      console.error("Error:", error);
+    }
+  };
 
   if (loading) {
     return (
@@ -39,7 +70,7 @@ const Index = () => {
   const currentUser = {
     id: user.id,
     username: user.email || 'User',
-    role: "Admin" as const, // For now, all users are Admin
+    role: userRole,
   };
 
   const renderModule = () => {
