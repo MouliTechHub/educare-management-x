@@ -41,6 +41,34 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return () => subscription.unsubscribe();
   }, []);
 
+  const getErrorMessage = (error: any) => {
+    if (error.message.includes('email_not_confirmed') || error.message.includes('Email not confirmed')) {
+      return {
+        title: "Email Not Confirmed",
+        description: "Your email needs to be confirmed. Check the Admin Setup section below for instructions to disable email confirmation for testing."
+      };
+    }
+    
+    if (error.message.includes('Invalid login credentials')) {
+      return {
+        title: "Invalid Credentials",
+        description: "Please check your email and password. Use the admin credentials provided below if you're testing."
+      };
+    }
+
+    if (error.message.includes('email_provider_disabled')) {
+      return {
+        title: "Email Authentication Disabled",
+        description: "Email authentication is disabled. Please contact your administrator."
+      };
+    }
+
+    return {
+      title: "Authentication Error",
+      description: error.message
+    };
+  };
+
   const signIn = async (email: string, password: string) => {
     const { error } = await supabase.auth.signInWithPassword({
       email,
@@ -48,9 +76,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     });
     
     if (error) {
+      const errorInfo = getErrorMessage(error);
       toast({
-        title: "Authentication Error",
-        description: error.message,
+        title: errorInfo.title,
+        description: errorInfo.description,
         variant: "destructive",
       });
     }
@@ -70,15 +99,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     });
     
     if (error) {
+      const errorInfo = getErrorMessage(error);
       toast({
-        title: "Registration Error",
-        description: error.message,
+        title: errorInfo.title,
+        description: errorInfo.description,
         variant: "destructive",
       });
     } else {
       toast({
         title: "Registration Successful",
-        description: "Please check your email to confirm your account.",
+        description: "Please check your email to confirm your account, or disable email confirmation in Supabase for testing.",
       });
     }
     

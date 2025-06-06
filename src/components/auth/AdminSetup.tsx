@@ -3,7 +3,7 @@ import { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Copy, CheckCircle } from "lucide-react";
+import { Copy, CheckCircle, AlertTriangle, ExternalLink } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 
@@ -11,6 +11,7 @@ export function AdminSetup() {
   const [adminCreated, setAdminCreated] = useState(false);
   const [loading, setLoading] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [showEmailConfirmationHelp, setShowEmailConfirmationHelp] = useState(false);
   const { toast } = useToast();
 
   const adminCredentials = {
@@ -45,9 +46,10 @@ export function AdminSetup() {
         }
       } else {
         setAdminCreated(true);
+        setShowEmailConfirmationHelp(true);
         toast({
           title: "Admin user created successfully",
-          description: "You can now log in with the provided credentials.",
+          description: "Check the setup instructions below for login help.",
         });
       }
     } catch (error: any) {
@@ -73,10 +75,10 @@ export function AdminSetup() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50 p-4">
-      <Card className="w-full max-w-md">
+    <div className="space-y-4">
+      <Card className="w-full">
         <CardHeader>
-          <CardTitle className="text-center">SchoolMaster Setup</CardTitle>
+          <CardTitle className="text-center">Admin Setup</CardTitle>
           <CardDescription className="text-center">
             Create your admin account to get started
           </CardDescription>
@@ -119,6 +121,38 @@ export function AdminSetup() {
               <CheckCircle className="h-4 w-4" />
               <AlertDescription>
                 Admin user is ready! You can now log in to SchoolMaster.
+              </AlertDescription>
+            </Alert>
+          )}
+
+          {showEmailConfirmationHelp && (
+            <Alert variant="destructive">
+              <AlertTriangle className="h-4 w-4" />
+              <AlertDescription>
+                <div className="space-y-2">
+                  <p className="font-medium">Email Confirmation Required</p>
+                  <p className="text-sm">
+                    By default, Supabase requires email confirmation. If login fails with "Email not confirmed":
+                  </p>
+                  <div className="text-sm space-y-1">
+                    <p><strong>Quick Fix:</strong> Disable email confirmation in your Supabase project:</p>
+                    <ol className="list-decimal list-inside space-y-1 ml-2">
+                      <li>Go to your Supabase Dashboard</li>
+                      <li>Navigate to Authentication → Settings</li>
+                      <li>Turn OFF "Enable email confirmations"</li>
+                      <li>Save changes and try logging in again</li>
+                    </ol>
+                  </div>
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    className="mt-2"
+                    onClick={() => window.open('https://supabase.com/dashboard/project/ifurbtuwhlshufowjcyc/auth/providers', '_blank')}
+                  >
+                    <ExternalLink className="w-4 h-4 mr-2" />
+                    Open Supabase Auth Settings
+                  </Button>
+                </div>
               </AlertDescription>
             </Alert>
           )}
