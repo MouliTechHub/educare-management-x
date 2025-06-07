@@ -1,3 +1,4 @@
+
 import { useForm } from "react-hook-form";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -102,7 +103,7 @@ export function ClassForm({ teachers, selectedClass, onSubmit, onCancel }: Class
               <FormLabel>Homeroom Teacher</FormLabel>
               <Select 
                 onValueChange={field.onChange} 
-                value={field.value || ""}
+                value={field.value}
               >
                 <FormControl>
                   <SelectTrigger>
