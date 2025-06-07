@@ -43,33 +43,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return () => subscription.unsubscribe();
   }, []);
 
-  const confirmUserEmail = async (email: string) => {
-    try {
-      console.log('Attempting to confirm email for:', email);
-      
-      // Call our database function to confirm the user
-      const { data, error } = await supabase.rpc('confirm_user_email', {
-        user_email: email
-      });
-      
-      if (error) {
-        console.error('Error confirming email:', error);
-        return false;
-      }
-      
-      console.log('Email confirmation result:', data);
-      return data;
-    } catch (error) {
-      console.error('Exception during email confirmation:', error);
-      return false;
-    }
-  };
-
   const getErrorMessage = (error: any) => {
     if (error.message.includes('email_not_confirmed') || error.message.includes('Email not confirmed')) {
       return {
         title: "Email Not Confirmed",
-        description: "Attempting to confirm your email automatically..."
+        description: "Please check your email for a confirmation link, or disable email confirmation in Supabase settings."
       };
     }
     
@@ -104,50 +82,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     if (error) {
       console.log('Sign in error:', error.message);
       
-      // If email not confirmed, try to confirm it automatically
+      // Handle email not confirmed error for admin user
       if (error.message.includes('email_not_confirmed') || error.message.includes('Email not confirmed')) {
-        const errorInfo = getErrorMessage(error);
-        toast({
-          title: errorInfo.title,
-          description: errorInfo.description,
-          variant: "destructive",
-        });
-        
-        // Attempt automatic confirmation
-        const confirmed = await confirmUserEmail(email);
-        
-        if (confirmed) {
+        if (email === 'admin@schoolmaster.com') {
           toast({
-            title: "Email Confirmed",
-            description: "Your email has been confirmed. Please try logging in again.",
+            title: "Admin Account Setup Required",
+            description: "Please disable email confirmation in Supabase settings or check your email for the confirmation link.",
+            variant: "destructive",
           });
-          
-          // Try signing in again after confirmation
-          const { error: retryError } = await supabase.auth.signInWithPassword({
-            email,
-            password,
-          });
-          
-          if (retryError) {
-            console.log('Retry sign in error:', retryError.message);
-            const retryErrorInfo = getErrorMessage(retryError);
-            toast({
-              title: retryErrorInfo.title,
-              description: retryErrorInfo.description,
-              variant: "destructive",
-            });
-          } else {
-            toast({
-              title: "Login Successful",
-              description: "Welcome to SchoolMaster!",
-            });
-          }
-          
-          return { error: retryError };
         } else {
+          const errorInfo = getErrorMessage(error);
           toast({
-            title: "Confirmation Failed",
-            description: "Unable to confirm email automatically. Please contact support or disable email confirmation in Supabase.",
+            title: errorInfo.title,
+            description: errorInfo.description,
             variant: "destructive",
           });
         }
