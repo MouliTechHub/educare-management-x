@@ -70,11 +70,13 @@ export function ClassForm({ teachers, selectedClass, onSubmit, onCancel }: Class
                   </SelectTrigger>
                 </FormControl>
                 <SelectContent>
-                  {teachers.map((teacher) => (
-                    <SelectItem key={teacher.id} value={teacher.id}>
-                      {teacher.first_name} {teacher.last_name}
-                    </SelectItem>
-                  ))}
+                  {teachers
+                    .filter((teacher) => teacher.id && teacher.id.trim() !== "")
+                    .map((teacher) => (
+                      <SelectItem key={teacher.id} value={teacher.id}>
+                        {teacher.first_name} {teacher.last_name}
+                      </SelectItem>
+                    ))}
                 </SelectContent>
               </Select>
               <FormMessage />
