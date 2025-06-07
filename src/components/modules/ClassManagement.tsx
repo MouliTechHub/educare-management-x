@@ -16,7 +16,7 @@ export function ClassManagement() {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [selectedClass, setSelectedClass] = useState<Class | null>(null);
 
-  const { classes, teachers, subjects, loading, fetchClasses } = useClassData();
+  const { classes, teachers, loading, fetchClasses } = useClassData();
   const { saveClass, deleteClass } = useClassActions(fetchClasses);
 
   const handleSubmit = async (data: any) => {
