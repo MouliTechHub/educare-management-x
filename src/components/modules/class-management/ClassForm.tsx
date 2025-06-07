@@ -67,7 +67,7 @@ export function ClassForm({ teachers, selectedClass, onSubmit, onCancel }: Class
               <FormLabel>Homeroom Teacher</FormLabel>
               <Select 
                 onValueChange={field.onChange} 
-                value={field.value || ""}
+                value={field.value}
               >
                 <FormControl>
                   <SelectTrigger>
