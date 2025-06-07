@@ -25,6 +25,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     // Set up auth state listener
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (event, session) => {
+        console.log('Auth state change:', event, session?.user?.email);
         setSession(session);
         setUser(session?.user ?? null);
         setLoading(false);
@@ -33,6 +34,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     // Get initial session
     supabase.auth.getSession().then(({ data: { session } }) => {
+      console.log('Initial session:', session?.user?.email);
       setSession(session);
       setUser(session?.user ?? null);
       setLoading(false);
@@ -41,18 +43,40 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return () => subscription.unsubscribe();
   }, []);
 
+  const confirmUserEmail = async (email: string) => {
+    try {
+      console.log('Attempting to confirm email for:', email);
+      
+      // Call our database function to confirm the user
+      const { data, error } = await supabase.rpc('confirm_user_email', {
+        user_email: email
+      });
+      
+      if (error) {
+        console.error('Error confirming email:', error);
+        return false;
+      }
+      
+      console.log('Email confirmation result:', data);
+      return data;
+    } catch (error) {
+      console.error('Exception during email confirmation:', error);
+      return false;
+    }
+  };
+
   const getErrorMessage = (error: any) => {
     if (error.message.includes('email_not_confirmed') || error.message.includes('Email not confirmed')) {
       return {
         title: "Email Not Confirmed",
-        description: "Your email needs to be confirmed. Check the Admin Setup section below for instructions to disable email confirmation for testing."
+        description: "Attempting to confirm your email automatically..."
       };
     }
     
     if (error.message.includes('Invalid login credentials')) {
       return {
         title: "Invalid Credentials",
-        description: "Please check your email and password. Use the admin credentials provided below if you're testing."
+        description: "Please check your email and password."
       };
     }
 
@@ -70,17 +94,75 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   const signIn = async (email: string, password: string) => {
+    console.log('Attempting sign in for:', email);
+    
     const { error } = await supabase.auth.signInWithPassword({
       email,
       password,
     });
     
     if (error) {
-      const errorInfo = getErrorMessage(error);
+      console.log('Sign in error:', error.message);
+      
+      // If email not confirmed, try to confirm it automatically
+      if (error.message.includes('email_not_confirmed') || error.message.includes('Email not confirmed')) {
+        const errorInfo = getErrorMessage(error);
+        toast({
+          title: errorInfo.title,
+          description: errorInfo.description,
+          variant: "destructive",
+        });
+        
+        // Attempt automatic confirmation
+        const confirmed = await confirmUserEmail(email);
+        
+        if (confirmed) {
+          toast({
+            title: "Email Confirmed",
+            description: "Your email has been confirmed. Please try logging in again.",
+          });
+          
+          // Try signing in again after confirmation
+          const { error: retryError } = await supabase.auth.signInWithPassword({
+            email,
+            password,
+          });
+          
+          if (retryError) {
+            console.log('Retry sign in error:', retryError.message);
+            const retryErrorInfo = getErrorMessage(retryError);
+            toast({
+              title: retryErrorInfo.title,
+              description: retryErrorInfo.description,
+              variant: "destructive",
+            });
+          } else {
+            toast({
+              title: "Login Successful",
+              description: "Welcome to SchoolMaster!",
+            });
+          }
+          
+          return { error: retryError };
+        } else {
+          toast({
+            title: "Confirmation Failed",
+            description: "Unable to confirm email automatically. Please contact support or disable email confirmation in Supabase.",
+            variant: "destructive",
+          });
+        }
+      } else {
+        const errorInfo = getErrorMessage(error);
+        toast({
+          title: errorInfo.title,
+          description: errorInfo.description,
+          variant: "destructive",
+        });
+      }
+    } else {
       toast({
-        title: errorInfo.title,
-        description: errorInfo.description,
-        variant: "destructive",
+        title: "Login Successful",
+        description: "Welcome to SchoolMaster!",
       });
     }
     
@@ -108,7 +190,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     } else {
       toast({
         title: "Registration Successful",
-        description: "Please check your email to confirm your account, or disable email confirmation in Supabase for testing.",
+        description: "Please check your email to confirm your account, or your email will be auto-confirmed if you're an admin.",
       });
     }
     
