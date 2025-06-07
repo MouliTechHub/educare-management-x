@@ -1,4 +1,5 @@
 
+
 import { useForm } from "react-hook-form";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -116,9 +117,10 @@ export function ClassForm({ teachers, selectedClass, onSubmit, onCancel }: Class
                       const teacherId = String(teacher.id).trim();
                       console.log('About to render SelectItem for teacher ID:', teacherId);
                       
-                      // Final safety check before rendering
-                      if (!teacherId || teacherId === "") {
-                        console.error('Attempted to render SelectItem with empty ID, skipping:', teacher);
+                      // CRITICAL: Final safety check before rendering SelectItem
+                      // This is the ultimate guard against empty string values
+                      if (!teacherId || teacherId === "" || teacherId.length === 0) {
+                        console.error('CRITICAL: Prevented rendering SelectItem with empty value:', teacher);
                         return null;
                       }
                       
@@ -127,9 +129,9 @@ export function ClassForm({ teachers, selectedClass, onSubmit, onCancel }: Class
                           {teacher.first_name} {teacher.last_name}
                         </SelectItem>
                       );
-                    })
+                    }).filter(Boolean) // Remove any null values
                   ) : (
-                    <SelectItem value="no-teachers" disabled>
+                    <SelectItem value="no-teachers-available" disabled>
                       No teachers available
                     </SelectItem>
                   )}
@@ -151,3 +153,4 @@ export function ClassForm({ teachers, selectedClass, onSubmit, onCancel }: Class
     </Form>
   );
 }
+
