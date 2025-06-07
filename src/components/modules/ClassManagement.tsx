@@ -274,7 +274,6 @@ export function ClassManagement() {
                           </SelectTrigger>
                         </FormControl>
                         <SelectContent>
-                          <SelectItem value="">No teacher assigned</SelectItem>
                           {teachers.map((teacher) => (
                             <SelectItem key={teacher.id} value={teacher.id}>
                               {teacher.first_name} {teacher.last_name}
