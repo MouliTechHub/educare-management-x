@@ -24,7 +24,9 @@ export function ClassForm({ teachers, selectedClass, onSubmit, onCancel }: Class
     defaultValues: {
       name: selectedClass?.name || "",
       section: selectedClass?.section || "",
-      homeroom_teacher_id: selectedClass?.homeroom_teacher_id || undefined,
+      homeroom_teacher_id: selectedClass?.homeroom_teacher_id && selectedClass.homeroom_teacher_id.trim() !== "" 
+        ? selectedClass.homeroom_teacher_id 
+        : undefined,
     },
   });
 
@@ -63,7 +65,10 @@ export function ClassForm({ teachers, selectedClass, onSubmit, onCancel }: Class
           render={({ field }) => (
             <FormItem>
               <FormLabel>Homeroom Teacher</FormLabel>
-              <Select onValueChange={field.onChange} value={field.value || ""}>
+              <Select 
+                onValueChange={field.onChange} 
+                value={field.value || ""}
+              >
                 <FormControl>
                   <SelectTrigger>
                     <SelectValue placeholder="Select a teacher" />
