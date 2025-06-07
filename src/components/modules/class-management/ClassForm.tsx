@@ -1,4 +1,3 @@
-
 import { useForm } from "react-hook-form";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -31,24 +30,40 @@ export function ClassForm({ teachers, selectedClass, onSubmit, onCancel }: Class
     },
   });
 
-  // More robust filtering for valid teachers
+  // Ultra-robust filtering for valid teachers
   const validTeachers = teachers.filter((teacher) => {
-    const hasValidId = teacher.id && 
-      typeof teacher.id === 'string' && 
-      teacher.id.trim().length > 0;
-    const hasValidName = teacher.first_name && teacher.last_name;
+    console.log('Raw teacher data:', teacher);
     
-    console.log('Teacher validation:', {
+    // Check if teacher exists and has an id property
+    if (!teacher || !teacher.id) {
+      console.log('Teacher missing or no ID:', teacher);
+      return false;
+    }
+    
+    // Ensure ID is a string and not empty after trimming
+    const teacherId = String(teacher.id).trim();
+    if (teacherId === "" || teacherId.length === 0) {
+      console.log('Teacher ID is empty after trimming:', teacher.id);
+      return false;
+    }
+    
+    // Check for valid names
+    const hasValidName = teacher.first_name && teacher.last_name && 
+                        String(teacher.first_name).trim() !== "" && 
+                        String(teacher.last_name).trim() !== "";
+    
+    console.log('Teacher validation result:', {
       id: teacher.id,
-      hasValidId,
+      trimmedId: teacherId,
       hasValidName,
-      teacher
+      isValid: hasValidName
     });
     
-    return hasValidId && hasValidName;
+    return hasValidName;
   });
 
-  console.log('Valid teachers after filtering:', validTeachers);
+  console.log('Valid teachers count:', validTeachers.length);
+  console.log('Valid teachers:', validTeachers);
 
   return (
     <Form {...form}>
@@ -87,7 +102,7 @@ export function ClassForm({ teachers, selectedClass, onSubmit, onCancel }: Class
               <FormLabel>Homeroom Teacher</FormLabel>
               <Select 
                 onValueChange={field.onChange} 
-                value={field.value}
+                value={field.value || ""}
               >
                 <FormControl>
                   <SelectTrigger>
@@ -95,14 +110,28 @@ export function ClassForm({ teachers, selectedClass, onSubmit, onCancel }: Class
                   </SelectTrigger>
                 </FormControl>
                 <SelectContent>
-                  {validTeachers.map((teacher) => {
-                    console.log('Rendering SelectItem for teacher:', teacher.id);
-                    return (
-                      <SelectItem key={teacher.id} value={teacher.id}>
-                        {teacher.first_name} {teacher.last_name}
-                      </SelectItem>
-                    );
-                  })}
+                  {validTeachers.length > 0 ? (
+                    validTeachers.map((teacher) => {
+                      const teacherId = String(teacher.id).trim();
+                      console.log('About to render SelectItem for teacher ID:', teacherId);
+                      
+                      // Final safety check before rendering
+                      if (!teacherId || teacherId === "") {
+                        console.error('Attempted to render SelectItem with empty ID, skipping:', teacher);
+                        return null;
+                      }
+                      
+                      return (
+                        <SelectItem key={teacherId} value={teacherId}>
+                          {teacher.first_name} {teacher.last_name}
+                        </SelectItem>
+                      );
+                    })
+                  ) : (
+                    <SelectItem value="no-teachers" disabled>
+                      No teachers available
+                    </SelectItem>
+                  )}
                 </SelectContent>
               </Select>
               <FormMessage />
