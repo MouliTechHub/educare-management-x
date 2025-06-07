@@ -24,11 +24,31 @@ export function ClassForm({ teachers, selectedClass, onSubmit, onCancel }: Class
     defaultValues: {
       name: selectedClass?.name || "",
       section: selectedClass?.section || "",
-      homeroom_teacher_id: selectedClass?.homeroom_teacher_id && selectedClass.homeroom_teacher_id.trim() !== "" 
+      homeroom_teacher_id: selectedClass?.homeroom_teacher_id && 
+        selectedClass.homeroom_teacher_id.trim() !== "" 
         ? selectedClass.homeroom_teacher_id 
         : undefined,
     },
   });
+
+  // More robust filtering for valid teachers
+  const validTeachers = teachers.filter((teacher) => {
+    const hasValidId = teacher.id && 
+      typeof teacher.id === 'string' && 
+      teacher.id.trim().length > 0;
+    const hasValidName = teacher.first_name && teacher.last_name;
+    
+    console.log('Teacher validation:', {
+      id: teacher.id,
+      hasValidId,
+      hasValidName,
+      teacher
+    });
+    
+    return hasValidId && hasValidName;
+  });
+
+  console.log('Valid teachers after filtering:', validTeachers);
 
   return (
     <Form {...form}>
@@ -75,13 +95,14 @@ export function ClassForm({ teachers, selectedClass, onSubmit, onCancel }: Class
                   </SelectTrigger>
                 </FormControl>
                 <SelectContent>
-                  {teachers
-                    .filter((teacher) => teacher.id && teacher.id.trim() !== "")
-                    .map((teacher) => (
+                  {validTeachers.map((teacher) => {
+                    console.log('Rendering SelectItem for teacher:', teacher.id);
+                    return (
                       <SelectItem key={teacher.id} value={teacher.id}>
                         {teacher.first_name} {teacher.last_name}
                       </SelectItem>
-                    ))}
+                    );
+                  })}
                 </SelectContent>
               </Select>
               <FormMessage />
