@@ -1,314 +1,38 @@
-import { useState, useEffect } from "react";
+
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Badge } from "@/components/ui/badge";
-import { Plus, Search, Edit, Trash2, User, Calendar } from "lucide-react";
-import { useToast } from "@/hooks/use-toast";
-import { supabase } from "@/integrations/supabase/client";
-import { Student, Class } from "@/types/database";
-import { useForm } from "react-hook-form";
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
-
-interface StudentFormData {
-  first_name: string;
-  last_name: string;
-  admission_number: string;
-  date_of_birth: string;
-  gender: string;
-  class_id?: string;
-  address_line1?: string;
-  city?: string;
-  state?: string;
-  pin_code?: string;
-  status: string;
-}
+import { Dialog, DialogTrigger } from "@/components/ui/dialog";
+import { Plus, Search } from "lucide-react";
+import { Student } from "@/types/database";
+import { useStudentData } from "./student-management/useStudentData";
+import { StudentForm } from "./student-management/StudentForm";
+import { StudentTable } from "./student-management/StudentTable";
 
 export function StudentManagement() {
-  const [students, setStudents] = useState<Student[]>([]);
-  const [classes, setClasses] = useState<Class[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
-  const [loading, setLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [selectedStudent, setSelectedStudent] = useState<Student | null>(null);
-  const { toast } = useToast();
 
-  const form = useForm<StudentFormData>({
-    defaultValues: {
-      first_name: "",
-      last_name: "",
-      admission_number: "",
-      date_of_birth: "",
-      gender: "Male",
-      class_id: undefined, // Changed from "" to undefined
-      address_line1: "",
-      city: "",
-      state: "",
-      pin_code: "",
-      status: "Active",
-    },
-  });
-
-  useEffect(() => {
-    fetchStudents();
-    fetchClasses();
-    testDatabaseConnection();
-  }, []);
-
-  // Test database connectivity
-  const testDatabaseConnection = async () => {
-    try {
-      console.log('Testing database connection...');
-      const { data, error } = await supabase.from('students').select('count').limit(1);
-      if (error) {
-        console.error('Database connection test failed:', error);
-        toast({
-          title: "Database Connection Error",
-          description: "Unable to connect to the database. Please check your connection.",
-          variant: "destructive",
-        });
-      } else {
-        console.log('Database connection successful');
-      }
-    } catch (error) {
-      console.error('Database connection test error:', error);
-    }
-  };
-
-  const fetchStudents = async () => {
-    try {
-      console.log('Fetching students...');
-      const { data, error } = await supabase
-        .from("students")
-        .select(`
-          *,
-          classes(id, name, section)
-        `)
-        .order("created_at", { ascending: false });
-
-      if (error) {
-        console.error('Error fetching students:', error);
-        throw error;
-      }
-      
-      console.log('Fetched students:', data);
-      
-      // Type cast the gender and status fields
-      const typedStudents = (data || []).map(student => ({
-        ...student,
-        gender: student.gender as 'Male' | 'Female' | 'Other',
-        status: student.status as 'Active' | 'Inactive' | 'Alumni'
-      }));
-      
-      setStudents(typedStudents);
-    } catch (error: any) {
-      console.error('fetchStudents error:', error);
-      toast({
-        title: "Error fetching students",
-        description: error.message,
-        variant: "destructive",
-      });
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const fetchClasses = async () => {
-    try {
-      console.log('Fetching classes...');
-      const { data, error } = await supabase
-        .from("classes")
-        .select("*")
-        .order("name");
-
-      if (error) {
-        console.error('Error fetching classes:', error);
-        throw error;
-      }
-      
-      console.log('Fetched classes:', data);
-      setClasses(data || []);
-    } catch (error: any) {
-      console.error("Error fetching classes:", error);
-      toast({
-        title: "Error fetching classes",
-        description: error.message,
-        variant: "destructive",
-      });
-    }
-  };
-
-  const onSubmit = async (data: StudentFormData) => {
-    try {
-      console.log('Form submission started with data:', data);
-      
-      // Validate required fields
-      if (!data.first_name?.trim()) {
-        toast({
-          title: "Validation Error",
-          description: "First name is required",
-          variant: "destructive",
-        });
-        return;
-      }
-      
-      if (!data.last_name?.trim()) {
-        toast({
-          title: "Validation Error",
-          description: "Last name is required",
-          variant: "destructive",
-        });
-        return;
-      }
-      
-      if (!data.admission_number?.trim()) {
-        toast({
-          title: "Validation Error",
-          description: "Admission number is required",
-          variant: "destructive",
-        });
-        return;
-      }
-
-      const studentData = {
-        ...data,
-        class_id: data.class_id && data.class_id !== "" ? data.class_id : null,
-      };
-
-      console.log('Processed student data for submission:', studentData);
-
-      if (selectedStudent) {
-        console.log('Updating existing student:', selectedStudent.id);
-        const { error } = await supabase
-          .from("students")
-          .update(studentData)
-          .eq("id", selectedStudent.id);
-
-        if (error) {
-          console.error('Update error:', error);
-          throw error;
-        }
-        toast({ title: "Student updated successfully" });
-      } else {
-        console.log('Creating new student...');
-        const { data: insertedData, error } = await supabase
-          .from("students")
-          .insert([studentData])
-          .select();
-
-        if (error) {
-          console.error('Insert error:', error);
-          throw error;
-        }
-        
-        console.log('Student created successfully:', insertedData);
-        toast({ title: "Student created successfully" });
-      }
-
-      fetchStudents();
-      setDialogOpen(false);
-      setSelectedStudent(null);
-      resetForm();
-    } catch (error: any) {
-      console.error('onSubmit error:', error);
-      toast({
-        title: "Error saving student",
-        description: error.message || "An unexpected error occurred",
-        variant: "destructive",
-      });
-    }
-  };
-
-  const resetForm = () => {
-    console.log('Resetting form...');
-    form.reset({
-      first_name: "",
-      last_name: "",
-      admission_number: "",
-      date_of_birth: "",
-      gender: "Male",
-      class_id: undefined, // Ensure it's undefined, not empty string
-      address_line1: "",
-      city: "",
-      state: "",
-      pin_code: "",
-      status: "Active",
-    });
-  };
-
-  const deleteStudent = async (id: string) => {
-    if (!confirm("Are you sure you want to delete this student?")) return;
-
-    try {
-      console.log('Deleting student:', id);
-      const { error } = await supabase
-        .from("students")
-        .delete()
-        .eq("id", id);
-
-      if (error) {
-        console.error('Delete error:', error);
-        throw error;
-      }
-      toast({ title: "Student deleted successfully" });
-      fetchStudents();
-    } catch (error: any) {
-      console.error('deleteStudent error:', error);
-      toast({
-        title: "Error deleting student",
-        description: error.message,
-        variant: "destructive",
-      });
-    }
-  };
+  const { students, classes, loading, fetchStudents, deleteStudent } = useStudentData();
 
   const openEditDialog = (student: Student) => {
     console.log('Opening edit dialog for student:', student);
     setSelectedStudent(student);
-    form.reset({
-      first_name: student.first_name,
-      last_name: student.last_name,
-      admission_number: student.admission_number,
-      date_of_birth: student.date_of_birth,
-      gender: student.gender,
-      class_id: student.class_id || undefined, // Ensure undefined instead of null
-      address_line1: student.address_line1 || "",
-      city: student.city || "",
-      state: student.state || "",
-      pin_code: student.pin_code || "",
-      status: student.status,
-    });
     setDialogOpen(true);
   };
 
   const openAddDialog = () => {
     console.log('Opening add student dialog...');
     setSelectedStudent(null);
-    resetForm();
     setDialogOpen(true);
   };
 
-  // Filter out invalid classes and ensure proper values
-  const validClasses = classes.filter(classItem => {
-    if (!classItem || !classItem.id) {
-      console.log('Class missing or no ID:', classItem);
-      return false;
-    }
-    
-    const classId = String(classItem.id).trim();
-    if (classId === "" || classId.length === 0) {
-      console.log('Class ID is empty after trimming:', classItem.id);
-      return false;
-    }
-    
-    return true;
-  });
-
-  console.log('Valid classes count:', validClasses.length);
-  console.log('Valid classes:', validClasses);
+  const handleStudentSaved = () => {
+    fetchStudents();
+    setSelectedStudent(null);
+  };
 
   const filteredStudents = students.filter((student) =>
     `${student.first_name} ${student.last_name}`.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -337,231 +61,13 @@ export function StudentManagement() {
               Add Student
             </Button>
           </DialogTrigger>
-          <DialogContent className="max-w-2xl">
-            <DialogHeader>
-              <DialogTitle>{selectedStudent ? "Edit Student" : "Add New Student"}</DialogTitle>
-              <DialogDescription>
-                {selectedStudent ? "Update student information" : "Enter student details to add to the system"}
-              </DialogDescription>
-            </DialogHeader>
-            <Form {...form}>
-              <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-                <div className="grid grid-cols-2 gap-4">
-                  <FormField
-                    control={form.control}
-                    name="first_name"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>First Name *</FormLabel>
-                        <FormControl>
-                          <Input {...field} required />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  <FormField
-                    control={form.control}
-                    name="last_name"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Last Name *</FormLabel>
-                        <FormControl>
-                          <Input {...field} required />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                </div>
-                <div className="grid grid-cols-2 gap-4">
-                  <FormField
-                    control={form.control}
-                    name="admission_number"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Admission Number *</FormLabel>
-                        <FormControl>
-                          <Input {...field} required />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  <FormField
-                    control={form.control}
-                    name="date_of_birth"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Date of Birth *</FormLabel>
-                        <FormControl>
-                          <Input {...field} type="date" required />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                </div>
-                <div className="grid grid-cols-2 gap-4">
-                  <FormField
-                    control={form.control}
-                    name="gender"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Gender</FormLabel>
-                        <Select onValueChange={field.onChange} value={field.value}>
-                          <FormControl>
-                            <SelectTrigger>
-                              <SelectValue />
-                            </SelectTrigger>
-                          </FormControl>
-                          <SelectContent>
-                            <SelectItem value="Male">Male</SelectItem>
-                            <SelectItem value="Female">Female</SelectItem>
-                            <SelectItem value="Other">Other</SelectItem>
-                          </SelectContent>
-                        </Select>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  <FormField
-                    control={form.control}
-                    name="class_id"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Class</FormLabel>
-                        <Select 
-                          onValueChange={(value) => {
-                            console.log('Class selection changed to:', value);
-                            // Set to undefined if "no-class" is selected, otherwise use the value
-                            field.onChange(value === "no-class-assigned" ? undefined : value);
-                          }} 
-                          value={field.value || "no-class-assigned"}
-                        >
-                          <FormControl>
-                            <SelectTrigger>
-                              <SelectValue placeholder="Select a class" />
-                            </SelectTrigger>
-                          </FormControl>
-                          <SelectContent>
-                            <SelectItem value="no-class-assigned">No class assigned</SelectItem>
-                            {validClasses.length > 0 ? (
-                              validClasses.map((classItem) => {
-                                const classId = String(classItem.id).trim();
-                                console.log('About to render SelectItem for class ID:', classId);
-                                
-                                // Final safety check before rendering SelectItem
-                                if (!classId || classId === "" || classId.length === 0) {
-                                  console.error('CRITICAL: Prevented rendering SelectItem with empty class value:', classItem);
-                                  return null;
-                                }
-                                
-                                return (
-                                  <SelectItem key={classId} value={classId}>
-                                    {classItem.name} {classItem.section && `- ${classItem.section}`}
-                                  </SelectItem>
-                                );
-                              }).filter(Boolean)
-                            ) : (
-                              <SelectItem value="no-classes-available" disabled>
-                                No classes available
-                              </SelectItem>
-                            )}
-                          </SelectContent>
-                        </Select>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                </div>
-                <FormField
-                  control={form.control}
-                  name="address_line1"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Address</FormLabel>
-                      <FormControl>
-                        <Input {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <div className="grid grid-cols-3 gap-4">
-                  <FormField
-                    control={form.control}
-                    name="city"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>City</FormLabel>
-                        <FormControl>
-                          <Input {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  <FormField
-                    control={form.control}
-                    name="state"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>State</FormLabel>
-                        <FormControl>
-                          <Input {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  <FormField
-                    control={form.control}
-                    name="pin_code"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>PIN Code</FormLabel>
-                        <FormControl>
-                          <Input {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                </div>
-                <FormField
-                  control={form.control}
-                  name="status"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Status</FormLabel>
-                      <Select onValueChange={field.onChange} value={field.value}>
-                        <FormControl>
-                          <SelectTrigger>
-                            <SelectValue />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                          <SelectItem value="Active">Active</SelectItem>
-                          <SelectItem value="Inactive">Inactive</SelectItem>
-                          <SelectItem value="Alumni">Alumni</SelectItem>
-                        </SelectContent>
-                      </Select>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <div className="flex justify-end space-x-2 pt-4">
-                  <Button type="button" variant="outline" onClick={() => setDialogOpen(false)}>
-                    Cancel
-                  </Button>
-                  <Button type="submit">
-                    {selectedStudent ? "Update" : "Create"} Student
-                  </Button>
-                </div>
-              </form>
-            </Form>
-          </DialogContent>
+          <StudentForm
+            open={dialogOpen}
+            onOpenChange={setDialogOpen}
+            selectedStudent={selectedStudent}
+            classes={classes}
+            onStudentSaved={handleStudentSaved}
+          />
         </Dialog>
       </div>
 
@@ -584,70 +90,11 @@ export function StudentManagement() {
           </div>
         </CardHeader>
         <CardContent>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Student</TableHead>
-                <TableHead>Admission No.</TableHead>
-                <TableHead>Class</TableHead>
-                <TableHead>Date of Birth</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead>Actions</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {filteredStudents.map((student) => (
-                <TableRow key={student.id}>
-                  <TableCell>
-                    <div className="flex items-center space-x-2">
-                      <User className="w-4 h-4 text-blue-600" />
-                      <div>
-                        <div className="font-medium">{student.first_name} {student.last_name}</div>
-                        <div className="text-sm text-gray-500">{student.gender}</div>
-                      </div>
-                    </div>
-                  </TableCell>
-                  <TableCell>{student.admission_number}</TableCell>
-                  <TableCell>
-                    {student.classes ? (
-                      <span>{student.classes.name} {student.classes.section && `- ${student.classes.section}`}</span>
-                    ) : (
-                      <span className="text-gray-400">Not assigned</span>
-                    )}
-                  </TableCell>
-                  <TableCell>
-                    <div className="flex items-center space-x-1">
-                      <Calendar className="w-4 h-4 text-gray-400" />
-                      <span>{new Date(student.date_of_birth).toLocaleDateString()}</span>
-                    </div>
-                  </TableCell>
-                  <TableCell>
-                    <Badge variant={student.status === "Active" ? "default" : "secondary"}>
-                      {student.status}
-                    </Badge>
-                  </TableCell>
-                  <TableCell>
-                    <div className="flex items-center space-x-2">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => openEditDialog(student)}
-                      >
-                        <Edit className="w-4 h-4" />
-                      </Button>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => deleteStudent(student.id)}
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </Button>
-                    </div>
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
+          <StudentTable
+            students={filteredStudents}
+            onEditStudent={openEditDialog}
+            onDeleteStudent={deleteStudent}
+          />
         </CardContent>
       </Card>
     </div>
