@@ -43,7 +43,7 @@ export function StudentManagement() {
       admission_number: "",
       date_of_birth: "",
       gender: "Male",
-      class_id: "",
+      class_id: undefined, // Changed from "" to undefined
       address_line1: "",
       city: "",
       state: "",
@@ -55,10 +55,32 @@ export function StudentManagement() {
   useEffect(() => {
     fetchStudents();
     fetchClasses();
+    testDatabaseConnection();
   }, []);
+
+  // Test database connectivity
+  const testDatabaseConnection = async () => {
+    try {
+      console.log('Testing database connection...');
+      const { data, error } = await supabase.from('students').select('count').limit(1);
+      if (error) {
+        console.error('Database connection test failed:', error);
+        toast({
+          title: "Database Connection Error",
+          description: "Unable to connect to the database. Please check your connection.",
+          variant: "destructive",
+        });
+      } else {
+        console.log('Database connection successful');
+      }
+    } catch (error) {
+      console.error('Database connection test error:', error);
+    }
+  };
 
   const fetchStudents = async () => {
     try {
+      console.log('Fetching students...');
       const { data, error } = await supabase
         .from("students")
         .select(`
@@ -67,7 +89,12 @@ export function StudentManagement() {
         `)
         .order("created_at", { ascending: false });
 
-      if (error) throw error;
+      if (error) {
+        console.error('Error fetching students:', error);
+        throw error;
+      }
+      
+      console.log('Fetched students:', data);
       
       // Type cast the gender and status fields
       const typedStudents = (data || []).map(student => ({
@@ -78,6 +105,7 @@ export function StudentManagement() {
       
       setStudents(typedStudents);
     } catch (error: any) {
+      console.error('fetchStudents error:', error);
       toast({
         title: "Error fetching students",
         description: error.message,
@@ -90,68 +118,145 @@ export function StudentManagement() {
 
   const fetchClasses = async () => {
     try {
+      console.log('Fetching classes...');
       const { data, error } = await supabase
         .from("classes")
         .select("*")
         .order("name");
 
-      if (error) throw error;
+      if (error) {
+        console.error('Error fetching classes:', error);
+        throw error;
+      }
+      
+      console.log('Fetched classes:', data);
       setClasses(data || []);
     } catch (error: any) {
       console.error("Error fetching classes:", error);
-    }
-  };
-
-  const onSubmit = async (data: StudentFormData) => {
-    try {
-      const studentData = {
-        ...data,
-        class_id: data.class_id || null,
-      };
-
-      if (selectedStudent) {
-        const { error } = await supabase
-          .from("students")
-          .update(studentData)
-          .eq("id", selectedStudent.id);
-
-        if (error) throw error;
-        toast({ title: "Student updated successfully" });
-      } else {
-        const { error } = await supabase
-          .from("students")
-          .insert([studentData]);
-
-        if (error) throw error;
-        toast({ title: "Student created successfully" });
-      }
-
-      fetchStudents();
-      setDialogOpen(false);
-      setSelectedStudent(null);
-      form.reset();
-    } catch (error: any) {
       toast({
-        title: "Error saving student",
+        title: "Error fetching classes",
         description: error.message,
         variant: "destructive",
       });
     }
   };
 
+  const onSubmit = async (data: StudentFormData) => {
+    try {
+      console.log('Form submission started with data:', data);
+      
+      // Validate required fields
+      if (!data.first_name?.trim()) {
+        toast({
+          title: "Validation Error",
+          description: "First name is required",
+          variant: "destructive",
+        });
+        return;
+      }
+      
+      if (!data.last_name?.trim()) {
+        toast({
+          title: "Validation Error",
+          description: "Last name is required",
+          variant: "destructive",
+        });
+        return;
+      }
+      
+      if (!data.admission_number?.trim()) {
+        toast({
+          title: "Validation Error",
+          description: "Admission number is required",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      const studentData = {
+        ...data,
+        class_id: data.class_id && data.class_id !== "" ? data.class_id : null,
+      };
+
+      console.log('Processed student data for submission:', studentData);
+
+      if (selectedStudent) {
+        console.log('Updating existing student:', selectedStudent.id);
+        const { error } = await supabase
+          .from("students")
+          .update(studentData)
+          .eq("id", selectedStudent.id);
+
+        if (error) {
+          console.error('Update error:', error);
+          throw error;
+        }
+        toast({ title: "Student updated successfully" });
+      } else {
+        console.log('Creating new student...');
+        const { data: insertedData, error } = await supabase
+          .from("students")
+          .insert([studentData])
+          .select();
+
+        if (error) {
+          console.error('Insert error:', error);
+          throw error;
+        }
+        
+        console.log('Student created successfully:', insertedData);
+        toast({ title: "Student created successfully" });
+      }
+
+      fetchStudents();
+      setDialogOpen(false);
+      setSelectedStudent(null);
+      resetForm();
+    } catch (error: any) {
+      console.error('onSubmit error:', error);
+      toast({
+        title: "Error saving student",
+        description: error.message || "An unexpected error occurred",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const resetForm = () => {
+    console.log('Resetting form...');
+    form.reset({
+      first_name: "",
+      last_name: "",
+      admission_number: "",
+      date_of_birth: "",
+      gender: "Male",
+      class_id: undefined, // Ensure it's undefined, not empty string
+      address_line1: "",
+      city: "",
+      state: "",
+      pin_code: "",
+      status: "Active",
+    });
+  };
+
   const deleteStudent = async (id: string) => {
     if (!confirm("Are you sure you want to delete this student?")) return;
 
     try {
+      console.log('Deleting student:', id);
       const { error } = await supabase
         .from("students")
         .delete()
         .eq("id", id);
 
-      if (error) throw error;
+      if (error) {
+        console.error('Delete error:', error);
+        throw error;
+      }
       toast({ title: "Student deleted successfully" });
       fetchStudents();
     } catch (error: any) {
+      console.error('deleteStudent error:', error);
       toast({
         title: "Error deleting student",
         description: error.message,
@@ -161,6 +266,7 @@ export function StudentManagement() {
   };
 
   const openEditDialog = (student: Student) => {
+    console.log('Opening edit dialog for student:', student);
     setSelectedStudent(student);
     form.reset({
       first_name: student.first_name,
@@ -168,7 +274,7 @@ export function StudentManagement() {
       admission_number: student.admission_number,
       date_of_birth: student.date_of_birth,
       gender: student.gender,
-      class_id: student.class_id || "",
+      class_id: student.class_id || undefined, // Ensure undefined instead of null
       address_line1: student.address_line1 || "",
       city: student.city || "",
       state: student.state || "",
@@ -177,6 +283,32 @@ export function StudentManagement() {
     });
     setDialogOpen(true);
   };
+
+  const openAddDialog = () => {
+    console.log('Opening add student dialog...');
+    setSelectedStudent(null);
+    resetForm();
+    setDialogOpen(true);
+  };
+
+  // Filter out invalid classes and ensure proper values
+  const validClasses = classes.filter(classItem => {
+    if (!classItem || !classItem.id) {
+      console.log('Class missing or no ID:', classItem);
+      return false;
+    }
+    
+    const classId = String(classItem.id).trim();
+    if (classId === "" || classId.length === 0) {
+      console.log('Class ID is empty after trimming:', classItem.id);
+      return false;
+    }
+    
+    return true;
+  });
+
+  console.log('Valid classes count:', validClasses.length);
+  console.log('Valid classes:', validClasses);
 
   const filteredStudents = students.filter((student) =>
     `${student.first_name} ${student.last_name}`.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -200,10 +332,7 @@ export function StudentManagement() {
         </div>
         <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
           <DialogTrigger asChild>
-            <Button onClick={() => {
-              setSelectedStudent(null);
-              form.reset();
-            }}>
+            <Button onClick={openAddDialog}>
               <Plus className="w-4 h-4 mr-2" />
               Add Student
             </Button>
@@ -223,7 +352,7 @@ export function StudentManagement() {
                     name="first_name"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>First Name</FormLabel>
+                        <FormLabel>First Name *</FormLabel>
                         <FormControl>
                           <Input {...field} required />
                         </FormControl>
@@ -236,7 +365,7 @@ export function StudentManagement() {
                     name="last_name"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Last Name</FormLabel>
+                        <FormLabel>Last Name *</FormLabel>
                         <FormControl>
                           <Input {...field} required />
                         </FormControl>
@@ -251,7 +380,7 @@ export function StudentManagement() {
                     name="admission_number"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Admission Number</FormLabel>
+                        <FormLabel>Admission Number *</FormLabel>
                         <FormControl>
                           <Input {...field} required />
                         </FormControl>
@@ -264,7 +393,7 @@ export function StudentManagement() {
                     name="date_of_birth"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Date of Birth</FormLabel>
+                        <FormLabel>Date of Birth *</FormLabel>
                         <FormControl>
                           <Input {...field} type="date" required />
                         </FormControl>
@@ -302,19 +431,43 @@ export function StudentManagement() {
                     render={({ field }) => (
                       <FormItem>
                         <FormLabel>Class</FormLabel>
-                        <Select onValueChange={field.onChange} value={field.value}>
+                        <Select 
+                          onValueChange={(value) => {
+                            console.log('Class selection changed to:', value);
+                            // Set to undefined if "no-class" is selected, otherwise use the value
+                            field.onChange(value === "no-class-assigned" ? undefined : value);
+                          }} 
+                          value={field.value || "no-class-assigned"}
+                        >
                           <FormControl>
                             <SelectTrigger>
                               <SelectValue placeholder="Select a class" />
                             </SelectTrigger>
                           </FormControl>
                           <SelectContent>
-                            <SelectItem value="">No class assigned</SelectItem>
-                            {classes.map((classItem) => (
-                              <SelectItem key={classItem.id} value={classItem.id}>
-                                {classItem.name} {classItem.section && `- ${classItem.section}`}
+                            <SelectItem value="no-class-assigned">No class assigned</SelectItem>
+                            {validClasses.length > 0 ? (
+                              validClasses.map((classItem) => {
+                                const classId = String(classItem.id).trim();
+                                console.log('About to render SelectItem for class ID:', classId);
+                                
+                                // Final safety check before rendering SelectItem
+                                if (!classId || classId === "" || classId.length === 0) {
+                                  console.error('CRITICAL: Prevented rendering SelectItem with empty class value:', classItem);
+                                  return null;
+                                }
+                                
+                                return (
+                                  <SelectItem key={classId} value={classId}>
+                                    {classItem.name} {classItem.section && `- ${classItem.section}`}
+                                  </SelectItem>
+                                );
+                              }).filter(Boolean)
+                            ) : (
+                              <SelectItem value="no-classes-available" disabled>
+                                No classes available
                               </SelectItem>
-                            ))}
+                            )}
                           </SelectContent>
                         </Select>
                         <FormMessage />
