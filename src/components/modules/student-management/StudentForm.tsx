@@ -1,5 +1,6 @@
 
 import { useForm } from "react-hook-form";
+import { useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
@@ -50,22 +51,42 @@ export function StudentForm({ open, onOpenChange, selectedStudent, classes, onSt
     },
   });
 
-  const resetForm = () => {
-    console.log('Resetting form...');
-    form.reset({
-      first_name: "",
-      last_name: "",
-      admission_number: "",
-      date_of_birth: "",
-      gender: "Male",
-      class_id: undefined,
-      address_line1: "",
-      city: "",
-      state: "",
-      pin_code: "",
-      status: "Active",
-    });
-  };
+  // Reset form when dialog opens or selectedStudent changes
+  useEffect(() => {
+    if (open) {
+      if (selectedStudent) {
+        console.log('Populating form with selected student data');
+        form.reset({
+          first_name: selectedStudent.first_name,
+          last_name: selectedStudent.last_name,
+          admission_number: selectedStudent.admission_number,
+          date_of_birth: selectedStudent.date_of_birth,
+          gender: selectedStudent.gender,
+          class_id: selectedStudent.class_id || undefined,
+          address_line1: selectedStudent.address_line1 || "",
+          city: selectedStudent.city || "",
+          state: selectedStudent.state || "",
+          pin_code: selectedStudent.pin_code || "",
+          status: selectedStudent.status,
+        });
+      } else {
+        console.log('Resetting form for new student');
+        form.reset({
+          first_name: "",
+          last_name: "",
+          admission_number: "",
+          date_of_birth: "",
+          gender: "Male",
+          class_id: undefined,
+          address_line1: "",
+          city: "",
+          state: "",
+          pin_code: "",
+          status: "Active",
+        });
+      }
+    }
+  }, [open, selectedStudent, form]);
 
   const onSubmit = async (data: StudentFormData) => {
     try {
@@ -136,7 +157,6 @@ export function StudentForm({ open, onOpenChange, selectedStudent, classes, onSt
 
       onStudentSaved();
       onOpenChange(false);
-      resetForm();
     } catch (error: any) {
       console.error('onSubmit error:', error);
       toast({
@@ -146,23 +166,6 @@ export function StudentForm({ open, onOpenChange, selectedStudent, classes, onSt
       });
     }
   };
-
-  // When dialog opens with a selected student, populate the form
-  if (selectedStudent && open) {
-    form.reset({
-      first_name: selectedStudent.first_name,
-      last_name: selectedStudent.last_name,
-      admission_number: selectedStudent.admission_number,
-      date_of_birth: selectedStudent.date_of_birth,
-      gender: selectedStudent.gender,
-      class_id: selectedStudent.class_id || undefined,
-      address_line1: selectedStudent.address_line1 || "",
-      city: selectedStudent.city || "",
-      state: selectedStudent.state || "",
-      pin_code: selectedStudent.pin_code || "",
-      status: selectedStudent.status,
-    });
-  }
 
   // Filter out invalid classes and ensure proper values
   const validClasses = classes.filter(classItem => {
@@ -181,7 +184,6 @@ export function StudentForm({ open, onOpenChange, selectedStudent, classes, onSt
   });
 
   console.log('Valid classes count:', validClasses.length);
-  console.log('Valid classes:', validClasses);
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -296,7 +298,6 @@ export function StudentForm({ open, onOpenChange, selectedStudent, classes, onSt
                         {validClasses.length > 0 ? (
                           validClasses.map((classItem) => {
                             const classId = String(classItem.id).trim();
-                            console.log('About to render SelectItem for class ID:', classId);
                             
                             if (!classId || classId === "" || classId.length === 0) {
                               console.error('CRITICAL: Prevented rendering SelectItem with empty class value:', classItem);
