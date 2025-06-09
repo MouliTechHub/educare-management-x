@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Student, Class } from "@/types/database";
@@ -58,12 +57,15 @@ export function useStudentData() {
       
       console.log('Fetched students with parents:', data);
       
-      // Transform the data to include parents array
+      // Transform the data to include parents array with proper typing
       const typedStudents = (data || []).map(student => ({
         ...student,
         gender: student.gender as 'Male' | 'Female' | 'Other',
         status: student.status as 'Active' | 'Inactive' | 'Alumni',
-        parents: student.student_parent_links?.map(link => link.parents).filter(Boolean) || []
+        parents: student.student_parent_links?.map(link => ({
+          ...link.parents,
+          relation: link.parents.relation as 'Mother' | 'Father' | 'Guardian' | 'Other'
+        })).filter(Boolean) || []
       }));
       
       setStudents(typedStudents);
