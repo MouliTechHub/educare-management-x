@@ -2,7 +2,7 @@
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { Edit, Trash2, User, Calendar } from "lucide-react";
+import { Edit, Trash2, User, Calendar, Users } from "lucide-react";
 import { Student } from "@/types/database";
 
 interface StudentTableProps {
@@ -19,6 +19,7 @@ export function StudentTable({ students, onEditStudent, onDeleteStudent }: Stude
           <TableHead>Student</TableHead>
           <TableHead>Admission No.</TableHead>
           <TableHead>Class</TableHead>
+          <TableHead>Parents</TableHead>
           <TableHead>Date of Birth</TableHead>
           <TableHead>Status</TableHead>
           <TableHead>Actions</TableHead>
@@ -42,6 +43,25 @@ export function StudentTable({ students, onEditStudent, onDeleteStudent }: Stude
                 <span>{student.classes.name} {student.classes.section && `- ${student.classes.section}`}</span>
               ) : (
                 <span className="text-gray-400">Not assigned</span>
+              )}
+            </TableCell>
+            <TableCell>
+              {student.parents && student.parents.length > 0 ? (
+                <div className="space-y-1">
+                  {student.parents.map((parent, index) => (
+                    <div key={parent.id} className="flex items-center space-x-1 text-sm">
+                      <Users className="w-3 h-3 text-green-600" />
+                      <span className="font-medium">{parent.first_name} {parent.last_name}</span>
+                      <span className="text-gray-500">({parent.relation})</span>
+                      {index < student.parents!.length - 1 && <span className="text-gray-300">|</span>}
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <span className="text-gray-400 flex items-center space-x-1">
+                  <Users className="w-3 h-3" />
+                  <span>No parents linked</span>
+                </span>
               )}
             </TableCell>
             <TableCell>

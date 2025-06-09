@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -7,14 +6,13 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Plus, Search, Edit, Trash2 } from "lucide-react";
+import { Plus, Search, Edit, Trash2, User, GraduationCap } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
-import { Parent, StudentBasic } from "@/types/database";
+import { Parent } from "@/types/database";
 
 export function ParentManagement() {
   const [parents, setParents] = useState<Parent[]>([]);
-  const [students, setStudents] = useState<StudentBasic[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [loading, setLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -37,7 +35,6 @@ export function ParentManagement() {
 
   useEffect(() => {
     fetchParents();
-    fetchStudents();
   }, []);
 
   const fetchParents = async () => {
@@ -45,16 +42,29 @@ export function ParentManagement() {
       setLoading(true);
       const { data, error } = await supabase
         .from('parents')
-        .select('*')
+        .select(`
+          *,
+          student_parent_links(
+            students(
+              id,
+              first_name,
+              last_name,
+              admission_number
+            )
+          )
+        `)
         .order('first_name');
 
       if (error) throw error;
       
-      // Type assertion with proper relation type
-      setParents((data as any[])?.map(parent => ({
+      // Transform the data to include students array
+      const parentsWithStudents = (data || []).map(parent => ({
         ...parent,
-        relation: parent.relation as 'Mother' | 'Father' | 'Guardian' | 'Other'
-      })) || []);
+        relation: parent.relation as 'Mother' | 'Father' | 'Guardian' | 'Other',
+        students: parent.student_parent_links?.map(link => link.students).filter(Boolean) || []
+      }));
+      
+      setParents(parentsWithStudents);
     } catch (error: any) {
       toast({
         title: "Error fetching parents",
@@ -63,24 +73,6 @@ export function ParentManagement() {
       });
     } finally {
       setLoading(false);
-    }
-  };
-
-  const fetchStudents = async () => {
-    try {
-      const { data, error } = await supabase
-        .from('students')
-        .select('id, first_name, last_name, admission_number')
-        .order('admission_number');
-
-      if (error) throw error;
-      setStudents(data || []);
-    } catch (error: any) {
-      toast({
-        title: "Error fetching students",
-        description: error.message,
-        variant: "destructive",
-      });
     }
   };
 
@@ -410,6 +402,7 @@ export function ParentManagement() {
                 <TableHead>Relation</TableHead>
                 <TableHead>Phone</TableHead>
                 <TableHead>Email</TableHead>
+                <TableHead>Students</TableHead>
                 <TableHead>Actions</TableHead>
               </TableRow>
             </TableHeader>
@@ -420,6 +413,25 @@ export function ParentManagement() {
                   <TableCell>{parent.relation}</TableCell>
                   <TableCell>{parent.phone_number}</TableCell>
                   <TableCell>{parent.email}</TableCell>
+                  <TableCell>
+                    {parent.students && parent.students.length > 0 ? (
+                      <div className="space-y-1">
+                        {parent.students.map((student, index) => (
+                          <div key={student.id} className="flex items-center space-x-1 text-sm">
+                            <GraduationCap className="w-3 h-3 text-blue-600" />
+                            <span className="font-medium">{student.first_name} {student.last_name}</span>
+                            <span className="text-gray-500">({student.admission_number})</span>
+                            {index < parent.students!.length - 1 && <span className="text-gray-300">|</span>}
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <span className="text-gray-400 flex items-center space-x-1">
+                        <User className="w-3 h-3" />
+                        <span>No students linked</span>
+                      </span>
+                    )}
+                  </TableCell>
                   <TableCell>
                     <div className="flex space-x-2">
                       <Button size="sm" variant="outline" onClick={() => handleEdit(parent)}>

@@ -32,12 +32,22 @@ export function useStudentData() {
 
   const fetchStudents = async () => {
     try {
-      console.log('Fetching students...');
+      console.log('Fetching students with parent information...');
       const { data, error } = await supabase
         .from("students")
         .select(`
           *,
-          classes(id, name, section)
+          classes(id, name, section),
+          student_parent_links(
+            parents(
+              id,
+              first_name,
+              last_name,
+              relation,
+              phone_number,
+              email
+            )
+          )
         `)
         .order("created_at", { ascending: false });
 
@@ -46,13 +56,14 @@ export function useStudentData() {
         throw error;
       }
       
-      console.log('Fetched students:', data);
+      console.log('Fetched students with parents:', data);
       
-      // Type cast the gender and status fields
+      // Transform the data to include parents array
       const typedStudents = (data || []).map(student => ({
         ...student,
         gender: student.gender as 'Male' | 'Female' | 'Other',
-        status: student.status as 'Active' | 'Inactive' | 'Alumni'
+        status: student.status as 'Active' | 'Inactive' | 'Alumni',
+        parents: student.student_parent_links?.map(link => link.parents).filter(Boolean) || []
       }));
       
       setStudents(typedStudents);

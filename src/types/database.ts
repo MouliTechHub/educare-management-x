@@ -22,6 +22,7 @@ export interface Student {
     name: string;
     section: string | null;
   } | null;
+  parents?: ParentBasic[];
 }
 
 // Simplified student type for dropdowns and selections
@@ -46,6 +47,7 @@ export interface Parent {
   pin_code: string | null;
   created_at: string;
   updated_at: string;
+  students?: StudentBasic[];
 }
 
 export interface Teacher {
@@ -98,4 +100,18 @@ export interface SubjectBasic {
   id: string;
   name: string;
   code: string;
+}
+
+export interface ParentBasic {
+  id: string;
+  first_name: string;
+  last_name: string;
+  relation: 'Mother' | 'Father' | 'Guardian' | 'Other';
+  phone_number: string;
+  email: string;
+}
+
+export interface StudentParentLink {
+  student_id: string;
+  parent_id: string;
 }
