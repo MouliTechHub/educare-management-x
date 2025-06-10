@@ -1,4 +1,3 @@
-
 // Database types that match Supabase schema
 export interface Student {
   id: string;
@@ -23,6 +22,10 @@ export interface Student {
     section: string | null;
   } | null;
   parents?: ParentBasic[];
+  // Financial information
+  total_paid?: number;
+  total_pending?: number;
+  fees?: Fee[];
 }
 
 // Simplified student type for dropdowns and selections
@@ -114,4 +117,17 @@ export interface ParentBasic {
 export interface StudentParentLink {
   student_id: string;
   parent_id: string;
+}
+
+export interface Fee {
+  id: string;
+  student_id: string;
+  fee_type: string;
+  amount: number;
+  due_date: string;
+  payment_date: string | null;
+  receipt_number: string | null;
+  status: 'Pending' | 'Paid' | 'Overdue';
+  created_at: string;
+  updated_at: string;
 }

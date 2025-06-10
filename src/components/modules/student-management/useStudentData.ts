@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Student, Class } from "@/types/database";
@@ -31,7 +32,7 @@ export function useStudentData() {
 
   const fetchStudents = async () => {
     try {
-      console.log('Fetching students with parent information...');
+      console.log('Fetching students with parent and financial information...');
       const { data, error } = await supabase
         .from("students")
         .select(`
@@ -46,6 +47,17 @@ export function useStudentData() {
               phone_number,
               email
             )
+          ),
+          fees(
+            id,
+            fee_type,
+            amount,
+            due_date,
+            payment_date,
+            receipt_number,
+            status,
+            created_at,
+            updated_at
           )
         `)
         .order("created_at", { ascending: false });
@@ -55,18 +67,31 @@ export function useStudentData() {
         throw error;
       }
       
-      console.log('Fetched students with parents:', data);
+      console.log('Fetched students with parents and fees:', data);
       
-      // Transform the data to include parents array with proper typing
-      const typedStudents = (data || []).map(student => ({
-        ...student,
-        gender: student.gender as 'Male' | 'Female' | 'Other',
-        status: student.status as 'Active' | 'Inactive' | 'Alumni',
-        parents: student.student_parent_links?.map(link => ({
-          ...link.parents,
-          relation: link.parents.relation as 'Mother' | 'Father' | 'Guardian' | 'Other'
-        })).filter(Boolean) || []
-      }));
+      // Transform the data to include parents array and financial calculations
+      const typedStudents = (data || []).map(student => {
+        const fees = student.fees || [];
+        const totalPaid = fees
+          .filter(fee => fee.status === 'Paid')
+          .reduce((sum, fee) => sum + Number(fee.amount), 0);
+        const totalPending = fees
+          .filter(fee => fee.status === 'Pending' || fee.status === 'Overdue')
+          .reduce((sum, fee) => sum + Number(fee.amount), 0);
+
+        return {
+          ...student,
+          gender: student.gender as 'Male' | 'Female' | 'Other',
+          status: student.status as 'Active' | 'Inactive' | 'Alumni',
+          parents: student.student_parent_links?.map(link => ({
+            ...link.parents,
+            relation: link.parents.relation as 'Mother' | 'Father' | 'Guardian' | 'Other'
+          })).filter(Boolean) || [],
+          total_paid: totalPaid,
+          total_pending: totalPending,
+          fees: fees
+        };
+      });
       
       setStudents(typedStudents);
     } catch (error: any) {
