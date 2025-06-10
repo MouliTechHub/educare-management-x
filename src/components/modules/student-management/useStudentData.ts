@@ -89,7 +89,11 @@ export function useStudentData() {
           })).filter(Boolean) || [],
           total_paid: totalPaid,
           total_pending: totalPending,
-          fees: fees
+          fees: fees.map(fee => ({
+            ...fee,
+            student_id: student.id,
+            status: fee.status as 'Pending' | 'Paid' | 'Overdue'
+          }))
         };
       });
       
