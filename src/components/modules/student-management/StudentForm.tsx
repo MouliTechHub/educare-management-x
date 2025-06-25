@@ -1,28 +1,14 @@
 
-import { useForm } from "react-hook-form";
-import { useEffect } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
+import { Textarea } from "@/components/ui/textarea";
+import { DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { Student, Class } from "@/types/database";
-import { useToast } from "@/hooks/use-toast";
-
-interface StudentFormData {
-  first_name: string;
-  last_name: string;
-  admission_number: string;
-  date_of_birth: string;
-  gender: string;
-  class_id?: string;
-  address_line1?: string;
-  city?: string;
-  state?: string;
-  pin_code?: string;
-  status: string;
-}
 
 interface StudentFormProps {
   open: boolean;
@@ -32,383 +18,476 @@ interface StudentFormProps {
   onStudentSaved: () => void;
 }
 
+interface StudentFormData {
+  first_name: string;
+  last_name: string;
+  admission_number: string;
+  date_of_birth: string;
+  gender: string;
+  class_id: string;
+  blood_group: string;
+  religion: string;
+  caste_category: string;
+  previous_school: string;
+  transport_route: string;
+  transport_stop: string;
+  medical_information: string;
+  emergency_contact_name: string;
+  emergency_contact_phone: string;
+  emergency_contact_relation: string;
+  address_line1: string;
+  address_line2: string;
+  city: string;
+  state: string;
+  pin_code: string;
+  status: string;
+}
+
+const bloodGroups = ["A+", "A-", "B+", "B-", "AB+", "AB-", "O+", "O-"];
+const religions = ["Hindu", "Muslim", "Christian", "Sikh", "Buddhist", "Jain", "Other"];
+const casteCategories = ["General", "OBC", "SC", "ST", "Other"];
+
 export function StudentForm({ open, onOpenChange, selectedStudent, classes, onStudentSaved }: StudentFormProps) {
   const { toast } = useToast();
+  const [loading, setLoading] = useState(false);
 
-  const form = useForm<StudentFormData>({
-    defaultValues: {
-      first_name: "",
-      last_name: "",
-      admission_number: "",
-      date_of_birth: "",
-      gender: "Male",
-      class_id: undefined,
-      address_line1: "",
-      city: "",
-      state: "",
-      pin_code: "",
-      status: "Active",
-    },
+  const [formData, setFormData] = useState<StudentFormData>({
+    first_name: "",
+    last_name: "",
+    admission_number: "",
+    date_of_birth: "",
+    gender: "",
+    class_id: "",
+    blood_group: "",
+    religion: "",
+    caste_category: "",
+    previous_school: "",
+    transport_route: "",
+    transport_stop: "",
+    medical_information: "",
+    emergency_contact_name: "",
+    emergency_contact_phone: "",
+    emergency_contact_relation: "",
+    address_line1: "",
+    address_line2: "",
+    city: "",
+    state: "",
+    pin_code: "",
+    status: "Active",
   });
 
-  // Reset form when dialog opens or selectedStudent changes
   useEffect(() => {
-    if (open) {
-      if (selectedStudent) {
-        console.log('Populating form with selected student data');
-        form.reset({
-          first_name: selectedStudent.first_name,
-          last_name: selectedStudent.last_name,
-          admission_number: selectedStudent.admission_number,
-          date_of_birth: selectedStudent.date_of_birth,
-          gender: selectedStudent.gender,
-          class_id: selectedStudent.class_id || undefined,
-          address_line1: selectedStudent.address_line1 || "",
-          city: selectedStudent.city || "",
-          state: selectedStudent.state || "",
-          pin_code: selectedStudent.pin_code || "",
-          status: selectedStudent.status,
-        });
-      } else {
-        console.log('Resetting form for new student');
-        form.reset({
-          first_name: "",
-          last_name: "",
-          admission_number: "",
-          date_of_birth: "",
-          gender: "Male",
-          class_id: undefined,
-          address_line1: "",
-          city: "",
-          state: "",
-          pin_code: "",
-          status: "Active",
-        });
-      }
+    if (selectedStudent) {
+      setFormData({
+        first_name: selectedStudent.first_name,
+        last_name: selectedStudent.last_name,
+        admission_number: selectedStudent.admission_number,
+        date_of_birth: selectedStudent.date_of_birth,
+        gender: selectedStudent.gender,
+        class_id: selectedStudent.class_id || "",
+        blood_group: selectedStudent.blood_group || "",
+        religion: selectedStudent.religion || "",
+        caste_category: selectedStudent.caste_category || "",
+        previous_school: selectedStudent.previous_school || "",
+        transport_route: selectedStudent.transport_route || "",
+        transport_stop: selectedStudent.transport_stop || "",
+        medical_information: selectedStudent.medical_information || "",
+        emergency_contact_name: selectedStudent.emergency_contact_name || "",
+        emergency_contact_phone: selectedStudent.emergency_contact_phone || "",
+        emergency_contact_relation: selectedStudent.emergency_contact_relation || "",
+        address_line1: selectedStudent.address_line1 || "",
+        address_line2: selectedStudent.address_line2 || "",
+        city: selectedStudent.city || "",
+        state: selectedStudent.state || "",
+        pin_code: selectedStudent.pin_code || "",
+        status: selectedStudent.status,
+      });
+    } else {
+      // Reset form for new student
+      setFormData({
+        first_name: "",
+        last_name: "",
+        admission_number: "",
+        date_of_birth: "",
+        gender: "",
+        class_id: "",
+        blood_group: "",
+        religion: "",
+        caste_category: "",
+        previous_school: "",
+        transport_route: "",
+        transport_stop: "",
+        medical_information: "",
+        emergency_contact_name: "",
+        emergency_contact_phone: "",
+        emergency_contact_relation: "",
+        address_line1: "",
+        address_line2: "",
+        city: "",
+        state: "",
+        pin_code: "",
+        status: "Active",
+      });
     }
-  }, [open, selectedStudent, form]);
+  }, [selectedStudent, open]);
 
-  const onSubmit = async (data: StudentFormData) => {
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+
     try {
-      console.log('Form submission started with data:', data);
-      
-      // Validate required fields
-      if (!data.first_name?.trim()) {
-        toast({
-          title: "Validation Error",
-          description: "First name is required",
-          variant: "destructive",
-        });
-        return;
-      }
-      
-      if (!data.last_name?.trim()) {
-        toast({
-          title: "Validation Error",
-          description: "Last name is required",
-          variant: "destructive",
-        });
-        return;
-      }
-      
-      if (!data.admission_number?.trim()) {
-        toast({
-          title: "Validation Error",
-          description: "Admission number is required",
-          variant: "destructive",
-        });
-        return;
-      }
-
+      // Prepare data for submission
       const studentData = {
-        ...data,
-        class_id: data.class_id && data.class_id !== "" ? data.class_id : null,
+        ...formData,
+        class_id: formData.class_id || null,
+        blood_group: formData.blood_group || null,
+        religion: formData.religion || null,
+        caste_category: formData.caste_category || null,
+        previous_school: formData.previous_school || null,
+        transport_route: formData.transport_route || null,
+        transport_stop: formData.transport_stop || null,
+        medical_information: formData.medical_information || null,
+        emergency_contact_name: formData.emergency_contact_name || null,
+        emergency_contact_phone: formData.emergency_contact_phone || null,
+        emergency_contact_relation: formData.emergency_contact_relation || null,
+        address_line1: formData.address_line1 || null,
+        address_line2: formData.address_line2 || null,
+        city: formData.city || null,
+        state: formData.state || null,
+        pin_code: formData.pin_code || null,
       };
 
-      console.log('Processed student data for submission:', studentData);
-
       if (selectedStudent) {
-        console.log('Updating existing student:', selectedStudent.id);
+        // Update existing student
         const { error } = await supabase
           .from("students")
           .update(studentData)
           .eq("id", selectedStudent.id);
 
-        if (error) {
-          console.error('Update error:', error);
-          throw error;
-        }
-        toast({ title: "Student updated successfully" });
-      } else {
-        console.log('Creating new student...');
-        const { data: insertedData, error } = await supabase
-          .from("students")
-          .insert([studentData])
-          .select();
+        if (error) throw error;
 
-        if (error) {
-          console.error('Insert error:', error);
-          throw error;
-        }
-        
-        console.log('Student created successfully:', insertedData);
-        toast({ title: "Student created successfully" });
+        toast({
+          title: "Student Updated",
+          description: `${formData.first_name} ${formData.last_name} has been updated successfully.`,
+        });
+      } else {
+        // Create new student
+        const { error } = await supabase
+          .from("students")
+          .insert([studentData]);
+
+        if (error) throw error;
+
+        toast({
+          title: "Student Added",
+          description: `${formData.first_name} ${formData.last_name} has been added successfully.`,
+        });
       }
 
       onStudentSaved();
       onOpenChange(false);
     } catch (error: any) {
-      console.error('onSubmit error:', error);
+      console.error("Error saving student:", error);
       toast({
-        title: "Error saving student",
-        description: error.message || "An unexpected error occurred",
+        title: "Error",
+        description: error.message,
         variant: "destructive",
       });
+    } finally {
+      setLoading(false);
     }
   };
 
-  // Filter out invalid classes and ensure proper values
-  const validClasses = classes.filter(classItem => {
-    if (!classItem || !classItem.id) {
-      console.log('Class missing or no ID:', classItem);
-      return false;
-    }
-    
-    const classId = String(classItem.id).trim();
-    if (classId === "" || classId.length === 0) {
-      console.log('Class ID is empty after trimming:', classItem.id);
-      return false;
-    }
-    
-    return true;
-  });
-
-  console.log('Valid classes count:', validClasses.length);
-
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl">
-        <DialogHeader>
-          <DialogTitle>{selectedStudent ? "Edit Student" : "Add New Student"}</DialogTitle>
-          <DialogDescription>
-            {selectedStudent ? "Update student information" : "Enter student details to add to the system"}
-          </DialogDescription>
-        </DialogHeader>
-        <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-            <div className="grid grid-cols-2 gap-4">
-              <FormField
-                control={form.control}
-                name="first_name"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>First Name *</FormLabel>
-                    <FormControl>
-                      <Input {...field} required />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name="last_name"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Last Name *</FormLabel>
-                    <FormControl>
-                      <Input {...field} required />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
+    <DialogContent className="max-w-6xl max-h-[90vh] overflow-y-auto">
+      <DialogHeader>
+        <DialogTitle>
+          {selectedStudent ? "Edit Student" : "Add New Student"}
+        </DialogTitle>
+        <DialogDescription>
+          {selectedStudent ? "Update student information" : "Enter student details to add to the system"}
+        </DialogDescription>
+      </DialogHeader>
+
+      <form onSubmit={handleSubmit} className="space-y-6">
+        {/* Basic Information */}
+        <div className="space-y-4">
+          <h3 className="text-lg font-semibold border-b pb-2">Basic Information</h3>
+          <div className="grid grid-cols-3 gap-4">
+            <div>
+              <Label htmlFor="first_name">First Name *</Label>
+              <Input
+                id="first_name"
+                value={formData.first_name}
+                onChange={(e) => setFormData({ ...formData, first_name: e.target.value })}
+                required
               />
             </div>
-            <div className="grid grid-cols-2 gap-4">
-              <FormField
-                control={form.control}
-                name="admission_number"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Admission Number *</FormLabel>
-                    <FormControl>
-                      <Input {...field} required />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name="date_of_birth"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Date of Birth *</FormLabel>
-                    <FormControl>
-                      <Input {...field} type="date" required />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
+            <div>
+              <Label htmlFor="last_name">Last Name *</Label>
+              <Input
+                id="last_name"
+                value={formData.last_name}
+                onChange={(e) => setFormData({ ...formData, last_name: e.target.value })}
+                required
               />
             </div>
-            <div className="grid grid-cols-2 gap-4">
-              <FormField
-                control={form.control}
-                name="gender"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Gender</FormLabel>
-                    <Select onValueChange={field.onChange} value={field.value}>
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        <SelectItem value="Male">Male</SelectItem>
-                        <SelectItem value="Female">Female</SelectItem>
-                        <SelectItem value="Other">Other</SelectItem>
-                      </SelectContent>
-                    </Select>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name="class_id"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Class</FormLabel>
-                    <Select 
-                      onValueChange={(value) => {
-                        console.log('Class selection changed to:', value);
-                        field.onChange(value === "no-class-assigned" ? undefined : value);
-                      }} 
-                      value={field.value || "no-class-assigned"}
-                    >
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select a class" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        <SelectItem value="no-class-assigned">No class assigned</SelectItem>
-                        {validClasses.length > 0 ? (
-                          validClasses.map((classItem) => {
-                            const classId = String(classItem.id).trim();
-                            
-                            if (!classId || classId === "" || classId.length === 0) {
-                              console.error('CRITICAL: Prevented rendering SelectItem with empty class value:', classItem);
-                              return null;
-                            }
-                            
-                            return (
-                              <SelectItem key={classId} value={classId}>
-                                {classItem.name} {classItem.section && `- ${classItem.section}`}
-                              </SelectItem>
-                            );
-                          }).filter(Boolean)
-                        ) : (
-                          <SelectItem value="no-classes-available" disabled>
-                            No classes available
-                          </SelectItem>
-                        )}
-                      </SelectContent>
-                    </Select>
-                    <FormMessage />
-                  </FormItem>
-                )}
+            <div>
+              <Label htmlFor="admission_number">Admission Number *</Label>
+              <Input
+                id="admission_number"
+                value={formData.admission_number}
+                onChange={(e) => setFormData({ ...formData, admission_number: e.target.value })}
+                required
               />
             </div>
-            <FormField
-              control={form.control}
-              name="address_line1"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Address</FormLabel>
-                  <FormControl>
-                    <Input {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
+          </div>
+
+          <div className="grid grid-cols-3 gap-4">
+            <div>
+              <Label htmlFor="date_of_birth">Date of Birth *</Label>
+              <Input
+                id="date_of_birth"
+                type="date"
+                value={formData.date_of_birth}
+                onChange={(e) => setFormData({ ...formData, date_of_birth: e.target.value })}
+                required
+              />
+            </div>
+            <div>
+              <Label htmlFor="gender">Gender *</Label>
+              <Select value={formData.gender} onValueChange={(value) => setFormData({ ...formData, gender: value })}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select gender" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="Male">Male</SelectItem>
+                  <SelectItem value="Female">Female</SelectItem>
+                  <SelectItem value="Other">Other</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <Label htmlFor="class_id">Class</Label>
+              <Select value={formData.class_id} onValueChange={(value) => setFormData({ ...formData, class_id: value })}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select class" />
+                </SelectTrigger>
+                <SelectContent>
+                  {classes.map((cls) => (
+                    <SelectItem key={cls.id} value={cls.id}>
+                      {cls.name} {cls.section && `- ${cls.section}`}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-3 gap-4">
+            <div>
+              <Label htmlFor="blood_group">Blood Group</Label>
+              <Select value={formData.blood_group} onValueChange={(value) => setFormData({ ...formData, blood_group: value })}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select blood group" />
+                </SelectTrigger>
+                <SelectContent>
+                  {bloodGroups.map((group) => (
+                    <SelectItem key={group} value={group}>
+                      {group}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <Label htmlFor="religion">Religion</Label>
+              <Select value={formData.religion} onValueChange={(value) => setFormData({ ...formData, religion: value })}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select religion" />
+                </SelectTrigger>
+                <SelectContent>
+                  {religions.map((religion) => (
+                    <SelectItem key={religion} value={religion}>
+                      {religion}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <Label htmlFor="caste_category">Caste/Category</Label>
+              <Select value={formData.caste_category} onValueChange={(value) => setFormData({ ...formData, caste_category: value })}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select category" />
+                </SelectTrigger>
+                <SelectContent>
+                  {casteCategories.map((category) => (
+                    <SelectItem key={category} value={category}>
+                      {category}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+
+          <div>
+            <Label htmlFor="status">Status</Label>
+            <Select value={formData.status} onValueChange={(value) => setFormData({ ...formData, status: value })}>
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="Active">Active</SelectItem>
+                <SelectItem value="Inactive">Inactive</SelectItem>
+                <SelectItem value="Alumni">Alumni</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
+
+        {/* Address Information */}
+        <div className="space-y-4">
+          <h3 className="text-lg font-semibold border-b pb-2">Address Information</h3>
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <Label htmlFor="address_line1">Address Line 1</Label>
+              <Input
+                id="address_line1"
+                value={formData.address_line1}
+                onChange={(e) => setFormData({ ...formData, address_line1: e.target.value })}
+              />
+            </div>
+            <div>
+              <Label htmlFor="address_line2">Address Line 2</Label>
+              <Input
+                id="address_line2"
+                value={formData.address_line2}
+                onChange={(e) => setFormData({ ...formData, address_line2: e.target.value })}
+              />
+            </div>
+          </div>
+          <div className="grid grid-cols-3 gap-4">
+            <div>
+              <Label htmlFor="city">City</Label>
+              <Input
+                id="city"
+                value={formData.city}
+                onChange={(e) => setFormData({ ...formData, city: e.target.value })}
+              />
+            </div>
+            <div>
+              <Label htmlFor="state">State</Label>
+              <Input
+                id="state"
+                value={formData.state}
+                onChange={(e) => setFormData({ ...formData, state: e.target.value })}
+              />
+            </div>
+            <div>
+              <Label htmlFor="pin_code">PIN Code</Label>
+              <Input
+                id="pin_code"
+                value={formData.pin_code}
+                onChange={(e) => setFormData({ ...formData, pin_code: e.target.value })}
+              />
+            </div>
+          </div>
+        </div>
+
+        {/* Academic Information */}
+        <div className="space-y-4">
+          <h3 className="text-lg font-semibold border-b pb-2">Academic Information</h3>
+          <div>
+            <Label htmlFor="previous_school">Previous School</Label>
+            <Input
+              id="previous_school"
+              value={formData.previous_school}
+              onChange={(e) => setFormData({ ...formData, previous_school: e.target.value })}
             />
-            <div className="grid grid-cols-3 gap-4">
-              <FormField
-                control={form.control}
-                name="city"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>City</FormLabel>
-                    <FormControl>
-                      <Input {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name="state"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>State</FormLabel>
-                    <FormControl>
-                      <Input {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name="pin_code"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>PIN Code</FormLabel>
-                    <FormControl>
-                      <Input {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
+          </div>
+        </div>
+
+        {/* Transport Information */}
+        <div className="space-y-4">
+          <h3 className="text-lg font-semibold border-b pb-2">Transport Information</h3>
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <Label htmlFor="transport_route">Transport Route</Label>
+              <Input
+                id="transport_route"
+                value={formData.transport_route}
+                onChange={(e) => setFormData({ ...formData, transport_route: e.target.value })}
               />
             </div>
-            <FormField
-              control={form.control}
-              name="status"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Status</FormLabel>
-                  <Select onValueChange={field.onChange} value={field.value}>
-                    <FormControl>
-                      <SelectTrigger>
-                        <SelectValue />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      <SelectItem value="Active">Active</SelectItem>
-                      <SelectItem value="Inactive">Inactive</SelectItem>
-                      <SelectItem value="Alumni">Alumni</SelectItem>
-                    </SelectContent>
-                  </Select>
-                  <FormMessage />
-                </FormItem>
-              )}
+            <div>
+              <Label htmlFor="transport_stop">Transport Stop</Label>
+              <Input
+                id="transport_stop"
+                value={formData.transport_stop}
+                onChange={(e) => setFormData({ ...formData, transport_stop: e.target.value })}
+              />
+            </div>
+          </div>
+        </div>
+
+        {/* Emergency Contact */}
+        <div className="space-y-4">
+          <h3 className="text-lg font-semibold border-b pb-2">Emergency Contact</h3>
+          <div className="grid grid-cols-3 gap-4">
+            <div>
+              <Label htmlFor="emergency_contact_name">Emergency Contact Name</Label>
+              <Input
+                id="emergency_contact_name"
+                value={formData.emergency_contact_name}
+                onChange={(e) => setFormData({ ...formData, emergency_contact_name: e.target.value })}
+              />
+            </div>
+            <div>
+              <Label htmlFor="emergency_contact_phone">Emergency Contact Phone</Label>
+              <Input
+                id="emergency_contact_phone"
+                value={formData.emergency_contact_phone}
+                onChange={(e) => setFormData({ ...formData, emergency_contact_phone: e.target.value })}
+              />
+            </div>
+            <div>
+              <Label htmlFor="emergency_contact_relation">Relation</Label>
+              <Input
+                id="emergency_contact_relation"
+                value={formData.emergency_contact_relation}
+                onChange={(e) => setFormData({ ...formData, emergency_contact_relation: e.target.value })}
+                placeholder="e.g., Uncle, Aunt"
+              />
+            </div>
+          </div>
+        </div>
+
+        {/* Medical Information */}
+        <div className="space-y-4">
+          <h3 className="text-lg font-semibold border-b pb-2">Medical Information</h3>
+          <div>
+            <Label htmlFor="medical_information">Medical Information / Allergies</Label>
+            <Textarea
+              id="medical_information"
+              value={formData.medical_information}
+              onChange={(e) => setFormData({ ...formData, medical_information: e.target.value })}
+              placeholder="Any medical conditions, allergies, or special requirements..."
+              rows={3}
             />
-            <div className="flex justify-end space-x-2 pt-4">
-              <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
-                Cancel
-              </Button>
-              <Button type="submit">
-                {selectedStudent ? "Update" : "Create"} Student
-              </Button>
-            </div>
-          </form>
-        </Form>
-      </DialogContent>
-    </Dialog>
+          </div>
+        </div>
+
+        <div className="flex justify-end space-x-2 pt-4 border-t">
+          <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
+            Cancel
+          </Button>
+          <Button type="submit" disabled={loading}>
+            {loading ? "Saving..." : selectedStudent ? "Update Student" : "Add Student"}
+          </Button>
+        </div>
+      </form>
+    </DialogContent>
   );
 }

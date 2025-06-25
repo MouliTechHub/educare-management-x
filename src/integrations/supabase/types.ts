@@ -287,12 +287,17 @@ export type Database = {
         Row: {
           address_line1: string | null
           address_line2: string | null
+          alternate_phone: string | null
+          annual_income: number | null
           city: string | null
           created_at: string | null
           email: string
+          employer_address: string | null
+          employer_name: string | null
           first_name: string
           id: string
           last_name: string
+          occupation: string | null
           phone_number: string
           pin_code: string | null
           relation: string
@@ -302,12 +307,17 @@ export type Database = {
         Insert: {
           address_line1?: string | null
           address_line2?: string | null
+          alternate_phone?: string | null
+          annual_income?: number | null
           city?: string | null
           created_at?: string | null
           email: string
+          employer_address?: string | null
+          employer_name?: string | null
           first_name: string
           id?: string
           last_name: string
+          occupation?: string | null
           phone_number: string
           pin_code?: string | null
           relation: string
@@ -317,12 +327,17 @@ export type Database = {
         Update: {
           address_line1?: string | null
           address_line2?: string | null
+          alternate_phone?: string | null
+          annual_income?: number | null
           city?: string | null
           created_at?: string | null
           email?: string
+          employer_address?: string | null
+          employer_name?: string | null
           first_name?: string
           id?: string
           last_name?: string
+          occupation?: string | null
           phone_number?: string
           pin_code?: string | null
           relation?: string
@@ -396,54 +411,84 @@ export type Database = {
           address_line1: string | null
           address_line2: string | null
           admission_number: string
+          blood_group: string | null
+          caste_category: string | null
           city: string | null
           class_id: string | null
           created_at: string | null
           date_of_birth: string
+          emergency_contact_name: string | null
+          emergency_contact_phone: string | null
+          emergency_contact_relation: string | null
           first_name: string
           gender: string
           id: string
           last_name: string
+          medical_information: string | null
           photo_url: string | null
           pin_code: string | null
+          previous_school: string | null
+          religion: string | null
           state: string | null
           status: string
+          transport_route: string | null
+          transport_stop: string | null
           updated_at: string | null
         }
         Insert: {
           address_line1?: string | null
           address_line2?: string | null
           admission_number: string
+          blood_group?: string | null
+          caste_category?: string | null
           city?: string | null
           class_id?: string | null
           created_at?: string | null
           date_of_birth: string
+          emergency_contact_name?: string | null
+          emergency_contact_phone?: string | null
+          emergency_contact_relation?: string | null
           first_name: string
           gender: string
           id?: string
           last_name: string
+          medical_information?: string | null
           photo_url?: string | null
           pin_code?: string | null
+          previous_school?: string | null
+          religion?: string | null
           state?: string | null
           status?: string
+          transport_route?: string | null
+          transport_stop?: string | null
           updated_at?: string | null
         }
         Update: {
           address_line1?: string | null
           address_line2?: string | null
           admission_number?: string
+          blood_group?: string | null
+          caste_category?: string | null
           city?: string | null
           class_id?: string | null
           created_at?: string | null
           date_of_birth?: string
+          emergency_contact_name?: string | null
+          emergency_contact_phone?: string | null
+          emergency_contact_relation?: string | null
           first_name?: string
           gender?: string
           id?: string
           last_name?: string
+          medical_information?: string | null
           photo_url?: string | null
           pin_code?: string | null
+          previous_school?: string | null
+          religion?: string | null
           state?: string | null
           status?: string
+          transport_route?: string | null
+          transport_stop?: string | null
           updated_at?: string | null
         }
         Relationships: [
@@ -513,13 +558,22 @@ export type Database = {
           address_line2: string | null
           city: string | null
           created_at: string | null
+          department: string | null
+          designation: string | null
           email: string
+          emergency_contact_name: string | null
+          emergency_contact_phone: string | null
+          emergency_contact_relation: string | null
+          employee_id: string | null
+          experience_years: number | null
           first_name: string
           hire_date: string
           id: string
           last_name: string
           phone_number: string
           pin_code: string | null
+          qualification: string | null
+          salary: number | null
           state: string | null
           status: string
           updated_at: string | null
@@ -529,13 +583,22 @@ export type Database = {
           address_line2?: string | null
           city?: string | null
           created_at?: string | null
+          department?: string | null
+          designation?: string | null
           email: string
+          emergency_contact_name?: string | null
+          emergency_contact_phone?: string | null
+          emergency_contact_relation?: string | null
+          employee_id?: string | null
+          experience_years?: number | null
           first_name: string
           hire_date: string
           id?: string
           last_name: string
           phone_number: string
           pin_code?: string | null
+          qualification?: string | null
+          salary?: number | null
           state?: string | null
           status?: string
           updated_at?: string | null
@@ -545,13 +608,22 @@ export type Database = {
           address_line2?: string | null
           city?: string | null
           created_at?: string | null
+          department?: string | null
+          designation?: string | null
           email?: string
+          emergency_contact_name?: string | null
+          emergency_contact_phone?: string | null
+          emergency_contact_relation?: string | null
+          employee_id?: string | null
+          experience_years?: number | null
           first_name?: string
           hire_date?: string
           id?: string
           last_name?: string
           phone_number?: string
           pin_code?: string | null
+          qualification?: string | null
+          salary?: number | null
           state?: string | null
           status?: string
           updated_at?: string | null

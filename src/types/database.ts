@@ -1,3 +1,4 @@
+
 // Database types that match Supabase schema
 export interface Student {
   id: string;
@@ -14,6 +15,16 @@ export interface Student {
   pin_code: string | null;
   photo_url: string | null;
   status: 'Active' | 'Inactive' | 'Alumni';
+  blood_group: string | null;
+  religion: string | null;
+  caste_category: string | null;
+  previous_school: string | null;
+  transport_route: string | null;
+  transport_stop: string | null;
+  medical_information: string | null;
+  emergency_contact_name: string | null;
+  emergency_contact_phone: string | null;
+  emergency_contact_relation: string | null;
   created_at: string;
   updated_at: string;
   classes?: {
@@ -48,6 +59,11 @@ export interface Parent {
   city: string | null;
   state: string | null;
   pin_code: string | null;
+  occupation: string | null;
+  annual_income: number | null;
+  employer_name: string | null;
+  employer_address: string | null;
+  alternate_phone: string | null;
   created_at: string;
   updated_at: string;
   students?: StudentBasic[];
@@ -66,6 +82,15 @@ export interface Teacher {
   pin_code: string | null;
   hire_date: string;
   status: 'Active' | 'On Leave' | 'Retired';
+  employee_id: string | null;
+  department: string | null;
+  designation: string | null;
+  qualification: string | null;
+  experience_years: number | null;
+  salary: number | null;
+  emergency_contact_name: string | null;
+  emergency_contact_phone: string | null;
+  emergency_contact_relation: string | null;
   created_at: string;
   updated_at: string;
 }

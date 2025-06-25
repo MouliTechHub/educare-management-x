@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -7,6 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
+import { Textarea } from "@/components/ui/textarea";
 import { Plus, Search, Edit, Trash2, UserCheck } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
@@ -21,10 +23,20 @@ interface TeacherFormData {
   phone_number: string;
   hire_date: string;
   status: string;
+  employee_id?: string;
+  department?: string;
+  designation?: string;
+  qualification?: string;
+  experience_years?: number;
+  salary?: number;
   address_line1?: string;
+  address_line2?: string;
   city?: string;
   state?: string;
   pin_code?: string;
+  emergency_contact_name?: string;
+  emergency_contact_phone?: string;
+  emergency_contact_relation?: string;
 }
 
 export function TeacherManagement() {
@@ -44,10 +56,20 @@ export function TeacherManagement() {
       phone_number: "",
       hire_date: new Date().toISOString().split('T')[0],
       status: "Active",
+      employee_id: "",
+      department: "",
+      designation: "",
+      qualification: "",
+      experience_years: undefined,
+      salary: undefined,
       address_line1: "",
+      address_line2: "",
       city: "",
       state: "",
       pin_code: "",
+      emergency_contact_name: "",
+      emergency_contact_phone: "",
+      emergency_contact_relation: "",
     },
   });
 
@@ -99,10 +121,29 @@ export function TeacherManagement() {
 
   const onSubmit = async (data: TeacherFormData) => {
     try {
+      // Convert empty strings to null for optional fields
+      const cleanedData = {
+        ...data,
+        employee_id: data.employee_id || null,
+        department: data.department || null,
+        designation: data.designation || null,
+        qualification: data.qualification || null,
+        experience_years: data.experience_years || null,
+        salary: data.salary || null,
+        address_line1: data.address_line1 || null,
+        address_line2: data.address_line2 || null,
+        city: data.city || null,
+        state: data.state || null,
+        pin_code: data.pin_code || null,
+        emergency_contact_name: data.emergency_contact_name || null,
+        emergency_contact_phone: data.emergency_contact_phone || null,
+        emergency_contact_relation: data.emergency_contact_relation || null,
+      };
+
       if (selectedTeacher) {
         const { error } = await supabase
           .from("teachers")
-          .update(data)
+          .update(cleanedData)
           .eq("id", selectedTeacher.id);
 
         if (error) throw error;
@@ -110,7 +151,7 @@ export function TeacherManagement() {
       } else {
         const { error } = await supabase
           .from("teachers")
-          .insert([data]);
+          .insert([cleanedData]);
 
         if (error) throw error;
         toast({ title: "Teacher created successfully" });
@@ -159,17 +200,28 @@ export function TeacherManagement() {
       phone_number: teacher.phone_number,
       hire_date: teacher.hire_date,
       status: teacher.status,
+      employee_id: teacher.employee_id || "",
+      department: teacher.department || "",
+      designation: teacher.designation || "",
+      qualification: teacher.qualification || "",
+      experience_years: teacher.experience_years || undefined,
+      salary: teacher.salary || undefined,
       address_line1: teacher.address_line1 || "",
+      address_line2: teacher.address_line2 || "",
       city: teacher.city || "",
       state: teacher.state || "",
       pin_code: teacher.pin_code || "",
+      emergency_contact_name: teacher.emergency_contact_name || "",
+      emergency_contact_phone: teacher.emergency_contact_phone || "",
+      emergency_contact_relation: teacher.emergency_contact_relation || "",
     });
     setDialogOpen(true);
   };
 
   const filteredTeachers = teachers.filter((teacher) =>
     `${teacher.first_name} ${teacher.last_name}`.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    teacher.email.toLowerCase().includes(searchTerm.toLowerCase())
+    teacher.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    (teacher.employee_id && teacher.employee_id.toLowerCase().includes(searchTerm.toLowerCase()))
   );
 
   if (loading) {
@@ -197,7 +249,7 @@ export function TeacherManagement() {
               Add Teacher
             </Button>
           </DialogTrigger>
-          <DialogContent className="max-w-2xl">
+          <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle>{selectedTeacher ? "Edit Teacher" : "Add New Teacher"}</DialogTitle>
               <DialogDescription>
@@ -205,152 +257,314 @@ export function TeacherManagement() {
               </DialogDescription>
             </DialogHeader>
             <Form {...form}>
-              <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-                <div className="grid grid-cols-2 gap-4">
-                  <FormField
-                    control={form.control}
-                    name="first_name"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>First Name</FormLabel>
-                        <FormControl>
-                          <Input {...field} required />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  <FormField
-                    control={form.control}
-                    name="last_name"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Last Name</FormLabel>
-                        <FormControl>
-                          <Input {...field} required />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
+              <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+                {/* Basic Information */}
+                <div className="space-y-4">
+                  <h3 className="text-lg font-semibold">Basic Information</h3>
+                  <div className="grid grid-cols-2 gap-4">
+                    <FormField
+                      control={form.control}
+                      name="first_name"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>First Name *</FormLabel>
+                          <FormControl>
+                            <Input {...field} required />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={form.control}
+                      name="last_name"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Last Name *</FormLabel>
+                          <FormControl>
+                            <Input {...field} required />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </div>
+                  <div className="grid grid-cols-2 gap-4">
+                    <FormField
+                      control={form.control}
+                      name="employee_id"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Employee ID</FormLabel>
+                          <FormControl>
+                            <Input {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={form.control}
+                      name="email"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Email *</FormLabel>
+                          <FormControl>
+                            <Input {...field} type="email" required />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </div>
+                  <div className="grid grid-cols-2 gap-4">
+                    <FormField
+                      control={form.control}
+                      name="phone_number"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Phone Number *</FormLabel>
+                          <FormControl>
+                            <Input {...field} required />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={form.control}
+                      name="hire_date"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Hire Date *</FormLabel>
+                          <FormControl>
+                            <Input {...field} type="date" required />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </div>
                 </div>
-                <FormField
-                  control={form.control}
-                  name="email"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Email</FormLabel>
-                      <FormControl>
-                        <Input {...field} type="email" required />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <div className="grid grid-cols-2 gap-4">
-                  <FormField
-                    control={form.control}
-                    name="phone_number"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Phone Number</FormLabel>
-                        <FormControl>
-                          <Input {...field} required />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  <FormField
-                    control={form.control}
-                    name="hire_date"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Hire Date</FormLabel>
-                        <FormControl>
-                          <Input {...field} type="date" required />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
+
+                {/* Professional Information */}
+                <div className="space-y-4">
+                  <h3 className="text-lg font-semibold">Professional Information</h3>
+                  <div className="grid grid-cols-2 gap-4">
+                    <FormField
+                      control={form.control}
+                      name="department"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Department</FormLabel>
+                          <FormControl>
+                            <Input {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={form.control}
+                      name="designation"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Designation</FormLabel>
+                          <FormControl>
+                            <Input {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </div>
+                  <div className="grid grid-cols-2 gap-4">
+                    <FormField
+                      control={form.control}
+                      name="qualification"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Qualification</FormLabel>
+                          <FormControl>
+                            <Input {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={form.control}
+                      name="experience_years"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Experience (Years)</FormLabel>
+                          <FormControl>
+                            <Input {...field} type="number" onChange={(e) => field.onChange(e.target.value ? parseInt(e.target.value) : undefined)} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </div>
+                  <div className="grid grid-cols-2 gap-4">
+                    <FormField
+                      control={form.control}
+                      name="salary"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Salary</FormLabel>
+                          <FormControl>
+                            <Input {...field} type="number" onChange={(e) => field.onChange(e.target.value ? parseFloat(e.target.value) : undefined)} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={form.control}
+                      name="status"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Status *</FormLabel>
+                          <Select onValueChange={field.onChange} value={field.value}>
+                            <FormControl>
+                              <SelectTrigger>
+                                <SelectValue />
+                              </SelectTrigger>
+                            </FormControl>
+                            <SelectContent>
+                              <SelectItem value="Active">Active</SelectItem>
+                              <SelectItem value="On Leave">On Leave</SelectItem>
+                              <SelectItem value="Retired">Retired</SelectItem>
+                            </SelectContent>
+                          </Select>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </div>
                 </div>
-                <FormField
-                  control={form.control}
-                  name="status"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Status</FormLabel>
-                      <Select onValueChange={field.onChange} value={field.value}>
-                        <FormControl>
-                          <SelectTrigger>
-                            <SelectValue />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                          <SelectItem value="Active">Active</SelectItem>
-                          <SelectItem value="On Leave">On Leave</SelectItem>
-                          <SelectItem value="Retired">Retired</SelectItem>
-                        </SelectContent>
-                      </Select>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={form.control}
-                  name="address_line1"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Address</FormLabel>
-                      <FormControl>
-                        <Input {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <div className="grid grid-cols-3 gap-4">
-                  <FormField
-                    control={form.control}
-                    name="city"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>City</FormLabel>
-                        <FormControl>
-                          <Input {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  <FormField
-                    control={form.control}
-                    name="state"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>State</FormLabel>
-                        <FormControl>
-                          <Input {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  <FormField
-                    control={form.control}
-                    name="pin_code"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>PIN Code</FormLabel>
-                        <FormControl>
-                          <Input {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
+
+                {/* Address Information */}
+                <div className="space-y-4">
+                  <h3 className="text-lg font-semibold">Address Information</h3>
+                  <div className="grid grid-cols-2 gap-4">
+                    <FormField
+                      control={form.control}
+                      name="address_line1"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Address Line 1</FormLabel>
+                          <FormControl>
+                            <Input {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={form.control}
+                      name="address_line2"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Address Line 2</FormLabel>
+                          <FormControl>
+                            <Input {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </div>
+                  <div className="grid grid-cols-3 gap-4">
+                    <FormField
+                      control={form.control}
+                      name="city"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>City</FormLabel>
+                          <FormControl>
+                            <Input {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={form.control}
+                      name="state"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>State</FormLabel>
+                          <FormControl>
+                            <Input {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={form.control}
+                      name="pin_code"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>PIN Code</FormLabel>
+                          <FormControl>
+                            <Input {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </div>
                 </div>
+
+                {/* Emergency Contact */}
+                <div className="space-y-4">
+                  <h3 className="text-lg font-semibold">Emergency Contact</h3>
+                  <div className="grid grid-cols-3 gap-4">
+                    <FormField
+                      control={form.control}
+                      name="emergency_contact_name"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Emergency Contact Name</FormLabel>
+                          <FormControl>
+                            <Input {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={form.control}
+                      name="emergency_contact_phone"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Emergency Contact Phone</FormLabel>
+                          <FormControl>
+                            <Input {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={form.control}
+                      name="emergency_contact_relation"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Relation</FormLabel>
+                          <FormControl>
+                            <Input {...field} placeholder="e.g., Spouse, Parent" />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </div>
+                </div>
+
                 <div className="flex justify-end space-x-2 pt-4">
                   <Button type="button" variant="outline" onClick={() => setDialogOpen(false)}>
                     Cancel
@@ -388,9 +602,11 @@ export function TeacherManagement() {
             <TableHeader>
               <TableRow>
                 <TableHead>Name</TableHead>
+                <TableHead>Employee ID</TableHead>
                 <TableHead>Email</TableHead>
                 <TableHead>Phone</TableHead>
-                <TableHead>Hire Date</TableHead>
+                <TableHead>Department</TableHead>
+                <TableHead>Designation</TableHead>
                 <TableHead>Status</TableHead>
                 <TableHead>Actions</TableHead>
               </TableRow>
@@ -404,9 +620,11 @@ export function TeacherManagement() {
                       <span className="font-medium">{teacher.first_name} {teacher.last_name}</span>
                     </div>
                   </TableCell>
+                  <TableCell>{teacher.employee_id || "N/A"}</TableCell>
                   <TableCell>{teacher.email}</TableCell>
                   <TableCell>{teacher.phone_number}</TableCell>
-                  <TableCell>{new Date(teacher.hire_date).toLocaleDateString()}</TableCell>
+                  <TableCell>{teacher.department || "N/A"}</TableCell>
+                  <TableCell>{teacher.designation || "N/A"}</TableCell>
                   <TableCell>
                     <Badge variant={teacher.status === "Active" ? "default" : "secondary"}>
                       {teacher.status}

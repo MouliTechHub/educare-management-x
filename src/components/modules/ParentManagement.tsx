@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -6,6 +7,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Textarea } from "@/components/ui/textarea";
 import { Plus, Search, Edit, Trash2, User, GraduationCap } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
@@ -31,6 +33,11 @@ export function ParentManagement() {
     city: "",
     state: "",
     pin_code: "",
+    occupation: "",
+    annual_income: "",
+    employer_name: "",
+    employer_address: "",
+    alternate_phone: "",
   });
 
   useEffect(() => {
@@ -117,6 +124,11 @@ export function ParentManagement() {
         city: formData.city || null,
         state: formData.state || null,
         pin_code: formData.pin_code || null,
+        occupation: formData.occupation || null,
+        annual_income: formData.annual_income ? parseFloat(formData.annual_income) : null,
+        employer_name: formData.employer_name || null,
+        employer_address: formData.employer_address || null,
+        alternate_phone: formData.alternate_phone || null,
       };
 
       if (editingParent) {
@@ -169,6 +181,11 @@ export function ParentManagement() {
       city: parent.city || "",
       state: parent.state || "",
       pin_code: parent.pin_code || "",
+      occupation: parent.occupation || "",
+      annual_income: parent.annual_income?.toString() || "",
+      employer_name: parent.employer_name || "",
+      employer_address: parent.employer_address || "",
+      alternate_phone: parent.alternate_phone || "",
     });
     setDialogOpen(true);
   };
@@ -213,6 +230,11 @@ export function ParentManagement() {
       city: "",
       state: "",
       pin_code: "",
+      occupation: "",
+      annual_income: "",
+      employer_name: "",
+      employer_address: "",
+      alternate_phone: "",
     });
     setEditingParent(null);
   };
@@ -248,75 +270,132 @@ export function ParentManagement() {
               Add Parent
             </Button>
           </DialogTrigger>
-          <DialogContent className="max-w-2xl">
+          <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle>
                 {editingParent ? "Edit Parent" : "Add New Parent"}
               </DialogTitle>
             </DialogHeader>
-            <form onSubmit={handleSubmit} className="space-y-4">
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <Label htmlFor="first_name">First Name *</Label>
-                  <Input
-                    id="first_name"
-                    value={formData.first_name}
-                    onChange={(e) => setFormData({ ...formData, first_name: e.target.value })}
-                    required
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="last_name">Last Name *</Label>
-                  <Input
-                    id="last_name"
-                    value={formData.last_name}
-                    onChange={(e) => setFormData({ ...formData, last_name: e.target.value })}
-                    required
-                  />
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <Label htmlFor="relation">Relation *</Label>
-                  <Select value={formData.relation} onValueChange={(value: "Mother" | "Father" | "Guardian" | "Other") => setFormData({ ...formData, relation: value })}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select relation" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="Mother">Mother</SelectItem>
-                      <SelectItem value="Father">Father</SelectItem>
-                      <SelectItem value="Guardian">Guardian</SelectItem>
-                      <SelectItem value="Other">Other</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div>
-                  <Label htmlFor="phone_number">Phone Number *</Label>
-                  <Input
-                    id="phone_number"
-                    value={formData.phone_number}
-                    onChange={(e) => setFormData({ ...formData, phone_number: e.target.value })}
-                    pattern="[0-9]{10}"
-                    title="Phone number must be 10 digits"
-                    required
-                  />
-                </div>
-              </div>
-
-              <div>
-                <Label htmlFor="email">Email *</Label>
-                <Input
-                  id="email"
-                  type="email"
-                  value={formData.email}
-                  onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                  required
-                />
-              </div>
-
+            <form onSubmit={handleSubmit} className="space-y-6">
+              {/* Basic Information */}
               <div className="space-y-4">
-                <h3 className="font-medium">Address Information</h3>
+                <h3 className="text-lg font-semibold">Basic Information</h3>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <Label htmlFor="first_name">First Name *</Label>
+                    <Input
+                      id="first_name"
+                      value={formData.first_name}
+                      onChange={(e) => setFormData({ ...formData, first_name: e.target.value })}
+                      required
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="last_name">Last Name *</Label>
+                    <Input
+                      id="last_name"
+                      value={formData.last_name}
+                      onChange={(e) => setFormData({ ...formData, last_name: e.target.value })}
+                      required
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <Label htmlFor="relation">Relation *</Label>
+                    <Select value={formData.relation} onValueChange={(value: "Mother" | "Father" | "Guardian" | "Other") => setFormData({ ...formData, relation: value })}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select relation" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="Mother">Mother</SelectItem>
+                        <SelectItem value="Father">Father</SelectItem>
+                        <SelectItem value="Guardian">Guardian</SelectItem>
+                        <SelectItem value="Other">Other</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div>
+                    <Label htmlFor="phone_number">Phone Number *</Label>
+                    <Input
+                      id="phone_number"
+                      value={formData.phone_number}
+                      onChange={(e) => setFormData({ ...formData, phone_number: e.target.value })}
+                      pattern="[0-9]{10}"
+                      title="Phone number must be 10 digits"
+                      required
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <Label htmlFor="email">Email *</Label>
+                    <Input
+                      id="email"
+                      type="email"
+                      value={formData.email}
+                      onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                      required
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="alternate_phone">Alternate Phone</Label>
+                    <Input
+                      id="alternate_phone"
+                      value={formData.alternate_phone}
+                      onChange={(e) => setFormData({ ...formData, alternate_phone: e.target.value })}
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Professional Information */}
+              <div className="space-y-4">
+                <h3 className="text-lg font-semibold">Professional Information</h3>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <Label htmlFor="occupation">Occupation</Label>
+                    <Input
+                      id="occupation"
+                      value={formData.occupation}
+                      onChange={(e) => setFormData({ ...formData, occupation: e.target.value })}
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="annual_income">Annual Income</Label>
+                    <Input
+                      id="annual_income"
+                      type="number"
+                      value={formData.annual_income}
+                      onChange={(e) => setFormData({ ...formData, annual_income: e.target.value })}
+                    />
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <Label htmlFor="employer_name">Employer Name</Label>
+                    <Input
+                      id="employer_name"
+                      value={formData.employer_name}
+                      onChange={(e) => setFormData({ ...formData, employer_name: e.target.value })}
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="employer_address">Employer Address</Label>
+                    <Textarea
+                      id="employer_address"
+                      value={formData.employer_address}
+                      onChange={(e) => setFormData({ ...formData, employer_address: e.target.value })}
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Address Information */}
+              <div className="space-y-4">
+                <h3 className="text-lg font-semibold">Address Information</h3>
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <Label htmlFor="address_line1">Address Line 1</Label>
@@ -402,6 +481,7 @@ export function ParentManagement() {
                 <TableHead>Relation</TableHead>
                 <TableHead>Phone</TableHead>
                 <TableHead>Email</TableHead>
+                <TableHead>Occupation</TableHead>
                 <TableHead>Students</TableHead>
                 <TableHead>Actions</TableHead>
               </TableRow>
@@ -413,6 +493,7 @@ export function ParentManagement() {
                   <TableCell>{parent.relation}</TableCell>
                   <TableCell>{parent.phone_number}</TableCell>
                   <TableCell>{parent.email}</TableCell>
+                  <TableCell>{parent.occupation || "N/A"}</TableCell>
                   <TableCell>
                     {parent.students && parent.students.length > 0 ? (
                       <div className="space-y-1">
