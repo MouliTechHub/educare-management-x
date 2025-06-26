@@ -3,7 +3,7 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { Edit, Trash2, User, Calendar, Users, DollarSign, History } from "lucide-react";
+import { Edit, Trash2, User, Calendar, Users, DollarSign, History, ExternalLink } from "lucide-react";
 import { Student } from "@/types/database";
 import { StudentPaymentHistory } from "./StudentPaymentHistory";
 
@@ -11,15 +11,23 @@ interface StudentTableProps {
   students: Student[];
   onEditStudent: (student: Student) => void;
   onDeleteStudent: (id: string) => void;
+  onViewParent?: (parentId: string) => void;
 }
 
-export function StudentTable({ students, onEditStudent, onDeleteStudent }: StudentTableProps) {
+export function StudentTable({ students, onEditStudent, onDeleteStudent, onViewParent }: StudentTableProps) {
   const [selectedStudent, setSelectedStudent] = useState<Student | null>(null);
   const [historyOpen, setHistoryOpen] = useState(false);
 
   const openPaymentHistory = (student: Student) => {
     setSelectedStudent(student);
     setHistoryOpen(true);
+  };
+
+  const handleParentClick = (parentId: string, parentName: string) => {
+    if (onViewParent) {
+      console.log(`Navigating to parent: ${parentName} (${parentId})`);
+      onViewParent(parentId);
+    }
   };
 
   return (
@@ -64,7 +72,13 @@ export function StudentTable({ students, onEditStudent, onDeleteStudent }: Stude
                     {student.parents.map((parent, index) => (
                       <div key={parent.id} className="flex items-center space-x-1 text-sm">
                         <Users className="w-3 h-3 text-green-600" />
-                        <span className="font-medium">{parent.first_name} {parent.last_name}</span>
+                        <button
+                          onClick={() => handleParentClick(parent.id, `${parent.first_name} ${parent.last_name}`)}
+                          className="font-medium text-blue-600 hover:text-blue-800 hover:underline flex items-center space-x-1"
+                        >
+                          <span>{parent.first_name} {parent.last_name}</span>
+                          <ExternalLink className="w-3 h-3" />
+                        </button>
                         <span className="text-gray-500">({parent.relation})</span>
                         {index < student.parents!.length - 1 && <span className="text-gray-300">|</span>}
                       </div>

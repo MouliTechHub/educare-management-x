@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -8,12 +7,17 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
-import { Plus, Search, Edit, Trash2, User, GraduationCap } from "lucide-react";
+import { Plus, Search, Edit, Trash2, User, GraduationCap, ExternalLink } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { Parent } from "@/types/database";
 
-export function ParentManagement() {
+interface ParentManagementProps {
+  onNavigateToStudent?: (studentId: string) => void;
+  highlightedParentId?: string;
+}
+
+export function ParentManagement({ onNavigateToStudent, highlightedParentId }: ParentManagementProps) {
   const [parents, setParents] = useState<Parent[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [loading, setLoading] = useState(true);
@@ -80,6 +84,13 @@ export function ParentManagement() {
       });
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleStudentClick = (studentId: string, studentName: string) => {
+    if (onNavigateToStudent) {
+      console.log(`Navigating to student: ${studentName} (${studentId})`);
+      onNavigateToStudent(studentId);
     }
   };
 
@@ -488,7 +499,10 @@ export function ParentManagement() {
             </TableHeader>
             <TableBody>
               {filteredParents.map((parent) => (
-                <TableRow key={parent.id}>
+                <TableRow 
+                  key={parent.id}
+                  className={highlightedParentId === parent.id ? "bg-blue-50 border-blue-200" : ""}
+                >
                   <TableCell className="font-medium">{parent.first_name} {parent.last_name}</TableCell>
                   <TableCell>{parent.relation}</TableCell>
                   <TableCell>{parent.phone_number}</TableCell>
@@ -500,7 +514,13 @@ export function ParentManagement() {
                         {parent.students.map((student, index) => (
                           <div key={student.id} className="flex items-center space-x-1 text-sm">
                             <GraduationCap className="w-3 h-3 text-blue-600" />
-                            <span className="font-medium">{student.first_name} {student.last_name}</span>
+                            <button
+                              onClick={() => handleStudentClick(student.id, `${student.first_name} ${student.last_name}`)}
+                              className="font-medium text-blue-600 hover:text-blue-800 hover:underline flex items-center space-x-1"
+                            >
+                              <span>{student.first_name} {student.last_name}</span>
+                              <ExternalLink className="w-3 h-3" />
+                            </button>
                             <span className="text-gray-500">({student.admission_number})</span>
                             {index < parent.students!.length - 1 && <span className="text-gray-300">|</span>}
                           </div>

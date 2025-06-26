@@ -10,7 +10,11 @@ import { useStudentData } from "./student-management/useStudentData";
 import { StudentForm } from "./student-management/StudentForm";
 import { StudentTable } from "./student-management/StudentTable";
 
-export function StudentManagement() {
+interface StudentManagementProps {
+  onNavigateToParent?: (parentId: string) => void;
+}
+
+export function StudentManagement({ onNavigateToParent }: StudentManagementProps) {
   const [searchTerm, setSearchTerm] = useState("");
   const [dialogOpen, setDialogOpen] = useState(false);
   const [selectedStudent, setSelectedStudent] = useState<Student | null>(null);
@@ -32,6 +36,12 @@ export function StudentManagement() {
   const handleStudentSaved = () => {
     fetchStudents();
     setSelectedStudent(null);
+  };
+
+  const handleViewParent = (parentId: string) => {
+    if (onNavigateToParent) {
+      onNavigateToParent(parentId);
+    }
   };
 
   const filteredStudents = students.filter((student) =>
@@ -94,6 +104,7 @@ export function StudentManagement() {
             students={filteredStudents}
             onEditStudent={openEditDialog}
             onDeleteStudent={deleteStudent}
+            onViewParent={handleViewParent}
           />
         </CardContent>
       </Card>

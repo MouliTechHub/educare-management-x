@@ -22,6 +22,8 @@ const Index = () => {
   const { user, loading, signOut } = useAuth();
   const [activeModule, setActiveModule] = useState("dashboard");
   const [userRole, setUserRole] = useState<"Admin" | "Teacher" | "Parent" | "Accountant">("Admin");
+  const [highlightedParentId, setHighlightedParentId] = useState<string | undefined>();
+  const [highlightedStudentId, setHighlightedStudentId] = useState<string | undefined>();
 
   useEffect(() => {
     if (user) {
@@ -52,6 +54,31 @@ const Index = () => {
     }
   };
 
+  const handleNavigateToParent = (parentId: string) => {
+    console.log('Navigating to parent:', parentId);
+    setHighlightedParentId(parentId);
+    setHighlightedStudentId(undefined);
+    setActiveModule("parents");
+  };
+
+  const handleNavigateToStudent = (studentId: string) => {
+    console.log('Navigating to student:', studentId);
+    setHighlightedStudentId(studentId);
+    setHighlightedParentId(undefined);
+    setActiveModule("students");
+  };
+
+  // Clear highlights when changing modules manually
+  const handleModuleChange = (module: string) => {
+    setActiveModule(module);
+    if (module !== "parents") {
+      setHighlightedParentId(undefined);
+    }
+    if (module !== "students") {
+      setHighlightedStudentId(undefined);
+    }
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -78,9 +105,9 @@ const Index = () => {
       case "dashboard":
         return <Dashboard userRole={currentUser.role} />;
       case "students":
-        return <StudentManagement />;
+        return <StudentManagement onNavigateToParent={handleNavigateToParent} />;
       case "parents":
-        return <ParentManagement />;
+        return <ParentManagement onNavigateToStudent={handleNavigateToStudent} highlightedParentId={highlightedParentId} />;
       case "teachers":
         return <TeacherManagement />;
       case "classes":
@@ -108,7 +135,7 @@ const Index = () => {
         <AppSidebar 
           userRole={currentUser.role} 
           activeModule={activeModule}
-          onModuleChange={setActiveModule}
+          onModuleChange={handleModuleChange}
         />
         <div className="flex-1 flex flex-col overflow-hidden">
           <Header user={currentUser} onLogout={signOut} />
