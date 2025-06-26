@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -9,6 +8,7 @@ import { DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/c
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { Student, Class } from "@/types/database";
+import { Plus, Trash2 } from "lucide-react";
 
 interface StudentFormProps {
   open: boolean;
@@ -16,6 +16,24 @@ interface StudentFormProps {
   selectedStudent: Student | null;
   classes: Class[];
   onStudentSaved: () => void;
+}
+
+interface ParentFormData {
+  first_name: string;
+  last_name: string;
+  relation: string;
+  phone_number: string;
+  email: string;
+  address_line1: string;
+  address_line2: string;
+  city: string;
+  state: string;
+  pin_code: string;
+  occupation: string;
+  annual_income: string;
+  employer_name: string;
+  employer_address: string;
+  alternate_phone: string;
 }
 
 interface StudentFormData {
@@ -46,6 +64,7 @@ interface StudentFormData {
 const bloodGroups = ["A+", "A-", "B+", "B-", "AB+", "AB-", "O+", "O-"];
 const religions = ["Hindu", "Muslim", "Christian", "Sikh", "Buddhist", "Jain", "Other"];
 const casteCategories = ["General", "OBC", "SC", "ST", "Other"];
+const relations = ["Mother", "Father", "Guardian", "Other"];
 
 export function StudentForm({ open, onOpenChange, selectedStudent, classes, onStudentSaved }: StudentFormProps) {
   const { toast } = useToast();
@@ -76,6 +95,26 @@ export function StudentForm({ open, onOpenChange, selectedStudent, classes, onSt
     status: "Active",
   });
 
+  const [parents, setParents] = useState<ParentFormData[]>([
+    {
+      first_name: "",
+      last_name: "",
+      relation: "",
+      phone_number: "",
+      email: "",
+      address_line1: "",
+      address_line2: "",
+      city: "",
+      state: "",
+      pin_code: "",
+      occupation: "",
+      annual_income: "",
+      employer_name: "",
+      employer_address: "",
+      alternate_phone: "",
+    }
+  ]);
+
   useEffect(() => {
     if (selectedStudent) {
       setFormData({
@@ -102,8 +141,28 @@ export function StudentForm({ open, onOpenChange, selectedStudent, classes, onSt
         pin_code: selectedStudent.pin_code || "",
         status: selectedStudent.status,
       });
+
+      if (selectedStudent.parents && selectedStudent.parents.length > 0) {
+        const existingParents = selectedStudent.parents.map(parent => ({
+          first_name: parent.first_name,
+          last_name: parent.last_name,
+          relation: parent.relation,
+          phone_number: parent.phone_number,
+          email: parent.email,
+          address_line1: "",
+          address_line2: "",
+          city: "",
+          state: "",
+          pin_code: "",
+          occupation: "",
+          annual_income: "",
+          employer_name: "",
+          employer_address: "",
+          alternate_phone: "",
+        }));
+        setParents(existingParents);
+      }
     } else {
-      // Reset form for new student
       setFormData({
         first_name: "",
         last_name: "",
@@ -128,15 +187,63 @@ export function StudentForm({ open, onOpenChange, selectedStudent, classes, onSt
         pin_code: "",
         status: "Active",
       });
+      setParents([{
+        first_name: "",
+        last_name: "",
+        relation: "",
+        phone_number: "",
+        email: "",
+        address_line1: "",
+        address_line2: "",
+        city: "",
+        state: "",
+        pin_code: "",
+        occupation: "",
+        annual_income: "",
+        employer_name: "",
+        employer_address: "",
+        alternate_phone: "",
+      }]);
     }
   }, [selectedStudent, open]);
+
+  const addParent = () => {
+    setParents([...parents, {
+      first_name: "",
+      last_name: "",
+      relation: "",
+      phone_number: "",
+      email: "",
+      address_line1: "",
+      address_line2: "",
+      city: "",
+      state: "",
+      pin_code: "",
+      occupation: "",
+      annual_income: "",
+      employer_name: "",
+      employer_address: "",
+      alternate_phone: "",
+    }]);
+  };
+
+  const removeParent = (index: number) => {
+    if (parents.length > 1) {
+      setParents(parents.filter((_, i) => i !== index));
+    }
+  };
+
+  const updateParent = (index: number, field: keyof ParentFormData, value: string) => {
+    const updatedParents = [...parents];
+    updatedParents[index][field] = value;
+    setParents(updatedParents);
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
 
     try {
-      // Prepare data for submission
       const studentData = {
         ...formData,
         class_id: formData.class_id || null,
@@ -157,30 +264,69 @@ export function StudentForm({ open, onOpenChange, selectedStudent, classes, onSt
         pin_code: formData.pin_code || null,
       };
 
+      let studentId: string;
+
       if (selectedStudent) {
-        // Update existing student
         const { error } = await supabase
           .from("students")
           .update(studentData)
           .eq("id", selectedStudent.id);
 
         if (error) throw error;
+        studentId = selectedStudent.id;
 
         toast({
           title: "Student Updated",
           description: `${formData.first_name} ${formData.last_name} has been updated successfully.`,
         });
       } else {
-        // Create new student
-        const { error } = await supabase
+        const { data, error } = await supabase
           .from("students")
-          .insert([studentData]);
+          .insert([studentData])
+          .select()
+          .single();
 
         if (error) throw error;
+        studentId = data.id;
+
+        for (const parent of parents) {
+          if (parent.first_name && parent.last_name && parent.phone_number && parent.email) {
+            const parentData = {
+              ...parent,
+              annual_income: parent.annual_income ? parseFloat(parent.annual_income) : null,
+              address_line1: parent.address_line1 || null,
+              address_line2: parent.address_line2 || null,
+              city: parent.city || null,
+              state: parent.state || null,
+              pin_code: parent.pin_code || null,
+              occupation: parent.occupation || null,
+              employer_name: parent.employer_name || null,
+              employer_address: parent.employer_address || null,
+              alternate_phone: parent.alternate_phone || null,
+            };
+
+            const { data: parentRecord, error: parentError } = await supabase
+              .from("parents")
+              .insert([parentData])
+              .select()
+              .single();
+
+            if (parentError) throw parentError;
+
+            const { error: linkError } = await supabase
+              .from("student_parent_links")
+              .insert([{
+                student_id: studentId,
+                parent_id: parentRecord.id
+              }]);
+
+            if (linkError) throw linkError;
+          }
+        }
 
         toast({
           title: "Student Added",
-          description: `${formData.first_name} ${formData.last_name} has been added successfully.`,
+          description: `${formData.first_name} ${formData.last_name} and parent(s) have been added successfully.`,
         });
       }
 
@@ -205,7 +351,7 @@ export function StudentForm({ open, onOpenChange, selectedStudent, classes, onSt
           {selectedStudent ? "Edit Student" : "Add New Student"}
         </DialogTitle>
         <DialogDescription>
-          {selectedStudent ? "Update student information" : "Enter student details to add to the system"}
+          {selectedStudent ? "Update student information" : "Enter student and parent details to add to the system"}
         </DialogDescription>
       </DialogHeader>
 
@@ -479,12 +625,132 @@ export function StudentForm({ open, onOpenChange, selectedStudent, classes, onSt
           </div>
         </div>
 
+        {/* Parent Information - Only show for new students */}
+        {!selectedStudent && (
+          <div className="space-y-4">
+            <div className="flex items-center justify-between">
+              <h3 className="text-lg font-semibold border-b pb-2">Parent Information</h3>
+              <Button type="button" onClick={addParent} variant="outline" size="sm">
+                <Plus className="w-4 h-4 mr-1" />
+                Add Parent
+              </Button>
+            </div>
+            
+            {parents.map((parent, index) => (
+              <div key={index} className="border p-4 rounded-lg space-y-4">
+                <div className="flex items-center justify-between">
+                  <h4 className="font-medium">Parent {index + 1}</h4>
+                  {parents.length > 1 && (
+                    <Button
+                      type="button"
+                      onClick={() => removeParent(index)}
+                      variant="outline"
+                      size="sm"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </Button>
+                  )}
+                </div>
+
+                <div className="grid grid-cols-3 gap-4">
+                  <div>
+                    <Label>First Name *</Label>
+                    <Input
+                      value={parent.first_name}
+                      onChange={(e) => updateParent(index, 'first_name', e.target.value)}
+                      required
+                    />
+                  </div>
+                  <div>
+                    <Label>Last Name *</Label>
+                    <Input
+                      value={parent.last_name}
+                      onChange={(e) => updateParent(index, 'last_name', e.target.value)}
+                      required
+                    />
+                  </div>
+                  <div>
+                    <Label>Relation *</Label>
+                    <Select value={parent.relation} onValueChange={(value) => updateParent(index, 'relation', value)}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select relation" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {relations.map((relation) => (
+                          <SelectItem key={relation} value={relation}>
+                            {relation}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <Label>Phone Number *</Label>
+                    <Input
+                      value={parent.phone_number}
+                      onChange={(e) => updateParent(index, 'phone_number', e.target.value)}
+                      required
+                    />
+                  </div>
+                  <div>
+                    <Label>Email *</Label>
+                    <Input
+                      type="email"
+                      value={parent.email}
+                      onChange={(e) => updateParent(index, 'email', e.target.value)}
+                      required
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <Label>Occupation</Label>
+                    <Input
+                      value={parent.occupation}
+                      onChange={(e) => updateParent(index, 'occupation', e.target.value)}
+                    />
+                  </div>
+                  <div>
+                    <Label>Annual Income</Label>
+                    <Input
+                      type="number"
+                      value={parent.annual_income}
+                      onChange={(e) => updateParent(index, 'annual_income', e.target.value)}
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <Label>Employer Name</Label>
+                    <Input
+                      value={parent.employer_name}
+                      onChange={(e) => updateParent(index, 'employer_name', e.target.value)}
+                    />
+                  </div>
+                  <div>
+                    <Label>Alternate Phone</Label>
+                    <Input
+                      value={parent.alternate_phone}
+                      onChange={(e) => updateParent(index, 'alternate_phone', e.target.value)}
+                    />
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+
         <div className="flex justify-end space-x-2 pt-4 border-t">
           <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
             Cancel
           </Button>
           <Button type="submit" disabled={loading}>
-            {loading ? "Saving..." : selectedStudent ? "Update Student" : "Add Student"}
+            {loading ? "Saving..." : selectedStudent ? "Update Student" : "Add Student & Parent(s)"}
           </Button>
         </div>
       </form>
