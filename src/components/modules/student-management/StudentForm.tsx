@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
@@ -20,6 +21,19 @@ interface StudentFormProps {
   classes: Class[];
   onStudentSaved: () => void;
 }
+
+// Helper function to validate and format phone number
+const validatePhoneNumber = (phone: string): string => {
+  // Remove all non-digit characters
+  const cleaned = phone.replace(/\D/g, '');
+  
+  // Ensure it's at least 10 digits
+  if (cleaned.length < 10) {
+    throw new Error('Phone number must be at least 10 digits');
+  }
+  
+  return cleaned;
+};
 
 export function StudentForm({ open, onOpenChange, selectedStudent, classes, onStudentSaved }: StudentFormProps) {
   const { toast } = useToast();
@@ -167,6 +181,37 @@ export function StudentForm({ open, onOpenChange, selectedStudent, classes, onSt
     setLoading(true);
 
     try {
+      // Validate parent phone numbers before submission
+      for (const parent of parents) {
+        if (parent.phone_number) {
+          try {
+            parent.phone_number = validatePhoneNumber(parent.phone_number);
+          } catch (error: any) {
+            toast({
+              title: "Invalid Phone Number",
+              description: `Parent ${parent.first_name} ${parent.last_name}: ${error.message}`,
+              variant: "destructive",
+            });
+            setLoading(false);
+            return;
+          }
+        }
+
+        if (parent.alternate_phone) {
+          try {
+            parent.alternate_phone = validatePhoneNumber(parent.alternate_phone);
+          } catch (error: any) {
+            toast({
+              title: "Invalid Alternate Phone Number",
+              description: `Parent ${parent.first_name} ${parent.last_name}: ${error.message}`,
+              variant: "destructive",
+            });
+            setLoading(false);
+            return;
+          }
+        }
+      }
+
       const studentData = {
         ...formData,
         class_id: formData.class_id || null,
@@ -212,10 +257,15 @@ export function StudentForm({ open, onOpenChange, selectedStudent, classes, onSt
         if (error) throw error;
         studentId = data.id;
 
+        // Process parents with proper validation
         for (const parent of parents) {
           if (parent.first_name && parent.last_name && parent.phone_number && parent.email) {
             const parentData = {
-              ...parent,
+              first_name: parent.first_name,
+              last_name: parent.last_name,
+              relation: parent.relation,
+              phone_number: parent.phone_number, // Already validated above
+              email: parent.email,
               annual_income: parent.annual_income ? parseFloat(parent.annual_income) : null,
               address_line1: parent.address_line1 || null,
               address_line2: parent.address_line2 || null,
@@ -225,8 +275,10 @@ export function StudentForm({ open, onOpenChange, selectedStudent, classes, onSt
               occupation: parent.occupation || null,
               employer_name: parent.employer_name || null,
               employer_address: parent.employer_address || null,
-              alternate_phone: parent.alternate_phone || null,
+              alternate_phone: parent.alternate_phone || null, // Already validated above
             };
+
+            console.log('Inserting parent data:', parentData);
 
             const { data: parentRecord, error: parentError } = await supabase
               .from("parents")
@@ -234,7 +286,10 @@ export function StudentForm({ open, onOpenChange, selectedStudent, classes, onSt
               .select()
               .single();
 
-            if (parentError) throw parentError;
+            if (parentError) {
+              console.error('Parent insertion error:', parentError);
+              throw parentError;
+            }
 
             const { error: linkError } = await supabase
               .from("student_parent_links")
@@ -243,7 +298,10 @@ export function StudentForm({ open, onOpenChange, selectedStudent, classes, onSt
                 parent_id: parentRecord.id
               }]);
 
-            if (linkError) throw linkError;
+            if (linkError) {
+              console.error('Parent link error:', linkError);
+              throw linkError;
+            }
           }
         }
 
@@ -259,7 +317,7 @@ export function StudentForm({ open, onOpenChange, selectedStudent, classes, onSt
       console.error("Error saving student:", error);
       toast({
         title: "Error",
-        description: error.message,
+        description: error.message || "An error occurred while saving the student",
         variant: "destructive",
       });
     } finally {
