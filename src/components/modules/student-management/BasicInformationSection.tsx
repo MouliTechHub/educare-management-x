@@ -1,4 +1,3 @@
-
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -42,7 +41,9 @@ export function BasicInformationSection({ formData, setFormData, classes }: Basi
             value={formData.admission_number}
             onChange={(e) => setFormData({ ...formData, admission_number: e.target.value })}
             required
+            placeholder="Must be unique"
           />
+          <p className="text-xs text-gray-500 mt-1">Each student must have a unique admission number</p>
         </div>
       </div>
 

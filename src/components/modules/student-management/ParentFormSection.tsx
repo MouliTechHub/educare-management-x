@@ -112,7 +112,9 @@ export function ParentFormSection({ parents, setParents }: ParentFormSectionProp
                 value={parent.phone_number}
                 onChange={(e) => updateParent(index, 'phone_number', e.target.value)}
                 required
+                placeholder="10+ digits only"
               />
+              <p className="text-xs text-gray-500 mt-1">Enter at least 10 digits</p>
             </div>
             <div>
               <Label>Email *</Label>
@@ -121,6 +123,7 @@ export function ParentFormSection({ parents, setParents }: ParentFormSectionProp
                 value={parent.email}
                 onChange={(e) => updateParent(index, 'email', e.target.value)}
                 required
+                placeholder="parent@example.com"
               />
             </div>
           </div>
@@ -139,6 +142,7 @@ export function ParentFormSection({ parents, setParents }: ParentFormSectionProp
                 type="number"
                 value={parent.annual_income}
                 onChange={(e) => updateParent(index, 'annual_income', e.target.value)}
+                placeholder="Enter amount in numbers"
               />
             </div>
           </div>
@@ -156,6 +160,7 @@ export function ParentFormSection({ parents, setParents }: ParentFormSectionProp
               <Input
                 value={parent.alternate_phone}
                 onChange={(e) => updateParent(index, 'alternate_phone', e.target.value)}
+                placeholder="10+ digits only (optional)"
               />
             </div>
           </div>

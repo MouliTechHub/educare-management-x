@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
@@ -33,6 +32,27 @@ const validatePhoneNumber = (phone: string): string => {
   }
   
   return cleaned;
+};
+
+// Helper function to check if admission number already exists
+const checkAdmissionNumberExists = async (admissionNumber: string, excludeStudentId?: string): Promise<boolean> => {
+  let query = supabase
+    .from("students")
+    .select("id")
+    .eq("admission_number", admissionNumber);
+    
+  if (excludeStudentId) {
+    query = query.neq("id", excludeStudentId);
+  }
+  
+  const { data, error } = await query;
+  
+  if (error) {
+    console.error("Error checking admission number:", error);
+    return false;
+  }
+  
+  return data && data.length > 0;
 };
 
 export function StudentForm({ open, onOpenChange, selectedStudent, classes, onStudentSaved }: StudentFormProps) {
@@ -181,6 +201,33 @@ export function StudentForm({ open, onOpenChange, selectedStudent, classes, onSt
     setLoading(true);
 
     try {
+      // Validate required fields
+      if (!formData.first_name.trim() || !formData.last_name.trim() || !formData.admission_number.trim()) {
+        toast({
+          title: "Validation Error",
+          description: "First name, last name, and admission number are required.",
+          variant: "destructive",
+        });
+        setLoading(false);
+        return;
+      }
+
+      // Check for duplicate admission number
+      const admissionExists = await checkAdmissionNumberExists(
+        formData.admission_number.trim(),
+        selectedStudent?.id
+      );
+      
+      if (admissionExists) {
+        toast({
+          title: "Duplicate Admission Number",
+          description: `A student with admission number "${formData.admission_number}" already exists. Please use a different admission number.`,
+          variant: "destructive",
+        });
+        setLoading(false);
+        return;
+      }
+
       // Validate parent phone numbers before submission
       for (const parent of parents) {
         if (parent.phone_number) {
@@ -214,6 +261,9 @@ export function StudentForm({ open, onOpenChange, selectedStudent, classes, onSt
 
       const studentData = {
         ...formData,
+        admission_number: formData.admission_number.trim(),
+        first_name: formData.first_name.trim(),
+        last_name: formData.last_name.trim(),
         class_id: formData.class_id || null,
         blood_group: formData.blood_group || null,
         religion: formData.religion || null,
@@ -240,7 +290,18 @@ export function StudentForm({ open, onOpenChange, selectedStudent, classes, onSt
           .update(studentData)
           .eq("id", selectedStudent.id);
 
-        if (error) throw error;
+        if (error) {
+          if (error.code === '23505' && error.message.includes('admission_number')) {
+            toast({
+              title: "Duplicate Admission Number",
+              description: "This admission number is already in use. Please choose a different one.",
+              variant: "destructive",
+            });
+            setLoading(false);
+            return;
+          }
+          throw error;
+        }
         studentId = selectedStudent.id;
 
         toast({
@@ -254,18 +315,29 @@ export function StudentForm({ open, onOpenChange, selectedStudent, classes, onSt
           .select()
           .single();
 
-        if (error) throw error;
+        if (error) {
+          if (error.code === '23505' && error.message.includes('admission_number')) {
+            toast({
+              title: "Duplicate Admission Number",
+              description: "This admission number is already in use. Please choose a different one.",
+              variant: "destructive",
+            });
+            setLoading(false);
+            return;
+          }
+          throw error;
+        }
         studentId = data.id;
 
         // Process parents with proper validation
         for (const parent of parents) {
           if (parent.first_name && parent.last_name && parent.phone_number && parent.email) {
             const parentData = {
-              first_name: parent.first_name,
-              last_name: parent.last_name,
+              first_name: parent.first_name.trim(),
+              last_name: parent.last_name.trim(),
               relation: parent.relation,
               phone_number: parent.phone_number, // Already validated above
-              email: parent.email,
+              email: parent.email.trim(),
               annual_income: parent.annual_income ? parseFloat(parent.annual_income) : null,
               address_line1: parent.address_line1 || null,
               address_line2: parent.address_line2 || null,
@@ -315,9 +387,23 @@ export function StudentForm({ open, onOpenChange, selectedStudent, classes, onSt
       onOpenChange(false);
     } catch (error: any) {
       console.error("Error saving student:", error);
+      
+      // Handle specific database errors
+      let errorMessage = "An error occurred while saving the student";
+      
+      if (error.code === '23505') {
+        if (error.message.includes('admission_number')) {
+          errorMessage = "This admission number is already in use. Please choose a different one.";
+        } else {
+          errorMessage = "A duplicate entry was found. Please check your data.";
+        }
+      } else if (error.code === '23514') {
+        errorMessage = "Invalid data format. Please check phone numbers and other fields.";
+      }
+      
       toast({
         title: "Error",
-        description: error.message || "An error occurred while saving the student",
+        description: errorMessage,
         variant: "destructive",
       });
     } finally {
