@@ -1,3 +1,4 @@
+
 import React from "react";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -39,6 +40,10 @@ interface Fee {
 interface PaymentFormData {
   payment_date: string;
   receipt_number: string;
+  amount_paid: number;
+  payment_receiver: string;
+  payment_method: string;
+  notes: string;
 }
 
 interface PaymentDialogProps {
@@ -55,6 +60,10 @@ export function PaymentDialog({ open, onOpenChange, fee, onPaymentRecorded }: Pa
     defaultValues: {
       payment_date: new Date().toISOString().split('T')[0],
       receipt_number: "",
+      amount_paid: 0,
+      payment_receiver: "",
+      payment_method: "Cash",
+      notes: "",
     },
   });
 
@@ -62,18 +71,49 @@ export function PaymentDialog({ open, onOpenChange, fee, onPaymentRecorded }: Pa
     if (!fee) return;
 
     try {
-      const { error } = await supabase
+      const amountPaid = Number(data.amount_paid);
+      const currentPending = fee.amount;
+      const newPendingAmount = currentPending - amountPaid;
+      
+      // Determine if fee is fully paid or partially paid
+      const newStatus = newPendingAmount <= 0 ? "Paid" : "Pending";
+      const finalAmount = newPendingAmount <= 0 ? 0 : newPendingAmount;
+
+      // Update the fee record
+      const { error: feeError } = await supabase
         .from("fees")
         .update({
-          status: "Paid",
-          payment_date: data.payment_date,
-          receipt_number: data.receipt_number
+          status: newStatus,
+          payment_date: newStatus === "Paid" ? data.payment_date : null,
+          receipt_number: data.receipt_number,
+          amount: finalAmount
         })
         .eq("id", fee.id);
 
-      if (error) throw error;
+      if (feeError) throw feeError;
 
-      toast({ title: "Payment recorded successfully" });
+      // Create payment history record
+      const { error: historyError } = await supabase
+        .from("payment_history")
+        .insert({
+          fee_id: fee.id,
+          student_id: fee.student_id,
+          amount_paid: amountPaid,
+          payment_date: data.payment_date,
+          receipt_number: data.receipt_number,
+          payment_receiver: data.payment_receiver,
+          payment_method: data.payment_method,
+          notes: data.notes,
+          fee_type: fee.fee_type
+        });
+
+      if (historyError) throw historyError;
+
+      toast({ 
+        title: "Payment recorded successfully",
+        description: newStatus === "Paid" ? "Fee fully paid" : `Remaining amount: ₹${finalAmount.toLocaleString()}`
+      });
+      
       onPaymentRecorded();
       onOpenChange(false);
       paymentForm.reset();
@@ -91,24 +131,51 @@ export function PaymentDialog({ open, onOpenChange, fee, onPaymentRecorded }: Pa
     if (fee && open) {
       paymentForm.reset({
         payment_date: new Date().toISOString().split('T')[0],
-        receipt_number: `RCP-${Date.now()}`
+        receipt_number: `RCP-${Date.now()}`,
+        amount_paid: fee.amount,
+        payment_receiver: "",
+        payment_method: "Cash",
+        notes: "",
       });
     }
   }, [fee, open, paymentForm]);
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent>
+      <DialogContent className="max-w-md">
         <DialogHeader>
           <DialogTitle>Record Payment</DialogTitle>
           <DialogDescription>
             Record payment for {fee?.student ? 
               `${fee.student.first_name} ${fee.student.last_name}` : 
-              "student"} - {fee?.fee_type} (₹{fee?.amount.toLocaleString()})
+              "student"} - {fee?.fee_type}
+            <br />
+            <span className="font-medium">Pending Amount: ₹{fee?.amount.toLocaleString()}</span>
           </DialogDescription>
         </DialogHeader>
         <Form {...paymentForm}>
           <form onSubmit={paymentForm.handleSubmit(onSubmitPayment)} className="space-y-4">
+            <FormField
+              control={paymentForm.control}
+              name="amount_paid"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Amount Being Paid</FormLabel>
+                  <FormControl>
+                    <Input 
+                      {...field} 
+                      type="number" 
+                      min="1"
+                      max={fee?.amount || 0}
+                      onChange={(e) => field.onChange(Number(e.target.value))}
+                      required 
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            
             <FormField
               control={paymentForm.control}
               name="payment_date"
@@ -122,6 +189,7 @@ export function PaymentDialog({ open, onOpenChange, fee, onPaymentRecorded }: Pa
                 </FormItem>
               )}
             />
+            
             <FormField
               control={paymentForm.control}
               name="receipt_number"
@@ -135,6 +203,54 @@ export function PaymentDialog({ open, onOpenChange, fee, onPaymentRecorded }: Pa
                 </FormItem>
               )}
             />
+            
+            <FormField
+              control={paymentForm.control}
+              name="payment_receiver"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Payment Received By</FormLabel>
+                  <FormControl>
+                    <Input {...field} placeholder="Enter receiver name" required />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            
+            <FormField
+              control={paymentForm.control}
+              name="payment_method"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Payment Method</FormLabel>
+                  <FormControl>
+                    <select {...field} className="w-full p-2 border rounded-md" required>
+                      <option value="Cash">Cash</option>
+                      <option value="Online">Online Transfer</option>
+                      <option value="Cheque">Cheque</option>
+                      <option value="Card">Card</option>
+                    </select>
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            
+            <FormField
+              control={paymentForm.control}
+              name="notes"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Notes (Optional)</FormLabel>
+                  <FormControl>
+                    <Input {...field} placeholder="Additional notes" />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            
             <div className="flex justify-end space-x-2 pt-4">
               <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
                 Cancel
