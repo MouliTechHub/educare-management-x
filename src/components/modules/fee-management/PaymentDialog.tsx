@@ -77,7 +77,8 @@ export function PaymentDialog({ open, onOpenChange, fee, onPaymentRecorded }: Pa
       
       // Determine if fee is fully paid or partially paid
       const newStatus = newPendingAmount <= 0 ? "Paid" : "Pending";
-      const finalAmount = newPendingAmount <= 0 ? 0 : newPendingAmount;
+      // Ensure amount never goes below 0 to avoid constraint violation
+      const finalAmount = Math.max(0, newPendingAmount);
 
       // Update the fee record
       const { error: feeError } = await supabase
@@ -90,9 +91,12 @@ export function PaymentDialog({ open, onOpenChange, fee, onPaymentRecorded }: Pa
         })
         .eq("id", fee.id);
 
-      if (feeError) throw feeError;
+      if (feeError) {
+        console.error('Fee update error:', feeError);
+        throw feeError;
+      }
 
-      // Create payment history record using direct insert
+      // Create payment history record
       const { error: historyError } = await supabase
         .from('payment_history')
         .insert({
@@ -110,12 +114,17 @@ export function PaymentDialog({ open, onOpenChange, fee, onPaymentRecorded }: Pa
       if (historyError) {
         console.error('Payment history insert error:', historyError);
         // Continue anyway as the main fee update succeeded
+        toast({
+          title: "Payment recorded with warning",
+          description: "Payment updated but history may not be complete. Please check records.",
+          variant: "destructive",
+        });
+      } else {
+        toast({ 
+          title: "Payment recorded successfully",
+          description: newStatus === "Paid" ? "Fee fully paid" : `Remaining amount: ₹${finalAmount.toLocaleString()}`
+        });
       }
-
-      toast({ 
-        title: "Payment recorded successfully",
-        description: newStatus === "Paid" ? "Fee fully paid" : `Remaining amount: ₹${finalAmount.toLocaleString()}`
-      });
       
       onPaymentRecorded();
       onOpenChange(false);
@@ -124,7 +133,7 @@ export function PaymentDialog({ open, onOpenChange, fee, onPaymentRecorded }: Pa
       console.error('Payment recording error:', error);
       toast({
         title: "Error recording payment",
-        description: error.message,
+        description: error.message || "Failed to record payment. Please try again.",
         variant: "destructive",
       });
     }
