@@ -7,12 +7,15 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Search, DollarSign, AlertTriangle, CheckCircle, Receipt } from "lucide-react";
+import { Plus, Search, DollarSign, AlertTriangle, CheckCircle, Receipt, Filter, Eye, Users } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { StudentBasic } from "@/types/database";
 import { useForm } from "react-hook-form";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
+import { StudentPaymentHistory } from "./student-management/StudentPaymentHistory";
+import { FeeManagementFilters } from "./fee-management/FeeManagementFilters";
+import { FeeStats } from "./fee-management/FeeStats";
 
 interface Fee {
   id: string;
@@ -24,7 +27,18 @@ interface Fee {
   status: string;
   receipt_number?: string;
   created_at: string;
-  student?: StudentBasic;
+  student?: StudentBasic & {
+    class_name?: string;
+    section?: string;
+    parent_phone?: string;
+    parent_email?: string;
+  };
+}
+
+interface Class {
+  id: string;
+  name: string;
+  section: string | null;
 }
 
 interface FeeFormData {
@@ -39,15 +53,35 @@ interface PaymentFormData {
   receipt_number: string;
 }
 
+interface FilterState {
+  class_id: string;
+  section: string;
+  status: string;
+  fee_type: string;
+  due_date_from: string;
+  due_date_to: string;
+}
+
 export function FeeManagement() {
   const [fees, setFees] = useState<Fee[]>([]);
   const [students, setStudents] = useState<StudentBasic[]>([]);
+  const [classes, setClasses] = useState<Class[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
-  const [statusFilter, setStatusFilter] = useState<string>("all");
+  const [filters, setFilters] = useState<FilterState>({
+    class_id: "all",
+    section: "all",
+    status: "all",
+    fee_type: "all",
+    due_date_from: "",
+    due_date_to: "",
+  });
   const [loading, setLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [paymentDialogOpen, setPaymentDialogOpen] = useState(false);
+  const [historyDialogOpen, setHistoryDialogOpen] = useState(false);
   const [selectedFee, setSelectedFee] = useState<Fee | null>(null);
+  const [selectedStudentFees, setSelectedStudentFees] = useState<Fee[]>([]);
+  const [selectedStudentName, setSelectedStudentName] = useState("");
   const { toast } = useToast();
 
   const feeForm = useForm<FeeFormData>({
@@ -69,7 +103,43 @@ export function FeeManagement() {
   useEffect(() => {
     fetchFees();
     fetchStudents();
+    fetchClasses();
+    
+    // Set up real-time subscription for fee updates
+    const channel = supabase
+      .channel('schema-db-changes')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'fees'
+        },
+        () => {
+          console.log('Fee data changed, refreshing...');
+          fetchFees();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, []);
+
+  const fetchClasses = async () => {
+    try {
+      const { data, error } = await supabase
+        .from("classes")
+        .select("id, name, section")
+        .order("name");
+
+      if (error) throw error;
+      setClasses(data || []);
+    } catch (error: any) {
+      console.error("Error fetching classes:", error);
+    }
+  };
 
   const fetchFees = async () => {
     try {
@@ -77,7 +147,16 @@ export function FeeManagement() {
         .from("fees")
         .select(`
           *,
-          students!inner(id, first_name, last_name, admission_number)
+          students!inner(
+            id, 
+            first_name, 
+            last_name, 
+            admission_number,
+            classes(name, section),
+            student_parent_links(
+              parents(phone_number, email)
+            )
+          )
         `)
         .order("created_at", { ascending: false });
 
@@ -85,7 +164,13 @@ export function FeeManagement() {
 
       const feesWithStudents = (data || []).map(fee => ({
         ...fee,
-        student: fee.students
+        student: {
+          ...fee.students,
+          class_name: fee.students.classes?.name,
+          section: fee.students.classes?.section,
+          parent_phone: fee.students.student_parent_links?.[0]?.parents?.phone_number,
+          parent_email: fee.students.student_parent_links?.[0]?.parents?.email,
+        }
       }));
 
       setFees(feesWithStudents);
@@ -177,16 +262,47 @@ export function FeeManagement() {
     setPaymentDialogOpen(true);
   };
 
-  const filteredFees = fees.filter((fee) => {
-    const matchesSearch = fee.student && 
-      `${fee.student.first_name} ${fee.student.last_name}`.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      fee.student?.admission_number.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      fee.fee_type.toLowerCase().includes(searchTerm.toLowerCase());
+  const openHistoryDialog = (student: Fee['student']) => {
+    if (!student) return;
     
-    const matchesStatus = statusFilter === "all" || fee.status.toLowerCase() === statusFilter.toLowerCase();
-    
-    return matchesSearch && matchesStatus;
-  });
+    const studentFees = fees.filter(fee => fee.student_id === student.id);
+    setSelectedStudentFees(studentFees);
+    setSelectedStudentName(`${student.first_name} ${student.last_name}`);
+    setHistoryDialogOpen(true);
+  };
+
+  const applyFilters = (fees: Fee[]) => {
+    return fees.filter((fee) => {
+      const matchesSearch = fee.student && 
+        (`${fee.student.first_name} ${fee.student.last_name}`.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        fee.student.admission_number.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        fee.fee_type.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        (fee.student.class_name && fee.student.class_name.toLowerCase().includes(searchTerm.toLowerCase())));
+      
+      const matchesClass = filters.class_id === "all" || 
+        (fee.student?.classes?.id === filters.class_id);
+      
+      const matchesSection = filters.section === "all" || 
+        (fee.student?.section === filters.section);
+      
+      const matchesStatus = filters.status === "all" || 
+        fee.status.toLowerCase() === filters.status.toLowerCase();
+      
+      const matchesFeeType = filters.fee_type === "all" || 
+        fee.fee_type === filters.fee_type;
+      
+      const matchesDueDateFrom = !filters.due_date_from || 
+        new Date(fee.due_date) >= new Date(filters.due_date_from);
+      
+      const matchesDueDateTo = !filters.due_date_to || 
+        new Date(fee.due_date) <= new Date(filters.due_date_to);
+      
+      return matchesSearch && matchesClass && matchesSection && 
+             matchesStatus && matchesFeeType && matchesDueDateFrom && matchesDueDateTo;
+    });
+  };
+
+  const filteredFees = applyFilters(fees);
 
   const feeStats = {
     total: fees.reduce((sum, fee) => sum + fee.amount, 0),
@@ -233,7 +349,7 @@ export function FeeManagement() {
       <div className="flex justify-between items-center">
         <div>
           <h1 className="text-3xl font-bold text-gray-900">Fee Management</h1>
-          <p className="text-gray-600 mt-2">Track and manage student fee payments</p>
+          <p className="text-gray-600 mt-2">Comprehensive fee tracking with real-time updates</p>
         </div>
         <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
           <DialogTrigger asChild>
@@ -345,80 +461,43 @@ export function FeeManagement() {
         </Dialog>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium">Total Fees</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">₹{feeStats.total.toLocaleString()}</div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium">Collected</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-green-600">₹{feeStats.collected.toLocaleString()}</div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium">Pending</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-yellow-600">₹{feeStats.pending.toLocaleString()}</div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium">Overdue</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-red-600">{feeStats.overdue}</div>
-          </CardContent>
-        </Card>
-      </div>
+      <FeeStats stats={feeStats} />
 
       <Card>
         <CardHeader>
           <div className="flex items-center justify-between">
             <div>
               <CardTitle>Fee Records</CardTitle>
-              <CardDescription>Manage student fee payments and records</CardDescription>
+              <CardDescription>Comprehensive fee management with real-time updates</CardDescription>
             </div>
-            <div className="flex items-center space-x-4">
-              <Select value={statusFilter} onValueChange={setStatusFilter}>
-                <SelectTrigger className="w-32">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Status</SelectItem>
-                  <SelectItem value="pending">Pending</SelectItem>
-                  <SelectItem value="paid">Paid</SelectItem>
-                </SelectContent>
-              </Select>
-              <div className="flex items-center space-x-2">
-                <Search className="w-4 h-4 text-gray-400" />
-                <Input
-                  placeholder="Search fees..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="w-64"
-                />
-              </div>
+            <div className="flex items-center space-x-2">
+              <Search className="w-4 h-4 text-gray-400" />
+              <Input
+                placeholder="Search by student, class, or fee type..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="w-64"
+              />
             </div>
           </div>
         </CardHeader>
-        <CardContent>
+        <CardContent className="space-y-4">
+          <FeeManagementFilters
+            filters={filters}
+            onFiltersChange={setFilters}
+            classes={classes}
+          />
+
           <Table>
             <TableHeader>
               <TableRow>
                 <TableHead>Student</TableHead>
+                <TableHead>Class</TableHead>
                 <TableHead>Fee Type</TableHead>
                 <TableHead>Amount</TableHead>
                 <TableHead>Due Date</TableHead>
                 <TableHead>Status</TableHead>
+                <TableHead>Parent Contact</TableHead>
                 <TableHead>Actions</TableHead>
               </TableRow>
             </TableHeader>
@@ -435,6 +514,14 @@ export function FeeManagement() {
                       </div>
                     </div>
                   </TableCell>
+                  <TableCell>
+                    <div className="text-sm">
+                      <div>{fee.student?.class_name || "N/A"}</div>
+                      {fee.student?.section && (
+                        <div className="text-gray-500">Section {fee.student.section}</div>
+                      )}
+                    </div>
+                  </TableCell>
                   <TableCell>{fee.fee_type}</TableCell>
                   <TableCell className="font-medium">₹{fee.amount.toLocaleString()}</TableCell>
                   <TableCell>{new Date(fee.due_date).toLocaleDateString()}</TableCell>
@@ -447,26 +534,52 @@ export function FeeManagement() {
                     </Badge>
                   </TableCell>
                   <TableCell>
-                    {fee.status === "Pending" && (
+                    <div className="text-sm">
+                      {fee.student?.parent_phone && (
+                        <div>{fee.student.parent_phone}</div>
+                      )}
+                      {fee.student?.parent_email && (
+                        <div className="text-gray-500">{fee.student.parent_email}</div>
+                      )}
+                    </div>
+                  </TableCell>
+                  <TableCell>
+                    <div className="flex items-center space-x-2">
+                      {fee.status === "Pending" && (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => openPaymentDialog(fee)}
+                        >
+                          <Receipt className="w-4 h-4 mr-1" />
+                          Record Payment
+                        </Button>
+                      )}
+                      {fee.status === "Paid" && fee.receipt_number && (
+                        <span className="text-sm text-gray-500">
+                          Receipt: {fee.receipt_number}
+                        </span>
+                      )}
                       <Button
-                        variant="outline"
+                        variant="ghost"
                         size="sm"
-                        onClick={() => openPaymentDialog(fee)}
+                        onClick={() => openHistoryDialog(fee.student)}
                       >
-                        <Receipt className="w-4 h-4 mr-1" />
-                        Record Payment
+                        <Eye className="w-4 h-4" />
                       </Button>
-                    )}
-                    {fee.status === "Paid" && fee.receipt_number && (
-                      <span className="text-sm text-gray-500">
-                        Receipt: {fee.receipt_number}
-                      </span>
-                    )}
+                    </div>
                   </TableCell>
                 </TableRow>
               ))}
             </TableBody>
           </Table>
+
+          {filteredFees.length === 0 && (
+            <div className="text-center py-8 text-gray-500">
+              <Users className="w-12 h-12 mx-auto mb-4 opacity-50" />
+              <p>No fee records found matching your criteria</p>
+            </div>
+          )}
         </CardContent>
       </Card>
 
@@ -518,6 +631,13 @@ export function FeeManagement() {
           </Form>
         </DialogContent>
       </Dialog>
+
+      <StudentPaymentHistory
+        open={historyDialogOpen}
+        onOpenChange={setHistoryDialogOpen}
+        studentName={selectedStudentName}
+        fees={selectedStudentFees}
+      />
     </div>
   );
 }
