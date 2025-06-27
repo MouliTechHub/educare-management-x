@@ -246,7 +246,7 @@ export function PaymentDialog({ open, onOpenChange, fee, onPaymentRecorded }: Pa
                     <Input {...field} placeholder="Enter receipt number" required />
                   </FormControl>
                   <FormMessage />
-                </FormMessage>
+                </FormItem>
               )}
             />
             
