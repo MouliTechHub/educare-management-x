@@ -479,6 +479,66 @@ export type Database = {
         }
         Relationships: []
       }
+      payment_history: {
+        Row: {
+          amount_paid: number
+          created_at: string
+          fee_id: string
+          fee_type: string
+          id: string
+          notes: string | null
+          payment_date: string
+          payment_method: string
+          payment_receiver: string
+          receipt_number: string
+          student_id: string
+          updated_at: string
+        }
+        Insert: {
+          amount_paid: number
+          created_at?: string
+          fee_id: string
+          fee_type: string
+          id?: string
+          notes?: string | null
+          payment_date: string
+          payment_method?: string
+          payment_receiver: string
+          receipt_number: string
+          student_id: string
+          updated_at?: string
+        }
+        Update: {
+          amount_paid?: number
+          created_at?: string
+          fee_id?: string
+          fee_type?: string
+          id?: string
+          notes?: string | null
+          payment_date?: string
+          payment_method?: string
+          payment_receiver?: string
+          receipt_number?: string
+          student_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "payment_history_fee_id_fkey"
+            columns: ["fee_id"]
+            isOneToOne: false
+            referencedRelation: "fees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "payment_history_student_id_fkey"
+            columns: ["student_id"]
+            isOneToOne: false
+            referencedRelation: "students"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           created_at: string | null
