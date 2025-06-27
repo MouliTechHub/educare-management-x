@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -23,9 +22,9 @@ interface Fee {
   amount: number;
   fee_type: string;
   due_date: string;
-  payment_date?: string;
+  payment_date: string | null;
   status: string;
-  receipt_number?: string;
+  receipt_number: string | null;
   created_at: string;
   updated_at: string;
   student?: StudentBasic & {
