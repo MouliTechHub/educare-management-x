@@ -49,19 +49,19 @@ export function StudentPaymentHistory({
     try {
       const studentId = fees[0].student_id;
       
-      // Use raw query to fetch payment history to avoid TypeScript issues
+      // Fetch payment history using direct query
       const { data, error } = await supabase
-        .from('payment_history' as any)
+        .from('payment_history')
         .select('*')
         .eq('student_id', studentId)
         .order('created_at', { ascending: false });
 
       if (error) {
         console.error('Payment history fetch error:', error);
-        // If the table doesn't exist or there's an error, set empty array
         setPaymentHistory([]);
       } else {
-        setPaymentHistory(data || []);
+        // Type assertion since we know the structure
+        setPaymentHistory((data || []) as PaymentHistory[]);
       }
     } catch (error: any) {
       console.error('Unexpected error fetching payment history:', error);

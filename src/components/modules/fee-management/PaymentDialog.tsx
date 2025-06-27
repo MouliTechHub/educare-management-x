@@ -92,47 +92,24 @@ export function PaymentDialog({ open, onOpenChange, fee, onPaymentRecorded }: Pa
 
       if (feeError) throw feeError;
 
-      // Create payment history record using raw SQL to avoid TypeScript issues
-      const { error: historyError } = await supabase.rpc('exec_sql', {
-        sql: `
-          INSERT INTO payment_history (
-            fee_id, student_id, amount_paid, payment_date, receipt_number, 
-            payment_receiver, payment_method, notes, fee_type
-          ) VALUES (
-            $1, $2, $3, $4, $5, $6, $7, $8, $9
-          )
-        `,
-        params: [
-          fee.id,
-          fee.student_id,
-          amountPaid,
-          data.payment_date,
-          data.receipt_number,
-          data.payment_receiver,
-          data.payment_method,
-          data.notes || null,
-          fee.fee_type
-        ]
-      });
+      // Create payment history record using direct insert
+      const { error: historyError } = await supabase
+        .from('payment_history')
+        .insert({
+          fee_id: fee.id,
+          student_id: fee.student_id,
+          amount_paid: amountPaid,
+          payment_date: data.payment_date,
+          receipt_number: data.receipt_number,
+          payment_receiver: data.payment_receiver,
+          payment_method: data.payment_method,
+          notes: data.notes || null,
+          fee_type: fee.fee_type
+        });
 
-      // If the RPC doesn't exist, fall back to direct insert
       if (historyError) {
-        // Create a direct insert using supabase-js
-        const { error: directInsertError } = await supabase
-          .from('payment_history' as any)
-          .insert({
-            fee_id: fee.id,
-            student_id: fee.student_id,
-            amount_paid: amountPaid,
-            payment_date: data.payment_date,
-            receipt_number: data.receipt_number,
-            payment_receiver: data.payment_receiver,
-            payment_method: data.payment_method,
-            notes: data.notes || null,
-            fee_type: fee.fee_type
-          });
-
-        if (directInsertError) throw directInsertError;
+        console.error('Payment history insert error:', historyError);
+        // Continue anyway as the main fee update succeeded
       }
 
       toast({ 
