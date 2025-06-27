@@ -104,6 +104,9 @@ export function StudentForm({ open, onOpenChange, selectedStudent, classes, onSt
       employer_name: "",
       employer_address: "",
       alternate_phone: "",
+      aadhaar_number: "",
+      pan_number: "",
+      education_qualification: "",
     }
   ]);
 
@@ -152,6 +155,9 @@ export function StudentForm({ open, onOpenChange, selectedStudent, classes, onSt
           employer_name: "",
           employer_address: "",
           alternate_phone: "",
+          aadhaar_number: "",
+          pan_number: "",
+          education_qualification: "",
         }));
         setParents(existingParents);
       }
@@ -197,6 +203,9 @@ export function StudentForm({ open, onOpenChange, selectedStudent, classes, onSt
         employer_name: "",
         employer_address: "",
         alternate_phone: "",
+        aadhaar_number: "",
+        pan_number: "",
+        education_qualification: "",
       }]);
     }
   }, [selectedStudent, open]);
@@ -206,7 +215,6 @@ export function StudentForm({ open, onOpenChange, selectedStudent, classes, onSt
     setLoading(true);
 
     try {
-      // Validate required fields
       if (!formData.first_name.trim() || !formData.last_name.trim() || !formData.admission_number.trim()) {
         toast({
           title: "Validation Error",
@@ -217,7 +225,6 @@ export function StudentForm({ open, onOpenChange, selectedStudent, classes, onSt
         return;
       }
 
-      // Check for duplicate admission number
       const admissionExists = await checkAdmissionNumberExists(
         formData.admission_number.trim(),
         selectedStudent?.id
@@ -233,7 +240,6 @@ export function StudentForm({ open, onOpenChange, selectedStudent, classes, onSt
         return;
       }
 
-      // Validate parent phone numbers before submission
       for (const parent of parents) {
         if (parent.phone_number) {
           try {
@@ -335,17 +341,15 @@ export function StudentForm({ open, onOpenChange, selectedStudent, classes, onSt
         }
         studentId = data.id;
 
-        // Create default fee records for new student
         await createDefaultFeeRecords(studentId, formData.class_id);
 
-        // Process parents with proper validation
         for (const parent of parents) {
           if (parent.first_name && parent.last_name && parent.phone_number && parent.email) {
             const parentData = {
               first_name: parent.first_name.trim(),
               last_name: parent.last_name.trim(),
               relation: parent.relation,
-              phone_number: parent.phone_number, // Already validated above
+              phone_number: parent.phone_number,
               email: parent.email.trim(),
               annual_income: parent.annual_income ? parseFloat(parent.annual_income) : null,
               address_line1: parent.address_line1 || null,
@@ -356,7 +360,10 @@ export function StudentForm({ open, onOpenChange, selectedStudent, classes, onSt
               occupation: parent.occupation || null,
               employer_name: parent.employer_name || null,
               employer_address: parent.employer_address || null,
-              alternate_phone: parent.alternate_phone || null, // Already validated above
+              alternate_phone: parent.alternate_phone || null,
+              aadhaar_number: parent.aadhaar_number || null,
+              pan_number: parent.pan_number || null,
+              education_qualification: parent.education_qualification || null,
             };
 
             console.log('Inserting parent data:', parentData);
@@ -397,7 +404,6 @@ export function StudentForm({ open, onOpenChange, selectedStudent, classes, onSt
     } catch (error: any) {
       console.error("Error saving student:", error);
       
-      // Handle specific database errors
       let errorMessage = "An error occurred while saving the student";
       
       if (error.code === '23505') {

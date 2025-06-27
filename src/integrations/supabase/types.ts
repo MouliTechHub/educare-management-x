@@ -225,6 +225,80 @@ export type Database = {
           },
         ]
       }
+      fee_structures: {
+        Row: {
+          activity_fee: number
+          book_fee: number
+          caution_deposit: number
+          class_id: string
+          computer_fee: number
+          created_at: string | null
+          development_fee: number
+          examination_fee: number
+          hostel_fee: number
+          id: string
+          laboratory_fee: number
+          library_fee: number
+          medical_fee: number
+          sports_fee: number
+          stationary_fee: number
+          transport_fee: number
+          tuition_fee: number
+          uniform_fee: number
+          updated_at: string | null
+        }
+        Insert: {
+          activity_fee?: number
+          book_fee?: number
+          caution_deposit?: number
+          class_id: string
+          computer_fee?: number
+          created_at?: string | null
+          development_fee?: number
+          examination_fee?: number
+          hostel_fee?: number
+          id?: string
+          laboratory_fee?: number
+          library_fee?: number
+          medical_fee?: number
+          sports_fee?: number
+          stationary_fee?: number
+          transport_fee?: number
+          tuition_fee?: number
+          uniform_fee?: number
+          updated_at?: string | null
+        }
+        Update: {
+          activity_fee?: number
+          book_fee?: number
+          caution_deposit?: number
+          class_id?: string
+          computer_fee?: number
+          created_at?: string | null
+          development_fee?: number
+          examination_fee?: number
+          hostel_fee?: number
+          id?: string
+          laboratory_fee?: number
+          library_fee?: number
+          medical_fee?: number
+          sports_fee?: number
+          stationary_fee?: number
+          transport_fee?: number
+          tuition_fee?: number
+          uniform_fee?: number
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fee_structures_class_id_fkey"
+            columns: ["class_id"]
+            isOneToOne: true
+            referencedRelation: "classes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       fees: {
         Row: {
           actual_amount: number

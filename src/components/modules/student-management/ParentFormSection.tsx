@@ -30,6 +30,9 @@ export function ParentFormSection({ parents, setParents }: ParentFormSectionProp
       employer_name: "",
       employer_address: "",
       alternate_phone: "",
+      aadhaar_number: "",
+      pan_number: "",
+      education_qualification: "",
     }]);
   };
 
@@ -161,6 +164,36 @@ export function ParentFormSection({ parents, setParents }: ParentFormSectionProp
                 value={parent.alternate_phone}
                 onChange={(e) => updateParent(index, 'alternate_phone', e.target.value)}
                 placeholder="10+ digits only (optional)"
+              />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-3 gap-4">
+            <div>
+              <Label>Aadhaar Number</Label>
+              <Input
+                value={parent.aadhaar_number}
+                onChange={(e) => updateParent(index, 'aadhaar_number', e.target.value)}
+                placeholder="12-digit Aadhaar number"
+                maxLength={12}
+              />
+            </div>
+            <div>
+              <Label>PAN Number</Label>
+              <Input
+                value={parent.pan_number}
+                onChange={(e) => updateParent(index, 'pan_number', e.target.value)}
+                placeholder="10-character PAN"
+                maxLength={10}
+                style={{ textTransform: 'uppercase' }}
+              />
+            </div>
+            <div>
+              <Label>Education Qualification</Label>
+              <Input
+                value={parent.education_qualification}
+                onChange={(e) => updateParent(index, 'education_qualification', e.target.value)}
+                placeholder="Highest qualification"
               />
             </div>
           </div>

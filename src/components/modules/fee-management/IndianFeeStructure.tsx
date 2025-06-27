@@ -91,13 +91,46 @@ export function IndianFeeStructure({ classes }: IndianFeeStructureProps) {
 
     setLoading(true);
     try {
-      const { error } = await supabase
-        .from("fee_structures")
-        .upsert({
-          class_id: selectedClass,
-          ...feeStructure,
-          class_id: selectedClass
-        });
+      const feeData = {
+        ...feeStructure,
+        class_id: selectedClass
+      };
+
+      // Use raw SQL query since fee_structures table is not in generated types yet
+      const { error } = await supabase.rpc('exec_sql', {
+        sql: `
+          INSERT INTO fee_structures (
+            class_id, tuition_fee, development_fee, library_fee, laboratory_fee,
+            sports_fee, computer_fee, transport_fee, hostel_fee, examination_fee,
+            activity_fee, uniform_fee, book_fee, stationary_fee, medical_fee, caution_deposit
+          ) VALUES (
+            $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16
+          ) ON CONFLICT (class_id) DO UPDATE SET
+            tuition_fee = EXCLUDED.tuition_fee,
+            development_fee = EXCLUDED.development_fee,
+            library_fee = EXCLUDED.library_fee,
+            laboratory_fee = EXCLUDED.laboratory_fee,
+            sports_fee = EXCLUDED.sports_fee,
+            computer_fee = EXCLUDED.computer_fee,
+            transport_fee = EXCLUDED.transport_fee,
+            hostel_fee = EXCLUDED.hostel_fee,
+            examination_fee = EXCLUDED.examination_fee,
+            activity_fee = EXCLUDED.activity_fee,
+            uniform_fee = EXCLUDED.uniform_fee,
+            book_fee = EXCLUDED.book_fee,
+            stationary_fee = EXCLUDED.stationary_fee,
+            medical_fee = EXCLUDED.medical_fee,
+            caution_deposit = EXCLUDED.caution_deposit,
+            updated_at = NOW()
+        `,
+        params: [
+          selectedClass, feeData.tuition_fee, feeData.development_fee, feeData.library_fee,
+          feeData.laboratory_fee, feeData.sports_fee, feeData.computer_fee, 
+          feeData.transport_fee, feeData.hostel_fee, feeData.examination_fee,
+          feeData.activity_fee, feeData.uniform_fee, feeData.book_fee,
+          feeData.stationary_fee, feeData.medical_fee, feeData.caution_deposit
+        ]
+      });
 
       if (error) throw error;
 
@@ -106,11 +139,29 @@ export function IndianFeeStructure({ classes }: IndianFeeStructureProps) {
         description: "Fee structure saved successfully",
       });
     } catch (error: any) {
-      toast({
-        title: "Error",
-        description: error.message,
-        variant: "destructive",
-      });
+      console.error('Fee structure save error:', error);
+      // Fallback to direct table insert if RPC doesn't exist
+      try {
+        const { error: directError } = await supabase
+          .from("fee_structures" as any)
+          .upsert({
+            class_id: selectedClass,
+            ...feeStructure
+          });
+        
+        if (directError) throw directError;
+        
+        toast({
+          title: "Success",
+          description: "Fee structure saved successfully",
+        });
+      } catch (fallbackError: any) {
+        toast({
+          title: "Error",
+          description: fallbackError.message || "Failed to save fee structure",
+          variant: "destructive",
+        });
+      }
     } finally {
       setLoading(false);
     }

@@ -1,60 +1,80 @@
-
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Users, GraduationCap, IndianRupee, Calendar, BookOpen, Award } from "lucide-react";
+import { Users, GraduationCap, DollarSign, BookOpen, TrendingUp, AlertCircle, Calendar, UserCheck } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { Badge } from "@/components/ui/badge";
 
 interface DashboardStats {
   totalStudents: number;
   totalTeachers: number;
-  totalFees: number;
+  totalRevenue: number;
   pendingFees: number;
-  activeClasses: number;
-  todayAttendance: number;
+  totalClasses: number;
+  presentToday: number;
+  overduePayments: number;
+  upcomingExams: number;
 }
 
 export function Dashboard() {
   const [stats, setStats] = useState<DashboardStats>({
     totalStudents: 0,
     totalTeachers: 0,
-    totalFees: 0,
+    totalRevenue: 0,
     pendingFees: 0,
-    activeClasses: 0,
-    todayAttendance: 0,
+    totalClasses: 0,
+    presentToday: 0,
+    overduePayments: 0,
+    upcomingExams: 0,
   });
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetchDashboardStats();
+    fetchStats();
   }, []);
 
-  const fetchDashboardStats = async () => {
+  const fetchStats = async () => {
     try {
-      // Fetch all stats in parallel
       const [
         studentsResult,
         teachersResult,
-        feesResult,
         classesResult,
-        attendanceResult
+        feesResult,
+        attendanceResult,
+        examsResult
       ] = await Promise.all([
-        supabase.from("students").select("id", { count: 'exact' }).eq("status", "Active"),
-        supabase.from("teachers").select("id", { count: 'exact' }).eq("status", "Active"),
-        supabase.from("fees").select("amount, status"),
-        supabase.from("classes").select("id", { count: 'exact' }),
-        supabase.from("attendance").select("id", { count: 'exact' }).eq("date", new Date().toISOString().split('T')[0])
+        supabase.from("students").select("id", { count: "exact" }).eq("status", "Active"),
+        supabase.from("teachers").select("id", { count: "exact" }).eq("status", "Active"),
+        supabase.from("classes").select("id", { count: "exact" }),
+        supabase.from("fees").select("amount, status, due_date"),
+        supabase.from("attendance").select("status").eq("date", new Date().toISOString().split('T')[0]),
+        supabase.from("exams").select("id", { count: "exact" }).gte("exam_date", new Date().toISOString().split('T')[0])
       ]);
 
-      const totalFees = feesResult.data?.reduce((sum, fee) => sum + Number(fee.amount), 0) || 0;
-      const pendingFees = feesResult.data?.filter(fee => fee.status === 'Pending').reduce((sum, fee) => sum + Number(fee.amount), 0) || 0;
+      const fees = feesResult.data || [];
+      const totalRevenue = fees
+        .filter(fee => fee.status === "Paid")
+        .reduce((sum, fee) => sum + (fee.amount || 0), 0);
+      
+      const pendingFees = fees
+        .filter(fee => fee.status === "Pending")
+        .reduce((sum, fee) => sum + (fee.amount || 0), 0);
+      
+      const overduePayments = fees
+        .filter(fee => fee.status === "Pending" && new Date(fee.due_date) < new Date())
+        .length;
+
+      const attendance = attendanceResult.data || [];
+      const presentToday = attendance.filter(record => record.status === "Present").length;
 
       setStats({
         totalStudents: studentsResult.count || 0,
         totalTeachers: teachersResult.count || 0,
-        totalFees,
+        totalRevenue,
         pendingFees,
-        activeClasses: classesResult.count || 0,
-        todayAttendance: attendanceResult.count || 0,
+        totalClasses: classesResult.count || 0,
+        presentToday,
+        overduePayments,
+        upcomingExams: examsResult.count || 0,
       });
     } catch (error) {
       console.error("Error fetching dashboard stats:", error);
@@ -62,6 +82,73 @@ export function Dashboard() {
       setLoading(false);
     }
   };
+
+  const statCards = [
+    {
+      title: "Total Students",
+      value: stats.totalStudents,
+      icon: Users,
+      description: "Active enrolled students",
+      color: "text-blue-600",
+      bgColor: "bg-blue-50",
+    },
+    {
+      title: "Total Teachers",
+      value: stats.totalTeachers,
+      icon: GraduationCap,
+      description: "Active teaching staff",
+      color: "text-green-600",
+      bgColor: "bg-green-50",
+    },
+    {
+      title: "Total Classes",
+      value: stats.totalClasses,
+      icon: BookOpen,
+      description: "Active class sections",
+      color: "text-purple-600",
+      bgColor: "bg-purple-50",
+    },
+    {
+      title: "Present Today",
+      value: stats.presentToday,
+      icon: UserCheck,
+      description: "Students present today",
+      color: "text-emerald-600",
+      bgColor: "bg-emerald-50",
+    },
+    {
+      title: "Total Revenue",
+      value: `₹${stats.totalRevenue.toLocaleString()}`,
+      icon: DollarSign,
+      description: "Total fees collected",
+      color: "text-green-600",
+      bgColor: "bg-green-50",
+    },
+    {
+      title: "Pending Fees",
+      value: `₹${stats.pendingFees.toLocaleString()}`,
+      icon: TrendingUp,
+      description: "Outstanding payments",
+      color: "text-orange-600",
+      bgColor: "bg-orange-50",
+    },
+    {
+      title: "Overdue Payments",
+      value: stats.overduePayments,
+      icon: AlertCircle,
+      description: "Past due date",
+      color: "text-red-600",
+      bgColor: "bg-red-50",
+    },
+    {
+      title: "Upcoming Exams",
+      value: stats.upcomingExams,
+      icon: Calendar,
+      description: "Scheduled examinations",
+      color: "text-indigo-600",
+      bgColor: "bg-indigo-50",
+    },
+  ];
 
   if (loading) {
     return (
@@ -73,129 +160,106 @@ export function Dashboard() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-3xl font-bold text-gray-900">School Management Dashboard</h1>
-        <p className="text-gray-600 mt-2">Welcome to your comprehensive school management system</p>
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-3xl font-bold text-gray-900">Dashboard</h1>
+          <p className="text-gray-600 mt-2">Indian School Management System Overview</p>
+        </div>
+        <Badge variant="outline" className="text-orange-600 border-orange-200">
+          🇮🇳 Indian Education Standard
+        </Badge>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        <Card className="hover:shadow-lg transition-shadow">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Students</CardTitle>
-            <Users className="h-5 w-5 text-blue-600" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-blue-600">{stats.totalStudents}</div>
-            <p className="text-xs text-muted-foreground">Active enrollments</p>
-          </CardContent>
-        </Card>
-
-        <Card className="hover:shadow-lg transition-shadow">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Teaching Staff</CardTitle>
-            <GraduationCap className="h-5 w-5 text-green-600" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-green-600">{stats.totalTeachers}</div>
-            <p className="text-xs text-muted-foreground">Active teachers</p>
-          </CardContent>
-        </Card>
-
-        <Card className="hover:shadow-lg transition-shadow">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Fee Collection</CardTitle>
-            <IndianRupee className="h-5 w-5 text-purple-600" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-purple-600">₹{stats.totalFees.toLocaleString()}</div>
-            <p className="text-xs text-muted-foreground">This academic year</p>
-          </CardContent>
-        </Card>
-
-        <Card className="hover:shadow-lg transition-shadow">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Pending Fees</CardTitle>
-            <IndianRupee className="h-5 w-5 text-red-600" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-red-600">₹{stats.pendingFees.toLocaleString()}</div>
-            <p className="text-xs text-muted-foreground">Requires collection</p>
-          </CardContent>
-        </Card>
-
-        <Card className="hover:shadow-lg transition-shadow">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Active Classes</CardTitle>
-            <BookOpen className="h-5 w-5 text-orange-600" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-orange-600">{stats.activeClasses}</div>
-            <p className="text-xs text-muted-foreground">Running sessions</p>
-          </CardContent>
-        </Card>
-
-        <Card className="hover:shadow-lg transition-shadow">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Today's Attendance</CardTitle>
-            <Calendar className="h-5 w-5 text-teal-600" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-teal-600">{stats.todayAttendance}</div>
-            <p className="text-xs text-muted-foreground">Students present</p>
-          </CardContent>
-        </Card>
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        {statCards.map((card, index) => {
+          const Icon = card.icon;
+          return (
+            <Card key={index} className="hover:shadow-lg transition-shadow">
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium text-gray-600">
+                  {card.title}
+                </CardTitle>
+                <div className={`p-2 rounded-full ${card.bgColor}`}>
+                  <Icon className={`h-4 w-4 ${card.color}`} />
+                </div>
+              </CardHeader>
+              <CardContent>
+                <div className={`text-2xl font-bold ${card.color}`}>
+                  {card.value}
+                </div>
+                <p className="text-xs text-gray-500 mt-1">
+                  {card.description}
+                </p>
+              </CardContent>
+            </Card>
+          );
+        })}
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <Card>
           <CardHeader>
-            <CardTitle className="flex items-center space-x-2">
-              <Award className="h-5 w-5 text-yellow-600" />
-              <span>Quick Actions</span>
+            <CardTitle className="flex items-center gap-2">
+              <AlertCircle className="h-5 w-5 text-orange-500" />
+              Quick Actions Needed
             </CardTitle>
-            <CardDescription>Common daily tasks</CardDescription>
+            <CardDescription>
+              Important tasks requiring immediate attention
+            </CardDescription>
           </CardHeader>
-          <CardContent>
-            <div className="space-y-2">
-              <div className="p-3 bg-blue-50 rounded-lg hover:bg-blue-100 cursor-pointer transition-colors">
-                <div className="font-medium">Mark Today's Attendance</div>
-                <div className="text-sm text-gray-600">Record student attendance for today</div>
+          <CardContent className="space-y-3">
+            {stats.overduePayments > 0 && (
+              <div className="flex items-center justify-between p-3 bg-red-50 rounded-lg">
+                <div className="flex items-center gap-2">
+                  <AlertCircle className="h-4 w-4 text-red-500" />
+                  <span className="text-sm font-medium">Overdue Payments</span>
+                </div>
+                <Badge variant="destructive">{stats.overduePayments}</Badge>
               </div>
-              <div className="p-3 bg-green-50 rounded-lg hover:bg-green-100 cursor-pointer transition-colors">
-                <div className="font-medium">Collect Fees</div>
-                <div className="text-sm text-gray-600">Process fee payments and receipts</div>
+            )}
+            {stats.upcomingExams > 0 && (
+              <div className="flex items-center justify-between p-3 bg-blue-50 rounded-lg">
+                <div className="flex items-center gap-2">
+                  <Calendar className="h-4 w-4 text-blue-500" />
+                  <span className="text-sm font-medium">Upcoming Exams</span>
+                </div>
+                <Badge variant="secondary">{stats.upcomingExams}</Badge>
               </div>
-              <div className="p-3 bg-purple-50 rounded-lg hover:bg-purple-100 cursor-pointer transition-colors">
-                <div className="font-medium">Generate Reports</div>
-                <div className="text-sm text-gray-600">Academic and financial reports</div>
-              </div>
-            </div>
+            )}
+            {stats.overduePayments === 0 && stats.upcomingExams === 0 && (
+              <p className="text-sm text-gray-500 text-center py-4">
+                No urgent actions required at this time
+              </p>
+            )}
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader>
-            <CardTitle>Recent Activities</CardTitle>
-            <CardDescription>Latest updates in your school</CardDescription>
+            <CardTitle className="flex items-center gap-2">
+              <TrendingUp className="h-5 w-5 text-green-500" />
+              Financial Overview
+            </CardTitle>
+            <CardDescription>
+              Fee collection and revenue insights
+            </CardDescription>
           </CardHeader>
-          <CardContent>
-            <div className="space-y-3">
-              <div className="flex items-center space-x-3">
-                <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
-                <div className="text-sm">New student admission completed</div>
-              </div>
-              <div className="flex items-center space-x-3">
-                <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-                <div className="text-sm">Fee collection for Class 10 updated</div>
-              </div>
-              <div className="flex items-center space-x-3">
-                <div className="w-2 h-2 bg-purple-500 rounded-full"></div>
-                <div className="text-sm">Monthly report generated</div>
-              </div>
-              <div className="flex items-center space-x-3">
-                <div className="w-2 h-2 bg-orange-500 rounded-full"></div>
-                <div className="text-sm">Teacher attendance marked</div>
-              </div>
+          <CardContent className="space-y-4">
+            <div className="flex justify-between items-center">
+              <span className="text-sm text-gray-600">Total Collected</span>
+              <span className="font-semibold text-green-600">₹{stats.totalRevenue.toLocaleString()}</span>
+            </div>
+            <div className="flex justify-between items-center">
+              <span className="text-sm text-gray-600">Pending Collection</span>
+              <span className="font-semibold text-orange-600">₹{stats.pendingFees.toLocaleString()}</span>
+            </div>
+            <div className="flex justify-between items-center pt-2 border-t">
+              <span className="text-sm font-medium">Collection Rate</span>
+              <span className="font-semibold text-blue-600">
+                {stats.totalRevenue + stats.pendingFees > 0 
+                  ? Math.round((stats.totalRevenue / (stats.totalRevenue + stats.pendingFees)) * 100)
+                  : 0}%
+              </span>
             </div>
           </CardContent>
         </Card>
