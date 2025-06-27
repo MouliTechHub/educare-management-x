@@ -36,7 +36,7 @@ interface DiscountReportsDialogProps {
 export function DiscountReportsDialog({ open, onOpenChange }: DiscountReportsDialogProps) {
   const [reportType, setReportType] = useState<"student" | "yearly">("student");
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear().toString());
-  const [selectedStudent, setSelectedStudent] = useState("");
+  const [selectedStudent, setSelectedStudent] = useState("all");
   const [students, setStudents] = useState<StudentBasic[]>([]);
   const [studentReport, setStudentReport] = useState<DiscountReport[]>([]);
   const [yearlyReport, setYearlyReport] = useState<YearlyDiscountReport[]>([]);
@@ -81,7 +81,7 @@ export function DiscountReportsDialog({ open, onOpenChange }: DiscountReportsDia
         `)
         .gt("discount_amount", 0);
 
-      if (selectedStudent) {
+      if (selectedStudent !== "all") {
         query = query.eq("student_id", selectedStudent);
       }
 
@@ -222,7 +222,7 @@ export function DiscountReportsDialog({ open, onOpenChange }: DiscountReportsDia
                       <SelectValue placeholder="All students" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="">All Students</SelectItem>
+                      <SelectItem value="all">All Students</SelectItem>
                       {students.map((student) => (
                         <SelectItem key={student.id} value={student.id}>
                           {student.first_name} {student.last_name} ({student.admission_number})

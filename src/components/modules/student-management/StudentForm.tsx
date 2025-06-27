@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
@@ -13,6 +12,7 @@ import { TransportSection } from "./TransportSection";
 import { EmergencyContactSection } from "./EmergencyContactSection";
 import { MedicalSection } from "./MedicalSection";
 import { ParentFormSection } from "./ParentFormSection";
+import { useStudentFeeCreator } from "./utils/studentFeeCreator";
 
 interface StudentFormProps {
   open: boolean;
@@ -58,6 +58,7 @@ const checkAdmissionNumberExists = async (admissionNumber: string, excludeStuden
 
 export function StudentForm({ open, onOpenChange, selectedStudent, classes, onStudentSaved }: StudentFormProps) {
   const { toast } = useToast();
+  const { createDefaultFeeRecords } = useStudentFeeCreator();
   const [loading, setLoading] = useState(false);
 
   const [formData, setFormData] = useState<StudentFormData>({
@@ -334,6 +335,9 @@ export function StudentForm({ open, onOpenChange, selectedStudent, classes, onSt
         }
         studentId = data.id;
 
+        // Create default fee records for new student
+        await createDefaultFeeRecords(studentId, formData.class_id);
+
         // Process parents with proper validation
         for (const parent of parents) {
           if (parent.first_name && parent.last_name && parent.phone_number && parent.email) {
@@ -384,7 +388,7 @@ export function StudentForm({ open, onOpenChange, selectedStudent, classes, onSt
 
         toast({
           title: "Student Added",
-          description: `${formData.first_name} ${formData.last_name} and parent(s) have been added successfully.`,
+          description: `${formData.first_name} ${formData.last_name}, parent(s), and default fee records have been added successfully.`,
         });
       }
 
