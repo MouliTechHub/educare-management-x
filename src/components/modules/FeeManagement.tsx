@@ -27,11 +27,13 @@ interface Fee {
   status: string;
   receipt_number?: string;
   created_at: string;
+  updated_at: string;
   student?: StudentBasic & {
     class_name?: string;
     section?: string;
     parent_phone?: string;
     parent_email?: string;
+    class_id?: string;
   };
 }
 
@@ -152,6 +154,7 @@ export function FeeManagement() {
             first_name, 
             last_name, 
             admission_number,
+            class_id,
             classes(name, section),
             student_parent_links(
               parents(phone_number, email)
@@ -170,6 +173,7 @@ export function FeeManagement() {
           section: fee.students.classes?.section,
           parent_phone: fee.students.student_parent_links?.[0]?.parents?.phone_number,
           parent_email: fee.students.student_parent_links?.[0]?.parents?.email,
+          class_id: fee.students.class_id,
         }
       }));
 
@@ -280,7 +284,7 @@ export function FeeManagement() {
         (fee.student.class_name && fee.student.class_name.toLowerCase().includes(searchTerm.toLowerCase())));
       
       const matchesClass = filters.class_id === "all" || 
-        (fee.student?.classes?.id === filters.class_id);
+        (fee.student?.class_id === filters.class_id);
       
       const matchesSection = filters.section === "all" || 
         (fee.student?.section === filters.section);
