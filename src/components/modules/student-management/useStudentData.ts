@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Student, Class } from "@/types/database";
@@ -51,6 +52,11 @@ export function useStudentData() {
             id,
             fee_type,
             amount,
+            actual_amount,
+            discount_amount,
+            discount_notes,
+            discount_updated_by,
+            discount_updated_at,
             due_date,
             payment_date,
             receipt_number,
@@ -91,7 +97,12 @@ export function useStudentData() {
           fees: fees.map(fee => ({
             ...fee,
             student_id: student.id,
-            status: fee.status as 'Pending' | 'Paid' | 'Overdue'
+            status: fee.status as 'Pending' | 'Paid' | 'Overdue',
+            actual_amount: fee.actual_amount || fee.amount,
+            discount_amount: fee.discount_amount || 0,
+            discount_notes: fee.discount_notes || null,
+            discount_updated_by: fee.discount_updated_by || null,
+            discount_updated_at: fee.discount_updated_at || null
           }))
         };
       });
