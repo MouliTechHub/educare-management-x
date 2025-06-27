@@ -4,6 +4,10 @@ import { Users, GraduationCap, DollarSign, BookOpen, TrendingUp, AlertCircle, Ca
 import { supabase } from "@/integrations/supabase/client";
 import { Badge } from "@/components/ui/badge";
 
+interface DashboardProps {
+  userRole?: "Admin" | "Teacher" | "Parent" | "Accountant";
+}
+
 interface DashboardStats {
   totalStudents: number;
   totalTeachers: number;
@@ -15,7 +19,7 @@ interface DashboardStats {
   upcomingExams: number;
 }
 
-export function Dashboard() {
+export function Dashboard({ userRole = "Admin" }: DashboardProps) {
   const [stats, setStats] = useState<DashboardStats>({
     totalStudents: 0,
     totalTeachers: 0,
