@@ -166,6 +166,7 @@ export function FeeManagement() {
 
       const feesWithStudents = (data || []).map(fee => ({
         ...fee,
+        status: fee.status as 'Pending' | 'Paid' | 'Overdue',
         student: {
           ...fee.students,
           class_name: fee.students.classes?.name,
