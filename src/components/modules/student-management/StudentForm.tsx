@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
@@ -82,6 +83,7 @@ export function StudentForm({ open, onOpenChange, selectedStudent, classes, onSt
     state: "",
     pin_code: "",
     status: "Active",
+    aadhaar_number: "",
   });
 
   const [parents, setParents] = useState<ParentFormData[]>([
@@ -129,6 +131,7 @@ export function StudentForm({ open, onOpenChange, selectedStudent, classes, onSt
         state: selectedStudent.state || "",
         pin_code: selectedStudent.pin_code || "",
         status: selectedStudent.status,
+        aadhaar_number: selectedStudent.aadhaar_number || "",
       });
 
       if (selectedStudent.parents && selectedStudent.parents.length > 0) {
@@ -175,6 +178,7 @@ export function StudentForm({ open, onOpenChange, selectedStudent, classes, onSt
         state: "",
         pin_code: "",
         status: "Active",
+        aadhaar_number: "",
       });
       setParents([{
         first_name: "",
@@ -280,6 +284,7 @@ export function StudentForm({ open, onOpenChange, selectedStudent, classes, onSt
         city: formData.city || null,
         state: formData.state || null,
         pin_code: formData.pin_code || null,
+        aadhaar_number: formData.aadhaar_number || null,
       };
 
       let studentId: string;

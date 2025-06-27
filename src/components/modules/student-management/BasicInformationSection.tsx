@@ -1,3 +1,4 @@
+
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -72,6 +73,20 @@ export function BasicInformationSection({ formData, setFormData, classes }: Basi
           </Select>
         </div>
         <div>
+          <Label htmlFor="aadhaar_number">Aadhaar Number</Label>
+          <Input
+            id="aadhaar_number"
+            value={formData.aadhaar_number}
+            onChange={(e) => setFormData({ ...formData, aadhaar_number: e.target.value })}
+            placeholder="12-digit Aadhaar number"
+            maxLength={12}
+          />
+          <p className="text-xs text-gray-500 mt-1">12-digit unique identification number</p>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-3 gap-4">
+        <div>
           <Label htmlFor="class_id">Class</Label>
           <Select value={formData.class_id} onValueChange={(value) => setFormData({ ...formData, class_id: value })}>
             <SelectTrigger>
@@ -86,9 +101,6 @@ export function BasicInformationSection({ formData, setFormData, classes }: Basi
             </SelectContent>
           </Select>
         </div>
-      </div>
-
-      <div className="grid grid-cols-3 gap-4">
         <div>
           <Label htmlFor="blood_group">Blood Group</Label>
           <Select value={formData.blood_group} onValueChange={(value) => setFormData({ ...formData, blood_group: value })}>
@@ -119,6 +131,9 @@ export function BasicInformationSection({ formData, setFormData, classes }: Basi
             </SelectContent>
           </Select>
         </div>
+      </div>
+
+      <div className="grid grid-cols-3 gap-4">
         <div>
           <Label htmlFor="caste_category">Caste/Category</Label>
           <Select value={formData.caste_category} onValueChange={(value) => setFormData({ ...formData, caste_category: value })}>
@@ -134,20 +149,19 @@ export function BasicInformationSection({ formData, setFormData, classes }: Basi
             </SelectContent>
           </Select>
         </div>
-      </div>
-
-      <div>
-        <Label htmlFor="status">Status</Label>
-        <Select value={formData.status} onValueChange={(value) => setFormData({ ...formData, status: value })}>
-          <SelectTrigger>
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="Active">Active</SelectItem>
-            <SelectItem value="Inactive">Inactive</SelectItem>
-            <SelectItem value="Alumni">Alumni</SelectItem>
-          </SelectContent>
-        </Select>
+        <div>
+          <Label htmlFor="status">Status</Label>
+          <Select value={formData.status} onValueChange={(value) => setFormData({ ...formData, status: value })}>
+            <SelectTrigger>
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="Active">Active</SelectItem>
+              <SelectItem value="Inactive">Inactive</SelectItem>
+              <SelectItem value="Alumni">Alumni</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
       </div>
     </div>
   );

@@ -25,6 +25,7 @@ export interface Student {
   emergency_contact_name: string | null;
   emergency_contact_phone: string | null;
   emergency_contact_relation: string | null;
+  aadhaar_number: string | null;
   created_at: string;
   updated_at: string;
   classes?: {
@@ -149,10 +150,15 @@ export interface Fee {
   student_id: string;
   fee_type: string;
   amount: number;
+  actual_amount: number;
+  discount_amount: number;
   due_date: string;
   payment_date: string | null;
   receipt_number: string | null;
   status: 'Pending' | 'Paid' | 'Overdue';
+  discount_notes: string | null;
+  discount_updated_by: string | null;
+  discount_updated_at: string | null;
   created_at: string;
   updated_at: string;
 }

@@ -40,4 +40,5 @@ export interface StudentFormData {
   state: string;
   pin_code: string;
   status: string;
+  aadhaar_number: string;
 }

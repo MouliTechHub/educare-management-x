@@ -181,10 +181,59 @@ export type Database = {
           },
         ]
       }
+      fee_discounts: {
+        Row: {
+          approved_by: string | null
+          created_at: string
+          discount_amount: number
+          discount_percentage: number | null
+          fee_id: string
+          id: string
+          notes: string | null
+          reason: string | null
+          updated_at: string
+        }
+        Insert: {
+          approved_by?: string | null
+          created_at?: string
+          discount_amount: number
+          discount_percentage?: number | null
+          fee_id: string
+          id?: string
+          notes?: string | null
+          reason?: string | null
+          updated_at?: string
+        }
+        Update: {
+          approved_by?: string | null
+          created_at?: string
+          discount_amount?: number
+          discount_percentage?: number | null
+          fee_id?: string
+          id?: string
+          notes?: string | null
+          reason?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fee_discounts_fee_id_fkey"
+            columns: ["fee_id"]
+            isOneToOne: false
+            referencedRelation: "fees"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       fees: {
         Row: {
+          actual_amount: number
           amount: number
           created_at: string | null
+          discount_amount: number
+          discount_notes: string | null
+          discount_updated_at: string | null
+          discount_updated_by: string | null
           due_date: string
           fee_type: string
           id: string
@@ -195,8 +244,13 @@ export type Database = {
           updated_at: string | null
         }
         Insert: {
+          actual_amount?: number
           amount: number
           created_at?: string | null
+          discount_amount?: number
+          discount_notes?: string | null
+          discount_updated_at?: string | null
+          discount_updated_by?: string | null
           due_date: string
           fee_type: string
           id?: string
@@ -207,8 +261,13 @@ export type Database = {
           updated_at?: string | null
         }
         Update: {
+          actual_amount?: number
           amount?: number
           created_at?: string | null
+          discount_amount?: number
+          discount_notes?: string | null
+          discount_updated_at?: string | null
+          discount_updated_by?: string | null
           due_date?: string
           fee_type?: string
           id?: string
@@ -408,6 +467,7 @@ export type Database = {
       }
       students: {
         Row: {
+          aadhaar_number: string | null
           address_line1: string | null
           address_line2: string | null
           admission_number: string
@@ -436,6 +496,7 @@ export type Database = {
           updated_at: string | null
         }
         Insert: {
+          aadhaar_number?: string | null
           address_line1?: string | null
           address_line2?: string | null
           admission_number: string
@@ -464,6 +525,7 @@ export type Database = {
           updated_at?: string | null
         }
         Update: {
+          aadhaar_number?: string | null
           address_line1?: string | null
           address_line2?: string | null
           admission_number?: string
