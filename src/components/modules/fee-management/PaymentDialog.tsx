@@ -73,14 +73,42 @@ export function PaymentDialog({ open, onOpenChange, fee, onPaymentRecorded }: Pa
     try {
       const amountPaid = Number(data.amount_paid);
       const currentPending = fee.amount;
+      
+      // Validate payment amount
+      if (amountPaid <= 0) {
+        toast({
+          title: "Invalid amount",
+          description: "Payment amount must be greater than 0",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      if (amountPaid > currentPending) {
+        toast({
+          title: "Invalid amount",
+          description: "Payment amount cannot be greater than pending amount",
+          variant: "destructive",
+        });
+        return;
+      }
+
       const newPendingAmount = currentPending - amountPaid;
       
       // Determine if fee is fully paid or partially paid
       const newStatus = newPendingAmount <= 0 ? "Paid" : "Pending";
-      // Ensure amount never goes below 0 to avoid constraint violation
+      // Ensure amount is never negative (should be 0 or positive)
       const finalAmount = Math.max(0, newPendingAmount);
 
-      // Update the fee record
+      console.log('Payment processing:', {
+        currentPending,
+        amountPaid,
+        newPendingAmount,
+        finalAmount,
+        newStatus
+      });
+
+      // Update the fee record with proper validation
       const { error: feeError } = await supabase
         .from("fees")
         .update({
@@ -93,7 +121,7 @@ export function PaymentDialog({ open, onOpenChange, fee, onPaymentRecorded }: Pa
 
       if (feeError) {
         console.error('Fee update error:', feeError);
-        throw feeError;
+        throw new Error(`Failed to update fee: ${feeError.message}`);
       }
 
       // Create payment history record
@@ -180,7 +208,12 @@ export function PaymentDialog({ open, onOpenChange, fee, onPaymentRecorded }: Pa
                       type="number" 
                       min="1"
                       max={fee?.amount || 0}
-                      onChange={(e) => field.onChange(Number(e.target.value))}
+                      step="0.01"
+                      value={field.value || ''}
+                      onChange={(e) => {
+                        const value = e.target.value;
+                        field.onChange(value === '' ? '' : Number(value));
+                      }}
                       required 
                     />
                   </FormControl>
@@ -213,7 +246,7 @@ export function PaymentDialog({ open, onOpenChange, fee, onPaymentRecorded }: Pa
                     <Input {...field} placeholder="Enter receipt number" required />
                   </FormControl>
                   <FormMessage />
-                </FormItem>
+                </FormMessage>
               )}
             />
             
