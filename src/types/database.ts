@@ -1,4 +1,3 @@
-
 // Database types that match Supabase schema
 export interface Student {
   id: string;
@@ -46,6 +45,7 @@ export interface StudentBasic {
   first_name: string;
   last_name: string;
   admission_number: string;
+  class_id?: string | null;
 }
 
 export interface Parent {
