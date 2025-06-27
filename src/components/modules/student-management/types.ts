@@ -15,6 +15,9 @@ export interface ParentFormData {
   employer_name: string;
   employer_address: string;
   alternate_phone: string;
+  aadhaar_number: string;
+  pan_number: string;
+  education_qualification: string;
 }
 
 export interface StudentFormData {
@@ -41,4 +44,10 @@ export interface StudentFormData {
   pin_code: string;
   status: string;
   aadhaar_number: string;
+  mother_tongue?: string;
+  nationality?: string;
+  transfer_certificate?: string;
+  scholarship_details?: string;
+  hostel_required?: boolean;
+  medium_of_instruction?: string;
 }
