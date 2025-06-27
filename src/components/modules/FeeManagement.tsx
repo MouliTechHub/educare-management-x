@@ -23,7 +23,7 @@ interface Fee {
   fee_type: string;
   due_date: string;
   payment_date: string | null;
-  status: string;
+  status: 'Pending' | 'Paid' | 'Overdue';
   receipt_number: string | null;
   created_at: string;
   updated_at: string;
