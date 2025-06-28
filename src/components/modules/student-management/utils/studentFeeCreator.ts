@@ -9,6 +9,23 @@ export const useStudentFeeCreator = () => {
     try {
       console.log('Creating default fee records for student:', studentId);
       
+      // Get current academic year
+      const { data: academicYear, error: yearError } = await supabase
+        .from("academic_years")
+        .select("id")
+        .eq("is_current", true)
+        .single();
+
+      if (yearError || !academicYear) {
+        console.error('No current academic year found:', yearError);
+        toast({
+          title: "Academic Year Error",
+          description: "No current academic year found. Please contact administrator.",
+          variant: "destructive",
+        });
+        return;
+      }
+      
       // Indian school fee structure - more comprehensive
       const defaultFees = [
         {
@@ -17,8 +34,10 @@ export const useStudentFeeCreator = () => {
           amount: 8000,
           actual_amount: 8000,
           discount_amount: 0,
+          total_paid: 0,
           due_date: new Date(new Date().getFullYear(), new Date().getMonth() + 1, 10).toISOString().split('T')[0],
-          status: "Pending"
+          status: "Pending",
+          academic_year_id: academicYear.id
         },
         {
           student_id: studentId,
@@ -26,8 +45,10 @@ export const useStudentFeeCreator = () => {
           amount: 2000,
           actual_amount: 2000,
           discount_amount: 0,
+          total_paid: 0,
           due_date: new Date(new Date().getFullYear(), new Date().getMonth() + 1, 10).toISOString().split('T')[0],
-          status: "Pending"
+          status: "Pending",
+          academic_year_id: academicYear.id
         },
         {
           student_id: studentId,
@@ -35,8 +56,10 @@ export const useStudentFeeCreator = () => {
           amount: 500,
           actual_amount: 500,
           discount_amount: 0,
+          total_paid: 0,
           due_date: new Date(new Date().getFullYear(), new Date().getMonth() + 1, 10).toISOString().split('T')[0],
-          status: "Pending"
+          status: "Pending",
+          academic_year_id: academicYear.id
         },
         {
           student_id: studentId,
@@ -44,8 +67,10 @@ export const useStudentFeeCreator = () => {
           amount: 1000,
           actual_amount: 1000,
           discount_amount: 0,
+          total_paid: 0,
           due_date: new Date(new Date().getFullYear(), new Date().getMonth() + 1, 10).toISOString().split('T')[0],
-          status: "Pending"
+          status: "Pending",
+          academic_year_id: academicYear.id
         },
         {
           student_id: studentId,
@@ -53,8 +78,10 @@ export const useStudentFeeCreator = () => {
           amount: 800,
           actual_amount: 800,
           discount_amount: 0,
+          total_paid: 0,
           due_date: new Date(new Date().getFullYear(), new Date().getMonth() + 1, 10).toISOString().split('T')[0],
-          status: "Pending"
+          status: "Pending",
+          academic_year_id: academicYear.id
         },
         {
           student_id: studentId,
@@ -62,8 +89,10 @@ export const useStudentFeeCreator = () => {
           amount: 1200,
           actual_amount: 1200,
           discount_amount: 0,
+          total_paid: 0,
           due_date: new Date(new Date().getFullYear(), new Date().getMonth() + 1, 10).toISOString().split('T')[0],
-          status: "Pending"
+          status: "Pending",
+          academic_year_id: academicYear.id
         },
         {
           student_id: studentId,
@@ -71,8 +100,10 @@ export const useStudentFeeCreator = () => {
           amount: 600,
           actual_amount: 600,
           discount_amount: 0,
+          total_paid: 0,
           due_date: new Date(new Date().getFullYear(), 2, 15).toISOString().split('T')[0], // March 15th for annual exams
-          status: "Pending"
+          status: "Pending",
+          academic_year_id: academicYear.id
         },
         {
           student_id: studentId,
@@ -80,8 +111,10 @@ export const useStudentFeeCreator = () => {
           amount: 400,
           actual_amount: 400,
           discount_amount: 0,
+          total_paid: 0,
           due_date: new Date(new Date().getFullYear(), new Date().getMonth() + 1, 10).toISOString().split('T')[0],
-          status: "Pending"
+          status: "Pending",
+          academic_year_id: academicYear.id
         }
       ];
 

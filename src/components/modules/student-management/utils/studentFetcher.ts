@@ -30,6 +30,7 @@ export const useStudentFetcher = () => {
             amount,
             actual_amount,
             discount_amount,
+            total_paid,
             discount_notes,
             discount_updated_by,
             discount_updated_at,
@@ -37,6 +38,7 @@ export const useStudentFetcher = () => {
             payment_date,
             receipt_number,
             status,
+            academic_year_id,
             created_at,
             updated_at
           )
@@ -54,11 +56,13 @@ export const useStudentFetcher = () => {
       const typedStudents = (data || []).map(student => {
         const fees = student.fees || [];
         const totalPaid = fees
-          .filter(fee => fee.status === 'Paid')
-          .reduce((sum, fee) => sum + Number(fee.amount), 0);
+          .reduce((sum, fee) => sum + Number(fee.total_paid || 0), 0);
         const totalPending = fees
-          .filter(fee => fee.status === 'Pending' || fee.status === 'Overdue')
-          .reduce((sum, fee) => sum + Number(fee.amount), 0);
+          .reduce((sum, fee) => {
+            const finalFee = Number(fee.actual_amount || fee.amount) - Number(fee.discount_amount || 0);
+            const balance = finalFee - Number(fee.total_paid || 0);
+            return sum + Math.max(0, balance);
+          }, 0);
 
         return {
           ...student,
@@ -76,9 +80,11 @@ export const useStudentFetcher = () => {
             status: fee.status as 'Pending' | 'Paid' | 'Overdue',
             actual_amount: fee.actual_amount || fee.amount,
             discount_amount: fee.discount_amount || 0,
+            total_paid: fee.total_paid || 0,
             discount_notes: fee.discount_notes || null,
             discount_updated_by: fee.discount_updated_by || null,
-            discount_updated_at: fee.discount_updated_at || null
+            discount_updated_at: fee.discount_updated_at || null,
+            academic_year_id: fee.academic_year_id
           }))
         };
       });

@@ -33,6 +33,7 @@ export function FeeFormDialog({ onFeeCreated }: FeeFormDialogProps) {
   const [students, setStudents] = useState<StudentBasic[]>([]);
   const [filteredStudents, setFilteredStudents] = useState<StudentBasic[]>([]);
   const [classes, setClasses] = useState<Class[]>([]);
+  const [currentAcademicYear, setCurrentAcademicYear] = useState<string>("");
   const [dialogOpen, setDialogOpen] = useState(false);
   const { toast } = useToast();
 
@@ -51,6 +52,7 @@ export function FeeFormDialog({ onFeeCreated }: FeeFormDialogProps) {
   useEffect(() => {
     fetchStudents();
     fetchClasses();
+    fetchCurrentAcademicYear();
   }, []);
 
   useEffect(() => {
@@ -62,6 +64,21 @@ export function FeeFormDialog({ onFeeCreated }: FeeFormDialogProps) {
     }
     feeForm.setValue("student_id", "");
   }, [selectedClassId, students, feeForm]);
+
+  const fetchCurrentAcademicYear = async () => {
+    try {
+      const { data, error } = await supabase
+        .from("academic_years")
+        .select("id")
+        .eq("is_current", true)
+        .single();
+
+      if (error) throw error;
+      setCurrentAcademicYear(data.id);
+    } catch (error: any) {
+      console.error("Error fetching current academic year:", error);
+    }
+  };
 
   const fetchClasses = async () => {
     try {
@@ -94,15 +111,27 @@ export function FeeFormDialog({ onFeeCreated }: FeeFormDialogProps) {
 
   const onSubmitFee = async (data: FeeFormData) => {
     try {
+      if (!currentAcademicYear) {
+        toast({
+          title: "Error",
+          description: "No current academic year found. Please contact administrator.",
+          variant: "destructive",
+        });
+        return;
+      }
+
       const { error } = await supabase
         .from("fees")
         .insert([{
           student_id: data.student_id,
           amount: data.amount,
           actual_amount: data.amount,
+          discount_amount: 0,
+          total_paid: 0,
           fee_type: data.fee_type,
           due_date: data.due_date,
-          status: "Pending"
+          status: "Pending",
+          academic_year_id: currentAcademicYear
         }]);
 
       if (error) throw error;
