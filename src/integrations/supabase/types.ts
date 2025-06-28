@@ -582,6 +582,45 @@ export type Database = {
           },
         ]
       }
+      payment_reversals: {
+        Row: {
+          authorized_by: string
+          created_at: string
+          id: string
+          notes: string | null
+          payment_history_id: string
+          reason: string
+          reversal_amount: number
+          reversal_date: string
+          reversal_type: string
+          updated_at: string
+        }
+        Insert: {
+          authorized_by: string
+          created_at?: string
+          id?: string
+          notes?: string | null
+          payment_history_id: string
+          reason: string
+          reversal_amount: number
+          reversal_date?: string
+          reversal_type: string
+          updated_at?: string
+        }
+        Update: {
+          authorized_by?: string
+          created_at?: string
+          id?: string
+          notes?: string | null
+          payment_history_id?: string
+          reason?: string
+          reversal_amount?: number
+          reversal_date?: string
+          reversal_type?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           created_at: string | null

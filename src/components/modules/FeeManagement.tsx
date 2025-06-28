@@ -187,6 +187,8 @@ export function FeeManagement() {
     );
   }
 
+  const currentYear = academicYears.find(year => year.id === selectedAcademicYear);
+
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
@@ -225,8 +227,8 @@ export function FeeManagement() {
               <CardTitle>Fee Records</CardTitle>
               <CardDescription>
                 Academic year-based fee management with change tracking
-                {currentAcademicYear && selectedAcademicYear === currentAcademicYear.id && 
-                  ` - ${currentAcademicYear.year_name} (Current Year)`
+                {currentYear && 
+                  ` - ${currentYear.year_name}${currentYear.is_current ? ' (Current Year)' : ''}`
                 }
               </CardDescription>
             </div>
@@ -262,6 +264,7 @@ export function FeeManagement() {
         onOpenChange={setPaymentDialogOpen}
         fee={selectedFee}
         onPaymentRecorded={refetchFees}
+        academicYearName={currentYear?.year_name}
       />
 
       <DiscountDialog
@@ -281,6 +284,8 @@ export function FeeManagement() {
         onOpenChange={setHistoryDialogOpen}
         studentName={selectedStudentName}
         fees={selectedStudentFees}
+        academicYears={academicYears}
+        selectedAcademicYear={selectedAcademicYear}
       />
     </div>
   );
