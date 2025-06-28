@@ -30,7 +30,27 @@ export function StudentForm({ open, onOpenChange, selectedStudent, classes, onSt
 
   const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    await handleSubmit(formData, parents);
+    
+    // Convert ParentFormData to Parent format
+    const convertedParents = parents.map(parent => ({
+      first_name: parent.first_name,
+      last_name: parent.last_name,
+      relation: parent.relation,
+      phone_number: parent.phone_number,
+      email: parent.email,
+      annual_income: parent.annual_income ? parseFloat(parent.annual_income) : null,
+      address_line1: parent.address_line1,
+      address_line2: parent.address_line2,
+      city: parent.city,
+      state: parent.state,
+      pin_code: parent.pin_code,
+      occupation: parent.occupation,
+      employer_name: parent.employer_name,
+      employer_address: parent.employer_address,
+      alternate_phone: parent.alternate_phone,
+    }));
+
+    await handleSubmit(formData, convertedParents);
   };
 
   return (
