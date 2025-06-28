@@ -1,23 +1,17 @@
+
 import React, { useState } from "react";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Search, FileText } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
-import { FeeFormDialog } from "./fee-management/FeeFormDialog";
 import { PaymentDialog } from "./fee-management/PaymentDialog";
-import { FeeTable } from "./fee-management/FeeTable";
 import { StudentPaymentHistory } from "./student-management/StudentPaymentHistory";
-import { FeeManagementFilters } from "./fee-management/FeeManagementFilters";
-import { FeeStats } from "./fee-management/FeeStats";
 import { DiscountDialog } from "./fee-management/DiscountDialog";
 import { DiscountReportsDialog } from "./fee-management/DiscountReportsDialog";
 import { AcademicYearSelector } from "./fee-management/AcademicYearSelector";
 import { YearWiseSummaryCards } from "./fee-management/YearWiseSummaryCards";
-import { ExportButtons } from "./fee-management/ExportButtons";
 import { useFeeData } from "./fee-management/useFeeData";
 import { useYearWiseSummary } from "./fee-management/useYearWiseSummary";
 import { useExportData } from "./fee-management/useExportData";
+import { FeeManagementHeader } from "./fee-management/FeeManagementHeader";
+import { FeeManagementContent } from "./fee-management/FeeManagementContent";
 
 interface Class {
   id: string;
@@ -191,24 +185,13 @@ export function FeeManagement() {
 
   return (
     <div className="space-y-6">
-      <div className="flex justify-between items-center">
-        <div>
-          <h1 className="text-3xl font-bold text-gray-900">Fee Management</h1>
-          <p className="text-gray-600 mt-2">Academic year-based fee tracking with comprehensive analytics</p>
-        </div>
-        <div className="flex space-x-2">
-          <ExportButtons 
-            data={filteredFees} 
-            academicYear={yearWiseSummary.academicYear}
-            onExport={handleExport}
-          />
-          <Button variant="outline" onClick={() => setReportsDialogOpen(true)}>
-            <FileText className="w-4 h-4 mr-2" />
-            Discount Reports
-          </Button>
-          <FeeFormDialog onFeeCreated={refetchFees} />
-        </div>
-      </div>
+      <FeeManagementHeader
+        filteredFees={filteredFees}
+        academicYear={yearWiseSummary.academicYear}
+        onExport={handleExport}
+        onReportsClick={() => setReportsDialogOpen(true)}
+        onFeeCreated={refetchFees}
+      />
 
       <div className="flex items-center justify-between">
         <AcademicYearSelector
@@ -220,44 +203,18 @@ export function FeeManagement() {
 
       <YearWiseSummaryCards summary={yearWiseSummary} />
 
-      <Card>
-        <CardHeader>
-          <div className="flex items-center justify-between">
-            <div>
-              <CardTitle>Fee Records</CardTitle>
-              <CardDescription>
-                Academic year-based fee management with change tracking
-                {currentYear && 
-                  ` - ${currentYear.year_name}${currentYear.is_current ? ' (Current Year)' : ''}`
-                }
-              </CardDescription>
-            </div>
-            <div className="flex items-center space-x-2">
-              <Search className="w-4 h-4 text-gray-400" />
-              <Input
-                placeholder="Search by student, class, or fee type..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-64"
-              />
-            </div>
-          </div>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <FeeManagementFilters
-            filters={filters}
-            onFiltersChange={setFilters}
-            classes={classes}
-          />
-
-          <FeeTable
-            fees={filteredFees}
-            onPaymentClick={openPaymentDialog}
-            onDiscountClick={openDiscountDialog}
-            onHistoryClick={openHistoryDialog}
-          />
-        </CardContent>
-      </Card>
+      <FeeManagementContent
+        currentYear={currentYear}
+        searchTerm={searchTerm}
+        onSearchChange={setSearchTerm}
+        filters={filters}
+        onFiltersChange={setFilters}
+        classes={classes}
+        filteredFees={filteredFees}
+        onPaymentClick={openPaymentDialog}
+        onDiscountClick={openDiscountDialog}
+        onHistoryClick={openHistoryDialog}
+      />
 
       <PaymentDialog
         open={paymentDialogOpen}

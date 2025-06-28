@@ -1,13 +1,13 @@
+
 import React from "react";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { useForm } from "react-hook-form";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import { Calendar, AlertCircle } from "lucide-react";
+import { Calendar } from "lucide-react";
+import { PaymentForm } from "./PaymentForm";
+import { PaymentConfirmation } from "./PaymentConfirmation";
 
 interface Fee {
   id: string;
@@ -244,148 +244,23 @@ export function PaymentDialog({
         </DialogHeader>
         
         {showConfirmation ? (
-          <div className="space-y-4">
-            <div className="bg-amber-50 border border-amber-200 rounded-lg p-4">
-              <div className="flex items-start space-x-3">
-                <AlertCircle className="w-5 h-5 text-amber-600 mt-0.5" />
-                <div className="space-y-2">
-                  <h4 className="font-medium text-amber-800">Confirm Payment Details</h4>
-                  <div className="text-sm text-amber-700 space-y-1">
-                    <p><strong>Student:</strong> {fee.student ? `${fee.student.first_name} ${fee.student.last_name}` : "Unknown"}</p>
-                    <p><strong>Fee Type:</strong> {fee.fee_type}</p>
-                    <p><strong>Academic Year:</strong> {academicYearName || "Not specified"}</p>
-                    <p><strong>Amount:</strong> ₹{paymentForm.getValues('amount_paid').toLocaleString()}</p>
-                    <p><strong>Receipt:</strong> {paymentForm.getValues('receipt_number')}</p>
-                    <p><strong>Date:</strong> {new Date(paymentForm.getValues('payment_date')).toLocaleDateString()}</p>
-                  </div>
-                </div>
-              </div>
-            </div>
-            
-            <div className="flex justify-end space-x-2">
-              <Button 
-                type="button" 
-                variant="outline" 
-                onClick={() => setShowConfirmation(false)}
-              >
-                Back to Edit
-              </Button>
-              <Button 
-                onClick={() => onSubmitPayment(paymentForm.getValues())}
-                className="bg-green-600 hover:bg-green-700"
-              >
-                Confirm & Record Payment
-              </Button>
-            </div>
-          </div>
+          <PaymentConfirmation
+            studentName={fee.student ? `${fee.student.first_name} ${fee.student.last_name}` : "Unknown"}
+            feeType={fee.fee_type}
+            academicYear={academicYearName || "Not specified"}
+            amount={paymentForm.getValues('amount_paid')}
+            receiptNumber={paymentForm.getValues('receipt_number')}
+            paymentDate={paymentForm.getValues('payment_date')}
+            onBack={() => setShowConfirmation(false)}
+            onConfirm={() => onSubmitPayment(paymentForm.getValues())}
+          />
         ) : (
-          <Form {...paymentForm}>
-            <form onSubmit={paymentForm.handleSubmit(onSubmitPayment)} className="space-y-4">
-              <FormField
-                control={paymentForm.control}
-                name="amount_paid"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Amount Being Paid</FormLabel>
-                    <FormControl>
-                      <Input 
-                        {...field} 
-                        type="number" 
-                        min="1"
-                        max={balanceAmount}
-                        step="0.01"
-                        onChange={(e) => field.onChange(Number(e.target.value))}
-                        required 
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              
-              <FormField
-                control={paymentForm.control}
-                name="payment_date"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Payment Date</FormLabel>
-                    <FormControl>
-                      <Input {...field} type="date" required />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              
-              <FormField
-                control={paymentForm.control}
-                name="receipt_number"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Receipt Number</FormLabel>
-                    <FormControl>
-                      <Input {...field} placeholder="Enter receipt number" required />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              
-              <FormField
-                control={paymentForm.control}
-                name="payment_receiver"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Payment Received By</FormLabel>
-                    <FormControl>
-                      <Input {...field} placeholder="Enter receiver name" required />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              
-              <FormField
-                control={paymentForm.control}
-                name="payment_method"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Payment Method</FormLabel>
-                    <FormControl>
-                      <select {...field} className="w-full p-2 border rounded-md" required>
-                        <option value="Cash">Cash</option>
-                        <option value="Online">Online Transfer</option>
-                        <option value="Cheque">Cheque</option>
-                        <option value="Card">Card</option>
-                      </select>
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              
-              <FormField
-                control={paymentForm.control}
-                name="notes"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Notes (Optional)</FormLabel>
-                    <FormControl>
-                      <Input {...field} placeholder="Additional notes" />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              
-              <div className="flex justify-end space-x-2 pt-4">
-                <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
-                  Cancel
-                </Button>
-                <Button type="submit">Continue</Button>
-              </div>
-            </form>
-          </Form>
+          <PaymentForm
+            form={paymentForm}
+            balanceAmount={balanceAmount}
+            onSubmit={onSubmitPayment}
+            onCancel={() => onOpenChange(false)}
+          />
         )}
       </DialogContent>
     </Dialog>
