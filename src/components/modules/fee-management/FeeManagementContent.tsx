@@ -110,6 +110,8 @@ export function FeeManagementContent({
       </CardHeader>
       <CardContent className="space-y-4">
         <FeeManagementFilters
+          searchTerm={searchTerm}
+          onSearchChange={onSearchChange}
           filters={filters}
           onFiltersChange={onFiltersChange}
           classes={classes}
