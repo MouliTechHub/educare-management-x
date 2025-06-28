@@ -35,12 +35,25 @@ export function FeeManagementFilters({ filters, onFiltersChange, classes }: FeeM
     new Set(classes.filter(c => c.section).map(c => c.section))
   ).filter(Boolean);
 
+  const feeTypes = [
+    "Tuition Fee",
+    "Development Fee", 
+    "Library Fee",
+    "Laboratory Fee",
+    "Sports Fee",
+    "Computer Fee",
+    "Examination Fee",
+    "Activity Fee",
+    "Transport Fee",
+    "Other"
+  ];
+
   return (
     <Card>
       <CardContent className="pt-6">
         <div className="flex items-center space-x-2 mb-4">
           <Filter className="w-4 h-4" />
-          <span className="font-medium">Filters</span>
+          <span className="font-medium">Advanced Filters</span>
         </div>
         
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
@@ -79,7 +92,7 @@ export function FeeManagementFilters({ filters, onFiltersChange, classes }: FeeM
           </div>
 
           <div>
-            <Label htmlFor="status-filter">Status</Label>
+            <Label htmlFor="status-filter">Payment Status</Label>
             <Select value={filters.status} onValueChange={(value) => updateFilter('status', value)}>
               <SelectTrigger>
                 <SelectValue placeholder="All Status" />
@@ -88,6 +101,7 @@ export function FeeManagementFilters({ filters, onFiltersChange, classes }: FeeM
                 <SelectItem value="all">All Status</SelectItem>
                 <SelectItem value="pending">Pending</SelectItem>
                 <SelectItem value="paid">Paid</SelectItem>
+                <SelectItem value="overdue">Overdue</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -100,13 +114,11 @@ export function FeeManagementFilters({ filters, onFiltersChange, classes }: FeeM
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">All Types</SelectItem>
-                <SelectItem value="Tuition">Tuition Fee</SelectItem>
-                <SelectItem value="Library">Library Fee</SelectItem>
-                <SelectItem value="Lab">Laboratory Fee</SelectItem>
-                <SelectItem value="Sports">Sports Fee</SelectItem>
-                <SelectItem value="Transport">Transport Fee</SelectItem>
-                <SelectItem value="Exam">Exam Fee</SelectItem>
-                <SelectItem value="Other">Other</SelectItem>
+                {feeTypes.map((feeType) => (
+                  <SelectItem key={feeType} value={feeType}>
+                    {feeType}
+                  </SelectItem>
+                ))}
               </SelectContent>
             </Select>
           </div>

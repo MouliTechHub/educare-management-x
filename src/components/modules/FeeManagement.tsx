@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -14,7 +13,11 @@ import { FeeStats } from "./fee-management/FeeStats";
 import { DiscountDialog } from "./fee-management/DiscountDialog";
 import { DiscountReportsDialog } from "./fee-management/DiscountReportsDialog";
 import { AcademicYearSelector } from "./fee-management/AcademicYearSelector";
+import { YearWiseSummaryCards } from "./fee-management/YearWiseSummaryCards";
+import { ExportButtons } from "./fee-management/ExportButtons";
 import { useFeeData } from "./fee-management/useFeeData";
+import { useYearWiseSummary } from "./fee-management/useYearWiseSummary";
+import { useExportData } from "./fee-management/useExportData";
 
 interface Class {
   id: string;
@@ -91,6 +94,10 @@ export function FeeManagement() {
   const [selectedStudentFees, setSelectedStudentFees] = useState<Fee[]>([]);
   const [selectedStudentName, setSelectedStudentName] = useState("");
 
+  // Get year-wise summary
+  const yearWiseSummary = useYearWiseSummary(fees, academicYears, selectedAcademicYear);
+  const { exportToExcel, exportToPDF } = useExportData();
+
   React.useEffect(() => {
     fetchClasses();
   }, []);
@@ -161,16 +168,15 @@ export function FeeManagement() {
 
   const filteredFees = applyFilters(fees);
 
-  // Calculate stats with new fee structure
-  const feeStats = {
-    total: fees.reduce((sum, fee) => sum + fee.actual_amount, 0),
-    collected: fees.reduce((sum, fee) => sum + fee.total_paid, 0),
-    pending: fees.reduce((sum, fee) => {
-      const finalFee = fee.actual_amount - fee.discount_amount;
-      const balance = finalFee - fee.total_paid;
-      return sum + Math.max(0, balance);
-    }, 0),
-    overdue: fees.filter(f => f.status === "Pending" && new Date(f.due_date) < new Date()).length
+  const handleExport = (format: 'excel' | 'pdf') => {
+    const currentYear = academicYears.find(year => year.id === selectedAcademicYear);
+    const yearName = currentYear?.year_name || 'Unknown';
+    
+    if (format === 'excel') {
+      exportToExcel(filteredFees, yearName);
+    } else {
+      exportToPDF(filteredFees, yearName);
+    }
   };
 
   if (loading) {
@@ -186,9 +192,14 @@ export function FeeManagement() {
       <div className="flex justify-between items-center">
         <div>
           <h1 className="text-3xl font-bold text-gray-900">Fee Management</h1>
-          <p className="text-gray-600 mt-2">Academic year-based fee tracking with balance management</p>
+          <p className="text-gray-600 mt-2">Academic year-based fee tracking with comprehensive analytics</p>
         </div>
         <div className="flex space-x-2">
+          <ExportButtons 
+            data={filteredFees} 
+            academicYear={yearWiseSummary.academicYear}
+            onExport={handleExport}
+          />
           <Button variant="outline" onClick={() => setReportsDialogOpen(true)}>
             <FileText className="w-4 h-4 mr-2" />
             Discount Reports
@@ -205,7 +216,7 @@ export function FeeManagement() {
         />
       </div>
 
-      <FeeStats stats={feeStats} />
+      <YearWiseSummaryCards summary={yearWiseSummary} />
 
       <Card>
         <CardHeader>
@@ -213,7 +224,7 @@ export function FeeManagement() {
             <div>
               <CardTitle>Fee Records</CardTitle>
               <CardDescription>
-                Academic year-based fee management with balance tracking
+                Academic year-based fee management with change tracking
                 {currentAcademicYear && selectedAcademicYear === currentAcademicYear.id && 
                   ` - ${currentAcademicYear.year_name} (Current Year)`
                 }

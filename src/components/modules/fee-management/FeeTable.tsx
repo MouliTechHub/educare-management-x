@@ -2,7 +2,9 @@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { CheckCircle, DollarSign, AlertTriangle, Receipt, Percent, Eye, Users } from "lucide-react";
+import { CheckCircle, DollarSign, AlertTriangle, Receipt, Percent, Eye, Users, History } from "lucide-react";
+import { useState } from "react";
+import { ChangeHistoryDialog } from "./ChangeHistoryDialog";
 
 interface Fee {
   id: string;
@@ -43,6 +45,9 @@ interface FeeTableProps {
 }
 
 export function FeeTable({ fees, onPaymentClick, onDiscountClick, onHistoryClick }: FeeTableProps) {
+  const [changeHistoryOpen, setChangeHistoryOpen] = useState(false);
+  const [selectedFeeForHistory, setSelectedFeeForHistory] = useState<Fee | null>(null);
+
   const getStatusIcon = (status: string) => {
     switch (status) {
       case "Paid":
@@ -68,12 +73,52 @@ export function FeeTable({ fees, onPaymentClick, onDiscountClick, onHistoryClick
     return status;
   };
 
-  // Calculate final fee and balance fee for each record
   const calculateFees = (fee: Fee) => {
     const actualFee = fee.actual_amount;
     const finalFee = actualFee - fee.discount_amount;
     const balanceFee = finalFee - fee.total_paid;
     return { actualFee, finalFee, balanceFee };
+  };
+
+  const openChangeHistory = (fee: Fee) => {
+    setSelectedFeeForHistory(fee);
+    setChangeHistoryOpen(true);
+  };
+
+  // Mock change history data - in real implementation, this would be fetched from backend
+  const getMockChangeHistory = (fee: Fee) => {
+    const history = [];
+    
+    // Add payment history if any payments made
+    if (fee.total_paid > 0) {
+      history.push({
+        id: '1',
+        change_type: 'payment' as const,
+        amount: fee.total_paid,
+        previous_value: 0,
+        new_value: fee.total_paid,
+        changed_by: 'Admin User',
+        change_date: fee.payment_date || new Date().toISOString(),
+        receipt_number: fee.receipt_number,
+        notes: `Payment received for ${fee.fee_type}`
+      });
+    }
+
+    // Add discount history if any discount applied
+    if (fee.discount_amount > 0) {
+      history.push({
+        id: '2',
+        change_type: 'discount' as const,
+        amount: fee.discount_amount,
+        previous_value: fee.actual_amount,
+        new_value: fee.actual_amount - fee.discount_amount,
+        changed_by: fee.discount_updated_by || 'Admin User',
+        change_date: fee.discount_updated_at || new Date().toISOString(),
+        notes: fee.discount_notes || `Discount applied to ${fee.fee_type}`
+      });
+    }
+
+    return history.sort((a, b) => new Date(b.change_date).getTime() - new Date(a.change_date).getTime());
   };
 
   if (fees.length === 0) {
@@ -86,108 +131,131 @@ export function FeeTable({ fees, onPaymentClick, onDiscountClick, onHistoryClick
   }
 
   return (
-    <Table>
-      <TableHeader>
-        <TableRow>
-          <TableHead>Student</TableHead>
-          <TableHead>Class</TableHead>
-          <TableHead>Fee Type</TableHead>
-          <TableHead>Actual Fee</TableHead>
-          <TableHead>Discount</TableHead>
-          <TableHead>Final Fee</TableHead>
-          <TableHead>Paid Amount</TableHead>
-          <TableHead>Balance Fee</TableHead>
-          <TableHead>Due Date</TableHead>
-          <TableHead>Status</TableHead>
-          <TableHead>Actions</TableHead>
-        </TableRow>
-      </TableHeader>
-      <TableBody>
-        {fees.map((fee) => {
-          const { actualFee, finalFee, balanceFee } = calculateFees(fee);
-          return (
-            <TableRow key={fee.id}>
-              <TableCell>
-                <div>
-                  <div className="font-medium">
-                    {fee.student ? `${fee.student.first_name} ${fee.student.last_name}` : "Unknown"}
+    <>
+      <Table>
+        <TableHeader>
+          <TableRow>
+            <TableHead>Student</TableHead>
+            <TableHead>Class</TableHead>
+            <TableHead>Fee Type</TableHead>
+            <TableHead>Actual Fee</TableHead>
+            <TableHead>Discount</TableHead>
+            <TableHead>Final Fee</TableHead>
+            <TableHead>Paid Amount</TableHead>
+            <TableHead>Balance Fee</TableHead>
+            <TableHead>Due Date</TableHead>
+            <TableHead>Status</TableHead>
+            <TableHead>Actions</TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          {fees.map((fee) => {
+            const { actualFee, finalFee, balanceFee } = calculateFees(fee);
+            return (
+              <TableRow key={fee.id}>
+                <TableCell>
+                  <div>
+                    <div className="font-medium">
+                      {fee.student ? `${fee.student.first_name} ${fee.student.last_name}` : "Unknown"}
+                    </div>
+                    <div className="text-sm text-gray-500">
+                      {fee.student?.admission_number}
+                    </div>
                   </div>
-                  <div className="text-sm text-gray-500">
-                    {fee.student?.admission_number}
+                </TableCell>
+                <TableCell>
+                  <div className="text-sm">
+                    <div>{fee.student?.class_name || "N/A"}</div>
+                    {fee.student?.section && (
+                      <div className="text-gray-500">Section {fee.student.section}</div>
+                    )}
                   </div>
-                </div>
-              </TableCell>
-              <TableCell>
-                <div className="text-sm">
-                  <div>{fee.student?.class_name || "N/A"}</div>
-                  {fee.student?.section && (
-                    <div className="text-gray-500">Section {fee.student.section}</div>
+                </TableCell>
+                <TableCell>{fee.fee_type}</TableCell>
+                <TableCell className="font-medium">₹{actualFee.toLocaleString()}</TableCell>
+                <TableCell>
+                  {fee.discount_amount > 0 ? (
+                    <span className="text-green-600 font-medium">₹{fee.discount_amount.toLocaleString()}</span>
+                  ) : (
+                    <span className="text-gray-400">₹0</span>
                   )}
-                </div>
-              </TableCell>
-              <TableCell>{fee.fee_type}</TableCell>
-              <TableCell className="font-medium">₹{actualFee.toLocaleString()}</TableCell>
-              <TableCell>
-                {fee.discount_amount > 0 ? (
-                  <span className="text-green-600 font-medium">₹{fee.discount_amount.toLocaleString()}</span>
-                ) : (
-                  <span className="text-gray-400">₹0</span>
-                )}
-              </TableCell>
-              <TableCell className="font-medium">₹{finalFee.toLocaleString()}</TableCell>
-              <TableCell className="font-medium text-blue-600">₹{fee.total_paid.toLocaleString()}</TableCell>
-              <TableCell className={`font-medium ${balanceFee > 0 ? 'text-red-600' : 'text-green-600'}`}>
-                ₹{balanceFee.toLocaleString()}
-              </TableCell>
-              <TableCell>{new Date(fee.due_date).toLocaleDateString()}</TableCell>
-              <TableCell>
-                <Badge variant={getStatusVariant(fee.status, fee.due_date)}>
-                  <div className="flex items-center space-x-1">
-                    {getStatusIcon(getDisplayStatus(fee.status, fee.due_date))}
-                    <span>{getDisplayStatus(fee.status, fee.due_date)}</span>
+                </TableCell>
+                <TableCell className="font-medium">₹{finalFee.toLocaleString()}</TableCell>
+                <TableCell className="font-medium text-blue-600">₹{fee.total_paid.toLocaleString()}</TableCell>
+                <TableCell className={`font-medium ${balanceFee > 0 ? 'text-red-600' : 'text-green-600'}`}>
+                  ₹{balanceFee.toLocaleString()}
+                </TableCell>
+                <TableCell>{new Date(fee.due_date).toLocaleDateString()}</TableCell>
+                <TableCell>
+                  <Badge variant={getStatusVariant(fee.status, fee.due_date)}>
+                    <div className="flex items-center space-x-1">
+                      {getStatusIcon(getDisplayStatus(fee.status, fee.due_date))}
+                      <span>{getDisplayStatus(fee.status, fee.due_date)}</span>
+                    </div>
+                  </Badge>
+                </TableCell>
+                <TableCell>
+                  <div className="flex items-center space-x-2">
+                    {balanceFee > 0 && (
+                      <>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => onPaymentClick(fee)}
+                        >
+                          <Receipt className="w-4 h-4 mr-1" />
+                          Pay
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => onDiscountClick(fee)}
+                        >
+                          <Percent className="w-4 h-4 mr-1" />
+                          Discount
+                        </Button>
+                      </>
+                    )}
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => openChangeHistory(fee)}
+                      title="View Change History"
+                    >
+                      <History className="w-4 h-4" />
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => onHistoryClick(fee.student)}
+                    >
+                      <Eye className="w-4 h-4" />
+                    </Button>
+                    {fee.status === "Paid" && fee.receipt_number && (
+                      <span className="text-sm text-gray-500">
+                        Receipt: {fee.receipt_number}
+                      </span>
+                    )}
                   </div>
-                </Badge>
-              </TableCell>
-              <TableCell>
-                <div className="flex items-center space-x-2">
-                  {balanceFee > 0 && (
-                    <>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => onPaymentClick(fee)}
-                      >
-                        <Receipt className="w-4 h-4 mr-1" />
-                        Pay
-                      </Button>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => onDiscountClick(fee)}
-                      >
-                        <Percent className="w-4 h-4 mr-1" />
-                        Discount
-                      </Button>
-                    </>
-                  )}
-                  {fee.status === "Paid" && fee.receipt_number && (
-                    <span className="text-sm text-gray-500">
-                      Receipt: {fee.receipt_number}
-                    </span>
-                  )}
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => onHistoryClick(fee.student)}
-                  >
-                    <Eye className="w-4 h-4" />
-                  </Button>
-                </div>
-              </TableCell>
-            </TableRow>
-          );
-        })}
-      </TableBody>
-    </Table>
+                </TableCell>
+              </TableRow>
+            );
+          })}
+        </TableBody>
+      </Table>
+
+      {selectedFeeForHistory && (
+        <ChangeHistoryDialog
+          open={changeHistoryOpen}
+          onOpenChange={setChangeHistoryOpen}
+          studentName={selectedFeeForHistory.student ? 
+            `${selectedFeeForHistory.student.first_name} ${selectedFeeForHistory.student.last_name}` : 
+            'Unknown Student'
+          }
+          feeType={selectedFeeForHistory.fee_type}
+          history={getMockChangeHistory(selectedFeeForHistory)}
+        />
+      )}
+    </>
   );
 }
