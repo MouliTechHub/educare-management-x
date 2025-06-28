@@ -93,29 +93,26 @@ export function PaymentDialog({ open, onOpenChange, fee, onPaymentRecorded }: Pa
         return;
       }
 
-      const newPendingAmount = currentPending - amountPaid;
+      const newPendingAmount = Math.max(0, currentPending - amountPaid);
       
       // Determine if fee is fully paid or partially paid
-      const newStatus = newPendingAmount <= 0 ? "Paid" : "Pending";
-      // Ensure amount is never negative (should be 0 or positive)
-      const finalAmount = Math.max(0, newPendingAmount);
+      const newStatus = newPendingAmount === 0 ? "Paid" : "Pending";
 
       console.log('Payment processing:', {
         currentPending,
         amountPaid,
         newPendingAmount,
-        finalAmount,
         newStatus
       });
 
-      // Update the fee record with proper validation
+      // Update the fee record
       const { error: feeError } = await supabase
         .from("fees")
         .update({
           status: newStatus,
           payment_date: newStatus === "Paid" ? data.payment_date : null,
-          receipt_number: data.receipt_number,
-          amount: finalAmount
+          receipt_number: newStatus === "Paid" ? data.receipt_number : null,
+          amount: newPendingAmount
         })
         .eq("id", fee.id);
 
@@ -150,7 +147,7 @@ export function PaymentDialog({ open, onOpenChange, fee, onPaymentRecorded }: Pa
       } else {
         toast({ 
           title: "Payment recorded successfully",
-          description: newStatus === "Paid" ? "Fee fully paid" : `Remaining amount: ₹${finalAmount.toLocaleString()}`
+          description: newStatus === "Paid" ? "Fee fully paid" : `Remaining amount: ₹${newPendingAmount.toLocaleString()}`
         });
       }
       
@@ -209,11 +206,7 @@ export function PaymentDialog({ open, onOpenChange, fee, onPaymentRecorded }: Pa
                       min="1"
                       max={fee?.amount || 0}
                       step="0.01"
-                      value={field.value || ''}
-                      onChange={(e) => {
-                        const value = e.target.value;
-                        field.onChange(value === '' ? '' : Number(value));
-                      }}
+                      onChange={(e) => field.onChange(Number(e.target.value))}
                       required 
                     />
                   </FormControl>
