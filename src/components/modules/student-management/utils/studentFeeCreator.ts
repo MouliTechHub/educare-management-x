@@ -1,142 +1,65 @@
 
 import { supabase } from "@/integrations/supabase/client";
-import { useToast } from "@/hooks/use-toast";
 
-export const useStudentFeeCreator = () => {
-  const { toast } = useToast();
+export const createDefaultFeeRecords = async (studentId: string) => {
+  try {
+    console.log('Creating default fee records for student:', studentId);
+    
+    // Get the current academic year
+    const { data: currentYear, error: yearError } = await supabase
+      .from('academic_years')
+      .select('id')
+      .eq('is_current', true)
+      .single();
 
-  const createDefaultFeeRecords = async (studentId: string, classId?: string | null) => {
-    try {
-      console.log('Creating default fee records for student:', studentId);
-      
-      // Get current academic year
-      const { data: academicYear, error: yearError } = await supabase
-        .from("academic_years")
-        .select("id")
-        .eq("is_current", true)
-        .single();
-
-      if (yearError || !academicYear) {
-        console.error('No current academic year found:', yearError);
-        toast({
-          title: "Academic Year Error",
-          description: "No current academic year found. Please contact administrator.",
-          variant: "destructive",
-        });
-        return;
-      }
-      
-      // Indian school fee structure - more comprehensive
-      const defaultFees = [
-        {
-          student_id: studentId,
-          fee_type: "Tuition Fee",
-          amount: 8000,
-          actual_amount: 8000,
-          discount_amount: 0,
-          total_paid: 0,
-          due_date: new Date(new Date().getFullYear(), new Date().getMonth() + 1, 10).toISOString().split('T')[0],
-          status: "Pending",
-          academic_year_id: academicYear.id
-        },
-        {
-          student_id: studentId,
-          fee_type: "Development Fee",
-          amount: 2000,
-          actual_amount: 2000,
-          discount_amount: 0,
-          total_paid: 0,
-          due_date: new Date(new Date().getFullYear(), new Date().getMonth() + 1, 10).toISOString().split('T')[0],
-          status: "Pending",
-          academic_year_id: academicYear.id
-        },
-        {
-          student_id: studentId,
-          fee_type: "Library Fee",
-          amount: 500,
-          actual_amount: 500,
-          discount_amount: 0,
-          total_paid: 0,
-          due_date: new Date(new Date().getFullYear(), new Date().getMonth() + 1, 10).toISOString().split('T')[0],
-          status: "Pending",
-          academic_year_id: academicYear.id
-        },
-        {
-          student_id: studentId,
-          fee_type: "Laboratory Fee",
-          amount: 1000,
-          actual_amount: 1000,
-          discount_amount: 0,
-          total_paid: 0,
-          due_date: new Date(new Date().getFullYear(), new Date().getMonth() + 1, 10).toISOString().split('T')[0],
-          status: "Pending",
-          academic_year_id: academicYear.id
-        },
-        {
-          student_id: studentId,
-          fee_type: "Sports Fee",
-          amount: 800,
-          actual_amount: 800,
-          discount_amount: 0,
-          total_paid: 0,
-          due_date: new Date(new Date().getFullYear(), new Date().getMonth() + 1, 10).toISOString().split('T')[0],
-          status: "Pending",
-          academic_year_id: academicYear.id
-        },
-        {
-          student_id: studentId,
-          fee_type: "Computer Fee",
-          amount: 1200,
-          actual_amount: 1200,
-          discount_amount: 0,
-          total_paid: 0,
-          due_date: new Date(new Date().getFullYear(), new Date().getMonth() + 1, 10).toISOString().split('T')[0],
-          status: "Pending",
-          academic_year_id: academicYear.id
-        },
-        {
-          student_id: studentId,
-          fee_type: "Examination Fee",
-          amount: 600,
-          actual_amount: 600,
-          discount_amount: 0,
-          total_paid: 0,
-          due_date: new Date(new Date().getFullYear(), 2, 15).toISOString().split('T')[0], // March 15th for annual exams
-          status: "Pending",
-          academic_year_id: academicYear.id
-        },
-        {
-          student_id: studentId,
-          fee_type: "Activity Fee",
-          amount: 400,
-          actual_amount: 400,
-          discount_amount: 0,
-          total_paid: 0,
-          due_date: new Date(new Date().getFullYear(), new Date().getMonth() + 1, 10).toISOString().split('T')[0],
-          status: "Pending",
-          academic_year_id: academicYear.id
-        }
-      ];
-
-      const { error } = await supabase
-        .from("fees")
-        .insert(defaultFees);
-
-      if (error) {
-        console.error('Error creating default fee records:', error);
-        throw error;
-      }
-
-      console.log('Indian school fee records created successfully');
-    } catch (error: any) {
-      console.error("Error creating default fee records:", error);
-      toast({
-        title: "Fee Records Creation Error",
-        description: "Default fee records could not be created for the student.",
-        variant: "destructive",
-      });
+    if (yearError) {
+      console.error('Error fetching current academic year:', yearError);
+      return;
     }
-  };
 
-  return { createDefaultFeeRecords };
+    if (!currentYear) {
+      console.log('No current academic year found, skipping fee creation');
+      return;
+    }
+
+    // Create default fee records with valid fee types based on the database constraint
+    const defaultFees = [
+      {
+        student_id: studentId,
+        fee_type: 'Tuition', // Using simple fee type names that match the constraint
+        amount: 5000,
+        actual_amount: 5000,
+        discount_amount: 0,
+        total_paid: 0,
+        due_date: new Date(new Date().getFullYear(), 3, 30).toISOString().split('T')[0], // April 30
+        status: 'Pending',
+        academic_year_id: currentYear.id
+      },
+      {
+        student_id: studentId,
+        fee_type: 'Development', // Using simple fee type names that match the constraint
+        amount: 1000,
+        actual_amount: 1000,
+        discount_amount: 0,
+        total_paid: 0,
+        due_date: new Date(new Date().getFullYear(), 3, 30).toISOString().split('T')[0], // April 30
+        status: 'Pending',
+        academic_year_id: currentYear.id
+      }
+    ];
+
+    const { error: feeError } = await supabase
+      .from('fees')
+      .insert(defaultFees);
+
+    if (feeError) {
+      console.error('Error creating default fee records:', feeError);
+      throw feeError;
+    }
+
+    console.log('Default fee records created successfully');
+  } catch (error) {
+    console.error('Error creating default fee records:', error);
+    throw error;
+  }
 };

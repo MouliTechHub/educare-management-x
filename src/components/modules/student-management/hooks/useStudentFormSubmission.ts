@@ -3,9 +3,50 @@ import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { Student } from "@/types/database";
-import { StudentFormData, ParentFormData } from "../types";
-import { validatePhoneNumber, checkAdmissionNumberExists } from "../utils/formValidation";
-import { useStudentFeeCreator } from "../utils/studentFeeCreator";
+
+interface FormData {
+  first_name: string;
+  last_name: string;
+  admission_number: string;
+  date_of_birth: string;
+  gender: string;
+  class_id: string;
+  address_line1: string;
+  address_line2: string;
+  city: string;
+  state: string;
+  pin_code: string;
+  blood_group: string;
+  religion: string;
+  caste_category: string;
+  previous_school: string;
+  transport_route: string;
+  transport_stop: string;
+  medical_information: string;
+  emergency_contact_name: string;
+  emergency_contact_phone: string;
+  emergency_contact_relation: string;
+  aadhaar_number: string;
+}
+
+interface Parent {
+  id?: string;
+  first_name: string;
+  last_name: string;
+  relation: string;
+  phone_number: string;
+  email: string;
+  annual_income: number | null;
+  address_line1: string;
+  address_line2: string;
+  city: string;
+  state: string;
+  pin_code: string;
+  occupation: string;
+  employer_name: string;
+  employer_address: string;
+  alternate_phone: string;
+}
 
 interface UseStudentFormSubmissionProps {
   selectedStudent: Student | null;
@@ -13,225 +54,216 @@ interface UseStudentFormSubmissionProps {
   onOpenChange: (open: boolean) => void;
 }
 
-export function useStudentFormSubmission({ 
-  selectedStudent, 
-  onStudentSaved, 
-  onOpenChange 
+export function useStudentFormSubmission({
+  selectedStudent,
+  onStudentSaved,
+  onOpenChange
 }: UseStudentFormSubmissionProps) {
-  const { toast } = useToast();
-  const { createDefaultFeeRecords } = useStudentFeeCreator();
   const [loading, setLoading] = useState(false);
+  const { toast } = useToast();
 
-  const handleSubmit = async (formData: StudentFormData, parents: ParentFormData[]) => {
-    setLoading(true);
-
+  const createDefaultFeeRecords = async (studentId: string) => {
     try {
-      if (!formData.first_name.trim() || !formData.last_name.trim() || !formData.admission_number.trim()) {
-        toast({
-          title: "Validation Error",
-          description: "First name, last name, and admission number are required.",
-          variant: "destructive",
-        });
-        setLoading(false);
-        return;
-      }
-
-      const admissionExists = await checkAdmissionNumberExists(
-        formData.admission_number.trim(),
-        selectedStudent?.id
-      );
+      console.log('Creating default fee records for student:', studentId);
       
-      if (admissionExists) {
-        toast({
-          title: "Duplicate Admission Number",
-          description: `A student with admission number "${formData.admission_number}" already exists. Please use a different admission number.`,
-          variant: "destructive",
-        });
-        setLoading(false);
+      // Get the current academic year
+      const { data: currentYear, error: yearError } = await supabase
+        .from('academic_years')
+        .select('id')
+        .eq('is_current', true)
+        .single();
+
+      if (yearError) {
+        console.error('Error fetching current academic year:', yearError);
         return;
       }
 
-      // Validate parent phone numbers
-      for (const parent of parents) {
-        if (parent.phone_number) {
-          try {
-            parent.phone_number = validatePhoneNumber(parent.phone_number);
-          } catch (error: any) {
-            toast({
-              title: "Invalid Phone Number",
-              description: `Parent ${parent.first_name} ${parent.last_name}: ${error.message}`,
-              variant: "destructive",
-            });
-            setLoading(false);
-            return;
-          }
-        }
-
-        if (parent.alternate_phone) {
-          try {
-            parent.alternate_phone = validatePhoneNumber(parent.alternate_phone);
-          } catch (error: any) {
-            toast({
-              title: "Invalid Alternate Phone Number",
-              description: `Parent ${parent.first_name} ${parent.last_name}: ${error.message}`,
-              variant: "destructive",
-            });
-            setLoading(false);
-            return;
-          }
-        }
+      if (!currentYear) {
+        console.log('No current academic year found, skipping fee creation');
+        return;
       }
 
-      const studentData = {
-        ...formData,
-        admission_number: formData.admission_number.trim(),
-        first_name: formData.first_name.trim(),
-        last_name: formData.last_name.trim(),
-        class_id: formData.class_id || null,
-        blood_group: formData.blood_group || null,
-        religion: formData.religion || null,
-        caste_category: formData.caste_category || null,
-        previous_school: formData.previous_school || null,
-        transport_route: formData.transport_route || null,
-        transport_stop: formData.transport_stop || null,
-        medical_information: formData.medical_information || null,
-        emergency_contact_name: formData.emergency_contact_name || null,
-        emergency_contact_phone: formData.emergency_contact_phone || null,
-        emergency_contact_relation: formData.emergency_contact_relation || null,
-        address_line1: formData.address_line1 || null,
-        address_line2: formData.address_line2 || null,
-        city: formData.city || null,
-        state: formData.state || null,
-        pin_code: formData.pin_code || null,
-        aadhaar_number: formData.aadhaar_number || null,
-      };
-
-      let studentId: string;
-
-      if (selectedStudent) {
-        const { error } = await supabase
-          .from("students")
-          .update(studentData)
-          .eq("id", selectedStudent.id);
-
-        if (error) {
-          if (error.code === '23505' && error.message.includes('admission_number')) {
-            toast({
-              title: "Duplicate Admission Number",
-              description: "This admission number is already in use. Please choose a different one.",
-              variant: "destructive",
-            });
-            setLoading(false);
-            return;
-          }
-          throw error;
+      // Create default fee records with valid fee types
+      const defaultFees = [
+        {
+          student_id: studentId,
+          fee_type: 'Tuition Fee',
+          amount: 5000,
+          actual_amount: 5000,
+          discount_amount: 0,
+          total_paid: 0,
+          due_date: new Date(new Date().getFullYear(), 3, 30).toISOString().split('T')[0], // April 30
+          status: 'Pending',
+          academic_year_id: currentYear.id
+        },
+        {
+          student_id: studentId,
+          fee_type: 'Development Fee',
+          amount: 1000,
+          actual_amount: 1000,
+          discount_amount: 0,
+          total_paid: 0,
+          due_date: new Date(new Date().getFullYear(), 3, 30).toISOString().split('T')[0], // April 30
+          status: 'Pending',
+          academic_year_id: currentYear.id
         }
-        studentId = selectedStudent.id;
+      ];
 
-        toast({
-          title: "Student Updated",
-          description: `${formData.first_name} ${formData.last_name} has been updated successfully.`,
-        });
-      } else {
+      const { error: feeError } = await supabase
+        .from('fees')
+        .insert(defaultFees);
+
+      if (feeError) {
+        console.error('Error creating default fee records:', feeError);
+        throw feeError;
+      }
+
+      console.log('Default fee records created successfully');
+    } catch (error) {
+      console.error('Error creating default fee records:', error);
+      throw error;
+    }
+  };
+
+  const handleSubmit = async (formData: FormData, parents: Parent[]) => {
+    setLoading(true);
+    try {
+      console.log('Starting form submission...');
+
+      let studentData;
+      if (selectedStudent) {
+        // Update existing student
         const { data, error } = await supabase
           .from("students")
-          .insert([studentData])
+          .update({
+            first_name: formData.first_name,
+            last_name: formData.last_name,
+            admission_number: formData.admission_number,
+            date_of_birth: formData.date_of_birth,
+            gender: formData.gender,
+            class_id: formData.class_id || null,
+            address_line1: formData.address_line1 || null,
+            address_line2: formData.address_line2 || null,
+            city: formData.city || null,
+            state: formData.state || null,
+            pin_code: formData.pin_code || null,
+            blood_group: formData.blood_group || null,
+            religion: formData.religion || null,
+            caste_category: formData.caste_category || null,
+            previous_school: formData.previous_school || null,
+            transport_route: formData.transport_route || null,
+            transport_stop: formData.transport_stop || null,
+            medical_information: formData.medical_information || null,
+            emergency_contact_name: formData.emergency_contact_name || null,
+            emergency_contact_phone: formData.emergency_contact_phone || null,
+            emergency_contact_relation: formData.emergency_contact_relation || null,
+            aadhaar_number: formData.aadhaar_number || null,
+          })
+          .eq("id", selectedStudent.id)
           .select()
           .single();
 
-        if (error) {
-          if (error.code === '23505' && error.message.includes('admission_number')) {
-            toast({
-              title: "Duplicate Admission Number",
-              description: "This admission number is already in use. Please choose a different one.",
-              variant: "destructive",
-            });
-            setLoading(false);
-            return;
-          }
-          throw error;
+        if (error) throw error;
+        studentData = data;
+      } else {
+        // Create new student
+        const { data, error } = await supabase
+          .from("students")
+          .insert({
+            first_name: formData.first_name,
+            last_name: formData.last_name,
+            admission_number: formData.admission_number,
+            date_of_birth: formData.date_of_birth,
+            gender: formData.gender,
+            class_id: formData.class_id || null,
+            address_line1: formData.address_line1 || null,
+            address_line2: formData.address_line2 || null,
+            city: formData.city || null,
+            state: formData.state || null,
+            pin_code: formData.pin_code || null,
+            blood_group: formData.blood_group || null,
+            religion: formData.religion || null,
+            caste_category: formData.caste_category || null,
+            previous_school: formData.previous_school || null,
+            transport_route: formData.transport_route || null,
+            transport_stop: formData.transport_stop || null,
+            medical_information: formData.medical_information || null,
+            emergency_contact_name: formData.emergency_contact_name || null,
+            emergency_contact_phone: formData.emergency_contact_phone || null,
+            emergency_contact_relation: formData.emergency_contact_relation || null,
+            aadhaar_number: formData.aadhaar_number || null,
+          })
+          .select()
+          .single();
+
+        if (error) throw error;
+        studentData = data;
+
+        // Create default fee records for new students
+        if (studentData?.id) {
+          await createDefaultFeeRecords(studentData.id);
         }
-        studentId = data.id;
-
-        await createDefaultFeeRecords(studentId, formData.class_id);
-
-        // Handle parent creation for new students
-        for (const parent of parents) {
-          if (parent.first_name && parent.last_name && parent.phone_number && parent.email) {
-            const parentData = {
-              first_name: parent.first_name.trim(),
-              last_name: parent.last_name.trim(),
-              relation: parent.relation,
-              phone_number: parent.phone_number,
-              email: parent.email.trim(),
-              annual_income: parent.annual_income ? parseFloat(parent.annual_income) : null,
-              address_line1: parent.address_line1 || null,
-              address_line2: parent.address_line2 || null,
-              city: parent.city || null,
-              state: parent.state || null,
-              pin_code: parent.pin_code || null,
-              occupation: parent.occupation || null,
-              employer_name: parent.employer_name || null,
-              employer_address: parent.employer_address || null,
-              alternate_phone: parent.alternate_phone || null,
-              aadhaar_number: parent.aadhaar_number || null,
-              pan_number: parent.pan_number || null,
-              education_qualification: parent.education_qualification || null,
-            };
-
-            console.log('Inserting parent data:', parentData);
-
-            const { data: parentRecord, error: parentError } = await supabase
-              .from("parents")
-              .insert([parentData])
-              .select()
-              .single();
-
-            if (parentError) {
-              console.error('Parent insertion error:', parentError);
-              throw parentError;
-            }
-
-            const { error: linkError } = await supabase
-              .from("student_parent_links")
-              .insert([{
-                student_id: studentId,
-                parent_id: parentRecord.id
-              }]);
-
-            if (linkError) {
-              console.error('Parent link error:', linkError);
-              throw linkError;
-            }
-          }
-        }
-
-        toast({
-          title: "Student Added",
-          description: `${formData.first_name} ${formData.last_name}, parent(s), and default fee records have been added successfully.`,
-        });
       }
+
+      // Handle parents for new students only
+      if (!selectedStudent && parents.length > 0) {
+        for (const parent of parents) {
+          console.log('Inserting parent data:', parent);
+
+          // Remove aadhaar_number and other non-existent fields from parent data
+          const parentData = {
+            first_name: parent.first_name,
+            last_name: parent.last_name,
+            relation: parent.relation,
+            phone_number: parent.phone_number,
+            email: parent.email,
+            annual_income: parent.annual_income,
+            address_line1: parent.address_line1 || null,
+            address_line2: parent.address_line2 || null,
+            city: parent.city || null,
+            state: parent.state || null,
+            pin_code: parent.pin_code || null,
+            occupation: parent.occupation || null,
+            employer_name: parent.employer_name || null,
+            employer_address: parent.employer_address || null,
+            alternate_phone: parent.alternate_phone || null,
+          };
+
+          const { data: parentRecord, error: parentError } = await supabase
+            .from("parents")
+            .insert(parentData)
+            .select()
+            .single();
+
+          if (parentError) {
+            console.error('Parent insertion error:', parentError);
+            throw parentError;
+          }
+
+          // Link student to parent
+          const { error: linkError } = await supabase
+            .from("student_parent_links")
+            .insert({
+              student_id: studentData.id,
+              parent_id: parentRecord.id,
+            });
+
+          if (linkError) throw linkError;
+        }
+      }
+
+      toast({
+        title: "Success",
+        description: `Student ${selectedStudent ? "updated" : "created"} successfully!`,
+      });
 
       onStudentSaved();
       onOpenChange(false);
     } catch (error: any) {
       console.error("Error saving student:", error);
-      
-      let errorMessage = "An error occurred while saving the student";
-      
-      if (error.code === '23505') {
-        if (error.message.includes('admission_number')) {
-          errorMessage = "This admission number is already in use. Please choose a different one.";
-        } else {
-          errorMessage = "A duplicate entry was found. Please check your data.";
-        }
-      } else if (error.code === '23514') {
-        errorMessage = "Invalid data format. Please check phone numbers and other fields.";
-      }
-      
       toast({
         title: "Error",
-        description: errorMessage,
+        description: error.message || `Failed to ${selectedStudent ? "update" : "create"} student`,
         variant: "destructive",
       });
     } finally {
@@ -239,8 +271,5 @@ export function useStudentFormSubmission({
     }
   };
 
-  return {
-    handleSubmit,
-    loading
-  };
+  return { handleSubmit, loading };
 }
