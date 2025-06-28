@@ -10,6 +10,7 @@ interface Fee {
   amount: number;
   actual_amount: number;
   discount_amount: number;
+  total_paid: number;
   fee_type: string;
   due_date: string;
   payment_date: string | null;
@@ -20,6 +21,7 @@ interface Fee {
   discount_notes: string | null;
   discount_updated_by: string | null;
   discount_updated_at: string | null;
+  academic_year_id: string;
   student?: StudentBasic & {
     class_name?: string;
     section?: string;
@@ -29,14 +31,52 @@ interface Fee {
   };
 }
 
+interface AcademicYear {
+  id: string;
+  year_name: string;
+  start_date: string;
+  end_date: string;
+  is_current: boolean;
+}
+
 export function useFeeData() {
   const [fees, setFees] = useState<Fee[]>([]);
+  const [academicYears, setAcademicYears] = useState<AcademicYear[]>([]);
+  const [currentAcademicYear, setCurrentAcademicYear] = useState<AcademicYear | null>(null);
+  const [selectedAcademicYear, setSelectedAcademicYear] = useState<string>('');
   const [loading, setLoading] = useState(true);
   const { toast } = useToast();
 
-  const fetchFees = async () => {
+  // Fetch academic years
+  const fetchAcademicYears = async () => {
     try {
       const { data, error } = await supabase
+        .from("academic_years")
+        .select("*")
+        .order("start_date", { ascending: false });
+
+      if (error) throw error;
+
+      setAcademicYears(data || []);
+      const current = data?.find(year => year.is_current);
+      if (current) {
+        setCurrentAcademicYear(current);
+        if (!selectedAcademicYear) {
+          setSelectedAcademicYear(current.id);
+        }
+      }
+    } catch (error: any) {
+      toast({
+        title: "Error fetching academic years",
+        description: error.message,
+        variant: "destructive",
+      });
+    }
+  };
+
+  const fetchFees = async (academicYearId?: string) => {
+    try {
+      let query = supabase
         .from("fees")
         .select(`
           *,
@@ -53,6 +93,13 @@ export function useFeeData() {
           )
         `)
         .order("created_at", { ascending: false });
+
+      // Filter by academic year if specified
+      if (academicYearId) {
+        query = query.eq('academic_year_id', academicYearId);
+      }
+
+      const { data, error } = await query;
 
       if (error) throw error;
 
@@ -82,8 +129,22 @@ export function useFeeData() {
   };
 
   useEffect(() => {
-    fetchFees();
-    
+    fetchAcademicYears();
+  }, []);
+
+  useEffect(() => {
+    if (selectedAcademicYear) {
+      fetchFees(selectedAcademicYear);
+    }
+  }, [selectedAcademicYear]);
+
+  useEffect(() => {
+    if (!selectedAcademicYear && currentAcademicYear) {
+      setSelectedAcademicYear(currentAcademicYear.id);
+    }
+  }, [currentAcademicYear, selectedAcademicYear]);
+
+  useEffect(() => {
     // Set up real-time subscription for fee updates
     const channel = supabase
       .channel('schema-db-changes')
@@ -96,7 +157,9 @@ export function useFeeData() {
         },
         () => {
           console.log('Fee data changed, refreshing...');
-          fetchFees();
+          if (selectedAcademicYear) {
+            fetchFees(selectedAcademicYear);
+          }
         }
       )
       .subscribe();
@@ -104,11 +167,15 @@ export function useFeeData() {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, []);
+  }, [selectedAcademicYear]);
 
   return {
     fees,
+    academicYears,
+    currentAcademicYear,
+    selectedAcademicYear,
+    setSelectedAcademicYear,
     loading,
-    refetchFees: fetchFees
+    refetchFees: () => fetchFees(selectedAcademicYear)
   };
 }

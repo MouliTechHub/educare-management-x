@@ -10,6 +10,7 @@ interface Fee {
   amount: number;
   actual_amount: number;
   discount_amount: number;
+  total_paid: number;
   fee_type: string;
   due_date: string;
   payment_date: string | null;
@@ -20,6 +21,7 @@ interface Fee {
   discount_notes: string | null;
   discount_updated_by: string | null;
   discount_updated_at: string | null;
+  academic_year_id: string;
   student?: {
     id: string;
     first_name: string;
@@ -66,6 +68,14 @@ export function FeeTable({ fees, onPaymentClick, onDiscountClick, onHistoryClick
     return status;
   };
 
+  // Calculate final fee and balance fee for each record
+  const calculateFees = (fee: Fee) => {
+    const actualFee = fee.actual_amount;
+    const finalFee = actualFee - fee.discount_amount;
+    const balanceFee = finalFee - fee.total_paid;
+    return { actualFee, finalFee, balanceFee };
+  };
+
   if (fees.length === 0) {
     return (
       <div className="text-center py-8 text-gray-500">
@@ -82,92 +92,101 @@ export function FeeTable({ fees, onPaymentClick, onDiscountClick, onHistoryClick
           <TableHead>Student</TableHead>
           <TableHead>Class</TableHead>
           <TableHead>Fee Type</TableHead>
-          <TableHead>Amount</TableHead>
+          <TableHead>Actual Fee</TableHead>
           <TableHead>Discount</TableHead>
-          <TableHead>Final Amount</TableHead>
+          <TableHead>Final Fee</TableHead>
+          <TableHead>Paid Amount</TableHead>
+          <TableHead>Balance Fee</TableHead>
           <TableHead>Due Date</TableHead>
           <TableHead>Status</TableHead>
           <TableHead>Actions</TableHead>
         </TableRow>
       </TableHeader>
       <TableBody>
-        {fees.map((fee) => (
-          <TableRow key={fee.id}>
-            <TableCell>
-              <div>
-                <div className="font-medium">
-                  {fee.student ? `${fee.student.first_name} ${fee.student.last_name}` : "Unknown"}
+        {fees.map((fee) => {
+          const { actualFee, finalFee, balanceFee } = calculateFees(fee);
+          return (
+            <TableRow key={fee.id}>
+              <TableCell>
+                <div>
+                  <div className="font-medium">
+                    {fee.student ? `${fee.student.first_name} ${fee.student.last_name}` : "Unknown"}
+                  </div>
+                  <div className="text-sm text-gray-500">
+                    {fee.student?.admission_number}
+                  </div>
                 </div>
-                <div className="text-sm text-gray-500">
-                  {fee.student?.admission_number}
+              </TableCell>
+              <TableCell>
+                <div className="text-sm">
+                  <div>{fee.student?.class_name || "N/A"}</div>
+                  {fee.student?.section && (
+                    <div className="text-gray-500">Section {fee.student.section}</div>
+                  )}
                 </div>
-              </div>
-            </TableCell>
-            <TableCell>
-              <div className="text-sm">
-                <div>{fee.student?.class_name || "N/A"}</div>
-                {fee.student?.section && (
-                  <div className="text-gray-500">Section {fee.student.section}</div>
+              </TableCell>
+              <TableCell>{fee.fee_type}</TableCell>
+              <TableCell className="font-medium">₹{actualFee.toLocaleString()}</TableCell>
+              <TableCell>
+                {fee.discount_amount > 0 ? (
+                  <span className="text-green-600 font-medium">₹{fee.discount_amount.toLocaleString()}</span>
+                ) : (
+                  <span className="text-gray-400">₹0</span>
                 )}
-              </div>
-            </TableCell>
-            <TableCell>{fee.fee_type}</TableCell>
-            <TableCell className="font-medium">₹{fee.actual_amount.toLocaleString()}</TableCell>
-            <TableCell>
-              {fee.discount_amount > 0 ? (
-                <span className="text-green-600 font-medium">₹{fee.discount_amount.toLocaleString()}</span>
-              ) : (
-                <span className="text-gray-400">₹0</span>
-              )}
-            </TableCell>
-            <TableCell className="font-medium">₹{fee.amount.toLocaleString()}</TableCell>
-            <TableCell>{new Date(fee.due_date).toLocaleDateString()}</TableCell>
-            <TableCell>
-              <Badge variant={getStatusVariant(fee.status, fee.due_date)}>
-                <div className="flex items-center space-x-1">
-                  {getStatusIcon(getDisplayStatus(fee.status, fee.due_date))}
-                  <span>{getDisplayStatus(fee.status, fee.due_date)}</span>
+              </TableCell>
+              <TableCell className="font-medium">₹{finalFee.toLocaleString()}</TableCell>
+              <TableCell className="font-medium text-blue-600">₹{fee.total_paid.toLocaleString()}</TableCell>
+              <TableCell className={`font-medium ${balanceFee > 0 ? 'text-red-600' : 'text-green-600'}`}>
+                ₹{balanceFee.toLocaleString()}
+              </TableCell>
+              <TableCell>{new Date(fee.due_date).toLocaleDateString()}</TableCell>
+              <TableCell>
+                <Badge variant={getStatusVariant(fee.status, fee.due_date)}>
+                  <div className="flex items-center space-x-1">
+                    {getStatusIcon(getDisplayStatus(fee.status, fee.due_date))}
+                    <span>{getDisplayStatus(fee.status, fee.due_date)}</span>
+                  </div>
+                </Badge>
+              </TableCell>
+              <TableCell>
+                <div className="flex items-center space-x-2">
+                  {balanceFee > 0 && (
+                    <>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => onPaymentClick(fee)}
+                      >
+                        <Receipt className="w-4 h-4 mr-1" />
+                        Pay
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => onDiscountClick(fee)}
+                      >
+                        <Percent className="w-4 h-4 mr-1" />
+                        Discount
+                      </Button>
+                    </>
+                  )}
+                  {fee.status === "Paid" && fee.receipt_number && (
+                    <span className="text-sm text-gray-500">
+                      Receipt: {fee.receipt_number}
+                    </span>
+                  )}
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => onHistoryClick(fee.student)}
+                  >
+                    <Eye className="w-4 h-4" />
+                  </Button>
                 </div>
-              </Badge>
-            </TableCell>
-            <TableCell>
-              <div className="flex items-center space-x-2">
-                {fee.status === "Pending" && (
-                  <>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => onPaymentClick(fee)}
-                    >
-                      <Receipt className="w-4 h-4 mr-1" />
-                      Pay
-                    </Button>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => onDiscountClick(fee)}
-                    >
-                      <Percent className="w-4 h-4 mr-1" />
-                      Discount
-                    </Button>
-                  </>
-                )}
-                {fee.status === "Paid" && fee.receipt_number && (
-                  <span className="text-sm text-gray-500">
-                    Receipt: {fee.receipt_number}
-                  </span>
-                )}
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => onHistoryClick(fee.student)}
-                >
-                  <Eye className="w-4 h-4" />
-                </Button>
-              </div>
-            </TableCell>
-          </TableRow>
-        ))}
+              </TableCell>
+            </TableRow>
+          );
+        })}
       </TableBody>
     </Table>
   );

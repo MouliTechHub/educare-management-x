@@ -152,6 +152,7 @@ export interface Fee {
   amount: number;
   actual_amount: number;
   discount_amount: number;
+  total_paid: number;
   due_date: string;
   payment_date: string | null;
   receipt_number: string | null;
@@ -159,6 +160,31 @@ export interface Fee {
   discount_notes: string | null;
   discount_updated_by: string | null;
   discount_updated_at: string | null;
+  academic_year_id: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface AcademicYear {
+  id: string;
+  year_name: string;
+  start_date: string;
+  end_date: string;
+  is_current: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface StudentAcademicRecord {
+  id: string;
+  student_id: string;
+  academic_year_id: string;
+  class_id: string | null;
+  status: 'Active' | 'Graduated' | 'Left' | 'Transferred';
+  enrollment_date: string | null;
+  departure_date: string | null;
+  departure_reason: string | null;
+  promoted_from_class: string | null;
   created_at: string;
   updated_at: string;
 }

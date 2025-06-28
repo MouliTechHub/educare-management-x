@@ -14,6 +14,7 @@ interface Fee {
   amount: number;
   actual_amount: number;
   discount_amount: number;
+  total_paid: number;
   fee_type: string;
   due_date: string;
   payment_date: string | null;
@@ -24,6 +25,7 @@ interface Fee {
   discount_notes: string | null;
   discount_updated_by: string | null;
   discount_updated_at: string | null;
+  academic_year_id: string;
   student?: {
     id: string;
     first_name: string;
@@ -72,7 +74,8 @@ export function PaymentDialog({ open, onOpenChange, fee, onPaymentRecorded }: Pa
 
     try {
       const amountPaid = Number(data.amount_paid);
-      const currentPending = fee.amount;
+      const finalFee = fee.actual_amount - fee.discount_amount;
+      const currentBalance = finalFee - fee.total_paid;
       
       // Validate payment amount
       if (amountPaid <= 0) {
@@ -84,44 +87,31 @@ export function PaymentDialog({ open, onOpenChange, fee, onPaymentRecorded }: Pa
         return;
       }
 
-      if (amountPaid > currentPending) {
+      if (amountPaid > currentBalance) {
         toast({
           title: "Invalid amount",
-          description: "Payment amount cannot be greater than pending amount",
+          description: `Payment amount cannot be greater than balance amount (₹${currentBalance.toLocaleString()})`,
           variant: "destructive",
         });
         return;
       }
 
-      const newPendingAmount = Math.max(0, currentPending - amountPaid);
+      const newTotalPaid = fee.total_paid + amountPaid;
+      const newBalance = finalFee - newTotalPaid;
       
-      // Determine if fee is fully paid or partially paid
-      const newStatus = newPendingAmount === 0 ? "Paid" : "Pending";
+      // Determine if fee is fully paid
+      const newStatus = newBalance <= 0 ? "Paid" : "Pending";
 
       console.log('Payment processing:', {
-        currentPending,
+        finalFee,
+        currentBalance,
         amountPaid,
-        newPendingAmount,
+        newTotalPaid,
+        newBalance,
         newStatus
       });
 
-      // Update the fee record
-      const { error: feeError } = await supabase
-        .from("fees")
-        .update({
-          status: newStatus,
-          payment_date: newStatus === "Paid" ? data.payment_date : null,
-          receipt_number: newStatus === "Paid" ? data.receipt_number : null,
-          amount: newPendingAmount
-        })
-        .eq("id", fee.id);
-
-      if (feeError) {
-        console.error('Fee update error:', feeError);
-        throw new Error(`Failed to update fee: ${feeError.message}`);
-      }
-
-      // Create payment history record
+      // Create payment history record first
       const { error: historyError } = await supabase
         .from('payment_history')
         .insert({
@@ -138,18 +128,33 @@ export function PaymentDialog({ open, onOpenChange, fee, onPaymentRecorded }: Pa
 
       if (historyError) {
         console.error('Payment history insert error:', historyError);
-        // Continue anyway as the main fee update succeeded
-        toast({
-          title: "Payment recorded with warning",
-          description: "Payment updated but history may not be complete. Please check records.",
-          variant: "destructive",
-        });
-      } else {
-        toast({ 
-          title: "Payment recorded successfully",
-          description: newStatus === "Paid" ? "Fee fully paid" : `Remaining amount: ₹${newPendingAmount.toLocaleString()}`
-        });
+        throw new Error(`Failed to record payment: ${historyError.message}`);
       }
+
+      // Update the fee record status and payment info if fully paid
+      const feeUpdateData: any = {
+        status: newStatus
+      };
+
+      if (newStatus === "Paid") {
+        feeUpdateData.payment_date = data.payment_date;
+        feeUpdateData.receipt_number = data.receipt_number;
+      }
+
+      const { error: feeError } = await supabase
+        .from("fees")
+        .update(feeUpdateData)
+        .eq("id", fee.id);
+
+      if (feeError) {
+        console.error('Fee update error:', feeError);
+        throw new Error(`Failed to update fee status: ${feeError.message}`);
+      }
+
+      toast({ 
+        title: "Payment recorded successfully",
+        description: newStatus === "Paid" ? "Fee fully paid" : `Remaining balance: ₹${newBalance.toLocaleString()}`
+      });
       
       onPaymentRecorded();
       onOpenChange(false);
@@ -167,16 +172,24 @@ export function PaymentDialog({ open, onOpenChange, fee, onPaymentRecorded }: Pa
   // Reset form when fee changes
   React.useEffect(() => {
     if (fee && open) {
+      const finalFee = fee.actual_amount - fee.discount_amount;
+      const balanceAmount = finalFee - fee.total_paid;
+      
       paymentForm.reset({
         payment_date: new Date().toISOString().split('T')[0],
         receipt_number: `RCP-${Date.now()}`,
-        amount_paid: fee.amount,
+        amount_paid: balanceAmount,
         payment_receiver: "",
         payment_method: "Cash",
         notes: "",
       });
     }
   }, [fee, open, paymentForm]);
+
+  if (!fee) return null;
+
+  const finalFee = fee.actual_amount - fee.discount_amount;
+  const balanceAmount = finalFee - fee.total_paid;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -188,7 +201,13 @@ export function PaymentDialog({ open, onOpenChange, fee, onPaymentRecorded }: Pa
               `${fee.student.first_name} ${fee.student.last_name}` : 
               "student"} - {fee?.fee_type}
             <br />
-            <span className="font-medium">Pending Amount: ₹{fee?.amount.toLocaleString()}</span>
+            <span className="font-medium">Actual Fee: ₹{fee.actual_amount.toLocaleString()}</span>
+            <br />
+            <span className="font-medium">Final Fee: ₹{finalFee.toLocaleString()}</span>
+            <br />
+            <span className="font-medium">Paid: ₹{fee.total_paid.toLocaleString()}</span>
+            <br />
+            <span className="font-medium text-red-600">Balance: ₹{balanceAmount.toLocaleString()}</span>
           </DialogDescription>
         </DialogHeader>
         <Form {...paymentForm}>
@@ -204,7 +223,7 @@ export function PaymentDialog({ open, onOpenChange, fee, onPaymentRecorded }: Pa
                       {...field} 
                       type="number" 
                       min="1"
-                      max={fee?.amount || 0}
+                      max={balanceAmount}
                       step="0.01"
                       onChange={(e) => field.onChange(Number(e.target.value))}
                       required 

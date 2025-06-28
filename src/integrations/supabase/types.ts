@@ -9,6 +9,36 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
+      academic_years: {
+        Row: {
+          created_at: string
+          end_date: string
+          id: string
+          is_current: boolean
+          start_date: string
+          updated_at: string
+          year_name: string
+        }
+        Insert: {
+          created_at?: string
+          end_date: string
+          id?: string
+          is_current?: boolean
+          start_date: string
+          updated_at?: string
+          year_name: string
+        }
+        Update: {
+          created_at?: string
+          end_date?: string
+          id?: string
+          is_current?: boolean
+          start_date?: string
+          updated_at?: string
+          year_name?: string
+        }
+        Relationships: []
+      }
       attendance: {
         Row: {
           class_id: string
@@ -301,6 +331,7 @@ export type Database = {
       }
       fees: {
         Row: {
+          academic_year_id: string
           actual_amount: number
           amount: number
           created_at: string | null
@@ -315,9 +346,11 @@ export type Database = {
           receipt_number: string | null
           status: string
           student_id: string
+          total_paid: number
           updated_at: string | null
         }
         Insert: {
+          academic_year_id: string
           actual_amount?: number
           amount: number
           created_at?: string | null
@@ -332,9 +365,11 @@ export type Database = {
           receipt_number?: string | null
           status?: string
           student_id: string
+          total_paid?: number
           updated_at?: string | null
         }
         Update: {
+          academic_year_id?: string
           actual_amount?: number
           amount?: number
           created_at?: string | null
@@ -349,9 +384,17 @@ export type Database = {
           receipt_number?: string | null
           status?: string
           student_id?: string
+          total_paid?: number
           updated_at?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "fees_academic_year_id_fkey"
+            columns: ["academic_year_id"]
+            isOneToOne: false
+            referencedRelation: "academic_years"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "fees_student_id_fkey"
             columns: ["student_id"]
@@ -568,6 +611,70 @@ export type Database = {
           updated_at?: string | null
         }
         Relationships: []
+      }
+      student_academic_records: {
+        Row: {
+          academic_year_id: string
+          class_id: string | null
+          created_at: string
+          departure_date: string | null
+          departure_reason: string | null
+          enrollment_date: string | null
+          id: string
+          promoted_from_class: string | null
+          status: string
+          student_id: string
+          updated_at: string
+        }
+        Insert: {
+          academic_year_id: string
+          class_id?: string | null
+          created_at?: string
+          departure_date?: string | null
+          departure_reason?: string | null
+          enrollment_date?: string | null
+          id?: string
+          promoted_from_class?: string | null
+          status?: string
+          student_id: string
+          updated_at?: string
+        }
+        Update: {
+          academic_year_id?: string
+          class_id?: string | null
+          created_at?: string
+          departure_date?: string | null
+          departure_reason?: string | null
+          enrollment_date?: string | null
+          id?: string
+          promoted_from_class?: string | null
+          status?: string
+          student_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "student_academic_records_academic_year_id_fkey"
+            columns: ["academic_year_id"]
+            isOneToOne: false
+            referencedRelation: "academic_years"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "student_academic_records_class_id_fkey"
+            columns: ["class_id"]
+            isOneToOne: false
+            referencedRelation: "classes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "student_academic_records_promoted_from_class_fkey"
+            columns: ["promoted_from_class"]
+            isOneToOne: false
+            referencedRelation: "classes"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       student_parent_links: {
         Row: {

@@ -1,3 +1,4 @@
+
 import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -12,6 +13,7 @@ import { FeeManagementFilters } from "./fee-management/FeeManagementFilters";
 import { FeeStats } from "./fee-management/FeeStats";
 import { DiscountDialog } from "./fee-management/DiscountDialog";
 import { DiscountReportsDialog } from "./fee-management/DiscountReportsDialog";
+import { AcademicYearSelector } from "./fee-management/AcademicYearSelector";
 import { useFeeData } from "./fee-management/useFeeData";
 
 interface Class {
@@ -35,6 +37,7 @@ interface Fee {
   amount: number;
   actual_amount: number;
   discount_amount: number;
+  total_paid: number;
   fee_type: string;
   due_date: string;
   payment_date: string | null;
@@ -45,6 +48,7 @@ interface Fee {
   discount_notes: string | null;
   discount_updated_by: string | null;
   discount_updated_at: string | null;
+  academic_year_id: string;
   student?: {
     id: string;
     first_name: string;
@@ -59,7 +63,16 @@ interface Fee {
 }
 
 export function FeeManagement() {
-  const { fees, loading, refetchFees } = useFeeData();
+  const { 
+    fees, 
+    academicYears, 
+    currentAcademicYear, 
+    selectedAcademicYear, 
+    setSelectedAcademicYear, 
+    loading, 
+    refetchFees 
+  } = useFeeData();
+  
   const [classes, setClasses] = useState<Class[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [filters, setFilters] = useState<FilterState>({
@@ -148,10 +161,15 @@ export function FeeManagement() {
 
   const filteredFees = applyFilters(fees);
 
+  // Calculate stats with new fee structure
   const feeStats = {
     total: fees.reduce((sum, fee) => sum + fee.actual_amount, 0),
-    collected: fees.filter(f => f.status === "Paid").reduce((sum, fee) => sum + fee.amount, 0),
-    pending: fees.filter(f => f.status === "Pending").reduce((sum, fee) => sum + fee.amount, 0),
+    collected: fees.reduce((sum, fee) => sum + fee.total_paid, 0),
+    pending: fees.reduce((sum, fee) => {
+      const finalFee = fee.actual_amount - fee.discount_amount;
+      const balance = finalFee - fee.total_paid;
+      return sum + Math.max(0, balance);
+    }, 0),
     overdue: fees.filter(f => f.status === "Pending" && new Date(f.due_date) < new Date()).length
   };
 
@@ -168,7 +186,7 @@ export function FeeManagement() {
       <div className="flex justify-between items-center">
         <div>
           <h1 className="text-3xl font-bold text-gray-900">Fee Management</h1>
-          <p className="text-gray-600 mt-2">Comprehensive fee tracking with discount management</p>
+          <p className="text-gray-600 mt-2">Academic year-based fee tracking with balance management</p>
         </div>
         <div className="flex space-x-2">
           <Button variant="outline" onClick={() => setReportsDialogOpen(true)}>
@@ -179,6 +197,14 @@ export function FeeManagement() {
         </div>
       </div>
 
+      <div className="flex items-center justify-between">
+        <AcademicYearSelector
+          academicYears={academicYears}
+          selectedYear={selectedAcademicYear}
+          onYearChange={setSelectedAcademicYear}
+        />
+      </div>
+
       <FeeStats stats={feeStats} />
 
       <Card>
@@ -186,7 +212,12 @@ export function FeeManagement() {
           <div className="flex items-center justify-between">
             <div>
               <CardTitle>Fee Records</CardTitle>
-              <CardDescription>Comprehensive fee management with discount tracking</CardDescription>
+              <CardDescription>
+                Academic year-based fee management with balance tracking
+                {currentAcademicYear && selectedAcademicYear === currentAcademicYear.id && 
+                  ` - ${currentAcademicYear.year_name} (Current Year)`
+                }
+              </CardDescription>
             </div>
             <div className="flex items-center space-x-2">
               <Search className="w-4 h-4 text-gray-400" />
