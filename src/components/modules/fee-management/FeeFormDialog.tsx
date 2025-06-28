@@ -29,6 +29,18 @@ interface FeeFormDialogProps {
   onFeeCreated: () => void;
 }
 
+// Valid fee types that match the database constraint
+const VALID_FEE_TYPES = [
+  { value: 'Tuition', label: 'Tuition Fee' },
+  { value: 'Development', label: 'Development Fee' },
+  { value: 'Library', label: 'Library Fee' },
+  { value: 'Lab', label: 'Laboratory Fee' },
+  { value: 'Sports', label: 'Sports Fee' },
+  { value: 'Transport', label: 'Transport Fee' },
+  { value: 'Exam', label: 'Exam Fee' },
+  { value: 'Other', label: 'Other' }
+];
+
 export function FeeFormDialog({ onFeeCreated }: FeeFormDialogProps) {
   const [students, setStudents] = useState<StudentBasic[]>([]);
   const [filteredStudents, setFilteredStudents] = useState<StudentBasic[]>([]);
@@ -77,6 +89,11 @@ export function FeeFormDialog({ onFeeCreated }: FeeFormDialogProps) {
       setCurrentAcademicYear(data.id);
     } catch (error: any) {
       console.error("Error fetching current academic year:", error);
+      toast({
+        title: "Error",
+        description: "Failed to fetch current academic year",
+        variant: "destructive",
+      });
     }
   };
 
@@ -91,6 +108,11 @@ export function FeeFormDialog({ onFeeCreated }: FeeFormDialogProps) {
       setClasses(data || []);
     } catch (error: any) {
       console.error("Error fetching classes:", error);
+      toast({
+        title: "Error",
+        description: "Failed to fetch classes",
+        variant: "destructive",
+      });
     }
   };
 
@@ -106,6 +128,11 @@ export function FeeFormDialog({ onFeeCreated }: FeeFormDialogProps) {
       setStudents(data || []);
     } catch (error: any) {
       console.error("Error fetching students:", error);
+      toast({
+        title: "Error",
+        description: "Failed to fetch students",
+        variant: "destructive",
+      });
     }
   };
 
@@ -115,6 +142,17 @@ export function FeeFormDialog({ onFeeCreated }: FeeFormDialogProps) {
         toast({
           title: "Error",
           description: "No current academic year found. Please contact administrator.",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      // Validate fee type against allowed values
+      const validFeeTypes = VALID_FEE_TYPES.map(type => type.value);
+      if (!validFeeTypes.includes(data.fee_type)) {
+        toast({
+          title: "Invalid Fee Type",
+          description: "Please select a valid fee type from the dropdown.",
           variant: "destructive",
         });
         return;
@@ -134,13 +172,26 @@ export function FeeFormDialog({ onFeeCreated }: FeeFormDialogProps) {
           academic_year_id: currentAcademicYear
         }]);
 
-      if (error) throw error;
+      if (error) {
+        console.error("Database error:", error);
+        if (error.message.includes('fees_fee_type_check')) {
+          toast({
+            title: "Invalid Fee Type",
+            description: "The selected fee type is not valid. Please choose from the available options.",
+            variant: "destructive",
+          });
+        } else {
+          throw error;
+        }
+        return;
+      }
 
       toast({ title: "Fee record created successfully" });
       onFeeCreated();
       setDialogOpen(false);
       feeForm.reset();
     } catch (error: any) {
+      console.error("Error creating fee record:", error);
       toast({
         title: "Error creating fee record",
         description: error.message,
@@ -237,13 +288,11 @@ export function FeeFormDialog({ onFeeCreated }: FeeFormDialogProps) {
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
-                      <SelectItem value="Tuition">Tuition Fee</SelectItem>
-                      <SelectItem value="Library">Library Fee</SelectItem>
-                      <SelectItem value="Lab">Laboratory Fee</SelectItem>
-                      <SelectItem value="Sports">Sports Fee</SelectItem>
-                      <SelectItem value="Transport">Transport Fee</SelectItem>
-                      <SelectItem value="Exam">Exam Fee</SelectItem>
-                      <SelectItem value="Other">Other</SelectItem>
+                      {VALID_FEE_TYPES.map((feeType) => (
+                        <SelectItem key={feeType.value} value={feeType.value}>
+                          {feeType.label}
+                        </SelectItem>
+                      ))}
                     </SelectContent>
                   </Select>
                   <FormMessage />
@@ -261,6 +310,7 @@ export function FeeFormDialog({ onFeeCreated }: FeeFormDialogProps) {
                       {...field} 
                       type="number" 
                       step="0.01"
+                      min="0"
                       onChange={(e) => field.onChange(parseFloat(e.target.value) || 0)}
                       required 
                     />

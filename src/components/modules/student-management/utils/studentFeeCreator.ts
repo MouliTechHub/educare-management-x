@@ -1,6 +1,18 @@
 
 import { supabase } from "@/integrations/supabase/client";
 
+// Valid fee types that match the database constraint
+const VALID_FEE_TYPES = {
+  TUITION: 'Tuition',
+  DEVELOPMENT: 'Development',
+  LIBRARY: 'Library',
+  LAB: 'Lab',
+  SPORTS: 'Sports',
+  TRANSPORT: 'Transport',
+  EXAM: 'Exam',
+  OTHER: 'Other'
+} as const;
+
 export const createDefaultFeeRecords = async (studentId: string) => {
   try {
     console.log('Creating default fee records for student:', studentId);
@@ -22,11 +34,11 @@ export const createDefaultFeeRecords = async (studentId: string) => {
       return;
     }
 
-    // Create default fee records with valid fee types based on the database constraint
+    // Create default fee records with valid fee types
     const defaultFees = [
       {
         student_id: studentId,
-        fee_type: 'Tuition', // Using simple fee type names that match the constraint
+        fee_type: VALID_FEE_TYPES.TUITION,
         amount: 5000,
         actual_amount: 5000,
         discount_amount: 0,
@@ -37,7 +49,7 @@ export const createDefaultFeeRecords = async (studentId: string) => {
       },
       {
         student_id: studentId,
-        fee_type: 'Development', // Using simple fee type names that match the constraint
+        fee_type: VALID_FEE_TYPES.DEVELOPMENT,
         amount: 1000,
         actual_amount: 1000,
         discount_amount: 0,
@@ -54,6 +66,12 @@ export const createDefaultFeeRecords = async (studentId: string) => {
 
     if (feeError) {
       console.error('Error creating default fee records:', feeError);
+      
+      // Check if it's a constraint violation error and provide user-friendly message
+      if (feeError.message.includes('fees_fee_type_check')) {
+        throw new Error('Invalid fee type detected. Please contact the administrator.');
+      }
+      
       throw feeError;
     }
 
