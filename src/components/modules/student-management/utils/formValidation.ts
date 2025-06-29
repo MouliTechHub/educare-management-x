@@ -1,18 +1,14 @@
-
 import { supabase } from "@/integrations/supabase/client";
 
-// Single source of truth for Indian phone number validation
-const INDIAN_PHONE_REGEX = /^\+91\d{10}$/;
+// Single source of truth for Indian phone number validation - updated to match database constraint
+const INDIAN_PHONE_REGEX = /^\+91[0-9]{10}$/;
 
 // Enhanced phone number validation - accepts various formats but standardizes to international format
 export const validateAndFormatPhoneNumber = (phone: string): { isValid: boolean; formatted: string; error?: string } => {
   if (!phone) return { isValid: false, formatted: '', error: 'Phone number is required' };
   
-  // Trim all whitespace from input
-  const trimmed = phone.trim();
-  
-  // Remove all non-digit characters except +
-  const cleaned = trimmed.replace(/[^\d+]/g, '');
+  // Trim all whitespace and special characters except + and digits
+  const cleaned = phone.trim().replace(/[^\d+]/g, '');
   
   // Handle different input formats
   let formatted: string;
@@ -20,19 +16,19 @@ export const validateAndFormatPhoneNumber = (phone: string): { isValid: boolean;
   if (cleaned.startsWith('+91')) {
     // Already in +91 format
     formatted = cleaned;
-  } else if (cleaned.length === 10) {
-    // Indian mobile number without country code
+  } else if (cleaned.length === 10 && /^\d{10}$/.test(cleaned)) {
+    // Indian mobile number without country code (10 digits)
     formatted = `+91${cleaned}`;
-  } else if (cleaned.length === 12 && cleaned.startsWith('91')) {
-    // Indian number with 91 prefix
+  } else if (cleaned.length === 12 && cleaned.startsWith('91') && /^91\d{10}$/.test(cleaned)) {
+    // Indian number with 91 prefix (12 digits total)
     formatted = `+${cleaned}`;
   } else {
     return { isValid: false, formatted: '', error: 'Phone number must be a 10-digit Indian mobile number' };
   }
   
-  // Validate against single source of truth regex
-  if (!INDIAN_PHONE_REGEX.test(formatted)) {
-    return { isValid: false, formatted: '', error: 'Phone number must be in format +91XXXXXXXXXX (10 digits after +91)' };
+  // Validate against single source of truth regex - exactly 13 characters: +91XXXXXXXXXX
+  if (!INDIAN_PHONE_REGEX.test(formatted) || formatted.length !== 13) {
+    return { isValid: false, formatted: '', error: 'Phone number must be in format +91XXXXXXXXXX (exactly 13 characters)' };
   }
   
   return { isValid: true, formatted };

@@ -182,11 +182,12 @@ export function ParentFormSection({ parents, setParents }: ParentFormSectionProp
                 onBlur={(e) => validateField(index, 'phone_number', e.target.value)}
                 required
                 placeholder="Enter 10-digit number or +91XXXXXXXXXX"
+                maxLength={15}
               />
               {validationErrors[index]?.phone_number && (
                 <p className="text-xs text-destructive mt-1">{validationErrors[index].phone_number}</p>
               )}
-              <p className="text-xs text-gray-500 mt-1">Example: +918856577675</p>
+              <p className="text-xs text-gray-500 mt-1">Format: +91XXXXXXXXXX (exactly 13 characters)</p>
             </div>
             <div>
               <Label>Email *</Label>
@@ -277,11 +278,12 @@ export function ParentFormSection({ parents, setParents }: ParentFormSectionProp
                 onChange={(e) => updateParent(index, 'alternate_phone', e.target.value)}
                 onBlur={(e) => validateField(index, 'alternate_phone', e.target.value)}
                 placeholder="Enter 10-digit number or +91XXXXXXXXXX (optional)"
+                maxLength={15}
               />
               {validationErrors[index]?.alternate_phone && (
                 <p className="text-xs text-destructive mt-1">{validationErrors[index].alternate_phone}</p>
               )}
-              <p className="text-xs text-gray-500 mt-1">Example: +918856577675 (optional)</p>
+              <p className="text-xs text-gray-500 mt-1">Format: +91XXXXXXXXXX (exactly 13 characters, optional)</p>
             </div>
           </div>
 
