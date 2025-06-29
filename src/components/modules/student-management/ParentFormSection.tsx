@@ -1,4 +1,3 @@
-
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -70,7 +69,7 @@ export function ParentFormSection({ parents, setParents }: ParentFormSectionProp
     switch (field) {
       case 'phone_number':
       case 'alternate_phone':
-        if (value) {
+        if (value.trim()) {
           const phoneValidation = validateAndFormatPhoneNumber(value);
           if (!phoneValidation.isValid) {
             error = phoneValidation.error || 'Invalid phone number format';
@@ -81,7 +80,7 @@ export function ParentFormSection({ parents, setParents }: ParentFormSectionProp
         }
         break;
       case 'email':
-        if (value) {
+        if (value.trim()) {
           const emailValidation = validateEmail(value);
           if (!emailValidation.isValid) {
             error = emailValidation.error || 'Invalid email format';
@@ -89,7 +88,7 @@ export function ParentFormSection({ parents, setParents }: ParentFormSectionProp
         }
         break;
       case 'pin_code':
-        if (value) {
+        if (value.trim()) {
           const pinValidation = validatePinCode(value);
           if (!pinValidation.isValid) {
             error = pinValidation.error || 'Invalid PIN code';
@@ -97,7 +96,7 @@ export function ParentFormSection({ parents, setParents }: ParentFormSectionProp
         }
         break;
       case 'annual_income':
-        if (value) {
+        if (value.trim()) {
           const amountValidation = validateAmount(value);
           if (!amountValidation.isValid) {
             error = amountValidation.error || 'Invalid amount';
@@ -182,12 +181,12 @@ export function ParentFormSection({ parents, setParents }: ParentFormSectionProp
                 onChange={(e) => updateParent(index, 'phone_number', e.target.value)}
                 onBlur={(e) => validateField(index, 'phone_number', e.target.value)}
                 required
-                placeholder="+91XXXXXXXXXX or 10-digit number"
+                placeholder="Enter 10-digit number or +91XXXXXXXXXX"
               />
               {validationErrors[index]?.phone_number && (
                 <p className="text-xs text-destructive mt-1">{validationErrors[index].phone_number}</p>
               )}
-              <p className="text-xs text-gray-500 mt-1">Enter phone number (will be formatted automatically)</p>
+              <p className="text-xs text-gray-500 mt-1">Example: +918856577675</p>
             </div>
             <div>
               <Label>Email *</Label>
@@ -277,11 +276,12 @@ export function ParentFormSection({ parents, setParents }: ParentFormSectionProp
                 value={parent.alternate_phone}
                 onChange={(e) => updateParent(index, 'alternate_phone', e.target.value)}
                 onBlur={(e) => validateField(index, 'alternate_phone', e.target.value)}
-                placeholder="+91XXXXXXXXXX or 10-digit number (optional)"
+                placeholder="Enter 10-digit number or +91XXXXXXXXXX (optional)"
               />
               {validationErrors[index]?.alternate_phone && (
                 <p className="text-xs text-destructive mt-1">{validationErrors[index].alternate_phone}</p>
               )}
+              <p className="text-xs text-gray-500 mt-1">Example: +918856577675 (optional)</p>
             </div>
           </div>
 

@@ -1,3 +1,4 @@
+
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
@@ -35,13 +36,13 @@ export function PaymentForm({ form, balanceAmount, onSubmit, onCancel }: Payment
       errors.amount_paid = 'Amount cannot exceed balance amount';
     }
     
-    // Validate receipt number
+    // Validate receipt number (trim before validation)
     const receiptValidation = validateReceiptNumber(data.receipt_number);
     if (!receiptValidation.isValid) {
       errors.receipt_number = receiptValidation.error || 'Invalid receipt number';
     }
     
-    // Validate required fields
+    // Validate required fields (trim before validation)
     if (!data.payment_receiver.trim()) {
       errors.payment_receiver = 'Payment receiver is required';
     }
@@ -49,7 +50,14 @@ export function PaymentForm({ form, balanceAmount, onSubmit, onCancel }: Payment
     setValidationErrors(errors);
     
     if (Object.keys(errors).length === 0) {
-      onSubmit(data);
+      // Trim all string fields before submission
+      const trimmedData = {
+        ...data,
+        receipt_number: data.receipt_number.trim(),
+        payment_receiver: data.payment_receiver.trim(),
+        notes: data.notes.trim()
+      };
+      onSubmit(trimmedData);
     }
   };
 
@@ -113,7 +121,7 @@ export function PaymentForm({ form, balanceAmount, onSubmit, onCancel }: Payment
                   placeholder="Enter receipt number (3-20 alphanumeric characters)" 
                   maxLength={20}
                   onChange={(e) => {
-                    // Only allow alphanumeric characters
+                    // Only allow alphanumeric characters and trim whitespace
                     const value = e.target.value.replace(/[^A-Za-z0-9]/g, '');
                     field.onChange(value);
                     // Clear validation error when user starts typing

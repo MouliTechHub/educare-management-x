@@ -1,36 +1,38 @@
 
 import { supabase } from "@/integrations/supabase/client";
 
+// Single source of truth for Indian phone number validation
+const INDIAN_PHONE_REGEX = /^\+91\d{10}$/;
+
 // Enhanced phone number validation - accepts various formats but standardizes to international format
 export const validateAndFormatPhoneNumber = (phone: string): { isValid: boolean; formatted: string; error?: string } => {
   if (!phone) return { isValid: false, formatted: '', error: 'Phone number is required' };
   
+  // Trim all whitespace from input
+  const trimmed = phone.trim();
+  
   // Remove all non-digit characters except +
-  const cleaned = phone.replace(/[^\d+]/g, '');
+  const cleaned = trimmed.replace(/[^\d+]/g, '');
   
   // Handle different input formats
   let formatted: string;
   
-  if (cleaned.startsWith('+')) {
-    // Already international format
+  if (cleaned.startsWith('+91')) {
+    // Already in +91 format
     formatted = cleaned;
   } else if (cleaned.length === 10) {
     // Indian mobile number without country code
     formatted = `+91${cleaned}`;
-  } else if (cleaned.length === 11 && cleaned.startsWith('91')) {
+  } else if (cleaned.length === 12 && cleaned.startsWith('91')) {
     // Indian number with 91 prefix
     formatted = `+${cleaned}`;
-  } else if (cleaned.length === 12 && cleaned.startsWith('091')) {
-    // Indian number with 091 prefix
-    formatted = `+${cleaned.substring(1)}`;
   } else {
-    return { isValid: false, formatted: '', error: 'Invalid phone number format. Enter 10-digit mobile number.' };
+    return { isValid: false, formatted: '', error: 'Phone number must be a 10-digit Indian mobile number' };
   }
   
-  // Validate international format: +country_code (1-3 digits) + number (10-15 digits)
-  const internationalRegex = /^\+[1-9]\d{10,14}$/;
-  if (!internationalRegex.test(formatted)) {
-    return { isValid: false, formatted: '', error: 'Invalid phone number format' };
+  // Validate against single source of truth regex
+  if (!INDIAN_PHONE_REGEX.test(formatted)) {
+    return { isValid: false, formatted: '', error: 'Phone number must be in format +91XXXXXXXXXX (10 digits after +91)' };
   }
   
   return { isValid: true, formatted };
@@ -40,8 +42,11 @@ export const validateAndFormatPhoneNumber = (phone: string): { isValid: boolean;
 export const validateEmail = (email: string): { isValid: boolean; error?: string } => {
   if (!email) return { isValid: false, error: 'Email is required' };
   
+  // Trim whitespace
+  const trimmed = email.trim();
+  
   const emailRegex = /^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$/;
-  if (!emailRegex.test(email)) {
+  if (!emailRegex.test(trimmed)) {
     return { isValid: false, error: 'Invalid email format' };
   }
   
@@ -52,7 +57,10 @@ export const validateEmail = (email: string): { isValid: boolean; error?: string
 export const validatePinCode = (pinCode: string): { isValid: boolean; error?: string } => {
   if (!pinCode) return { isValid: true }; // Optional field
   
-  if (!/^\d{6}$/.test(pinCode)) {
+  // Trim whitespace
+  const trimmed = pinCode.trim();
+  
+  if (!/^\d{6}$/.test(trimmed)) {
     return { isValid: false, error: 'PIN code must be exactly 6 digits' };
   }
   
@@ -63,7 +71,8 @@ export const validatePinCode = (pinCode: string): { isValid: boolean; error?: st
 export const validateAadhaarNumber = (aadhaar: string): { isValid: boolean; error?: string } => {
   if (!aadhaar) return { isValid: true }; // Optional field
   
-  const cleaned = aadhaar.replace(/\D/g, '');
+  // Trim whitespace and remove non-digits
+  const cleaned = aadhaar.trim().replace(/\D/g, '');
   if (cleaned.length !== 12) {
     return { isValid: false, error: 'Aadhaar number must be exactly 12 digits' };
   }
@@ -73,7 +82,7 @@ export const validateAadhaarNumber = (aadhaar: string): { isValid: boolean; erro
 
 // Amount validation (positive numbers)
 export const validateAmount = (amount: string | number): { isValid: boolean; error?: string } => {
-  const numAmount = typeof amount === 'string' ? parseFloat(amount) : amount;
+  const numAmount = typeof amount === 'string' ? parseFloat(amount.trim()) : amount;
   
   if (isNaN(numAmount) || numAmount < 0) {
     return { isValid: false, error: 'Amount must be a positive number' };
@@ -86,7 +95,10 @@ export const validateAmount = (amount: string | number): { isValid: boolean; err
 export const validateReceiptNumber = (receiptNumber: string): { isValid: boolean; error?: string } => {
   if (!receiptNumber) return { isValid: false, error: 'Receipt number is required' };
   
-  if (!/^[A-Za-z0-9]{3,20}$/.test(receiptNumber)) {
+  // Trim whitespace
+  const trimmed = receiptNumber.trim();
+  
+  if (!/^[A-Za-z0-9]{3,20}$/.test(trimmed)) {
     return { isValid: false, error: 'Receipt number must be 3-20 alphanumeric characters' };
   }
   
@@ -101,7 +113,7 @@ export const checkAdmissionNumberExists = async (admissionNumber: string, exclud
     let query = supabase
       .from("students")
       .select("id")
-      .eq("admission_number", admissionNumber);
+      .eq("admission_number", admissionNumber.trim());
       
     if (excludeStudentId) {
       query = query.neq("id", excludeStudentId);
@@ -130,7 +142,8 @@ export const validateRequiredFields = (data: any, requiredFields: string[]): str
   const missingFields: string[] = [];
   
   requiredFields.forEach(field => {
-    if (!data[field] || (typeof data[field] === 'string' && data[field].trim() === '')) {
+    const value = data[field];
+    if (!value || (typeof value === 'string' && value.trim() === '')) {
       missingFields.push(field);
     }
   });
