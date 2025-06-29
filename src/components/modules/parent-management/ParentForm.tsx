@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Parent } from "@/types/database";
 import { validateAndFormatPhoneNumber } from "@/components/modules/student-management/utils/phoneValidation";
-import { validateEmail } from "@/components/modules/student-management/utils/formValidation";
+import { validateEmail, validateAadhaarNumber, validatePinCode } from "@/components/modules/student-management/utils/formValidation";
 import { relations } from "@/components/modules/student-management/constants";
 import { useState } from "react";
 
@@ -27,6 +27,9 @@ interface ParentFormData {
   employer_name: string;
   employer_address: string;
   alternate_phone: string;
+  aadhaar_number: string;
+  pan_number: string;
+  education_qualification: string;
 }
 
 interface ParentFormProps {
@@ -39,6 +42,9 @@ export function ParentForm({ selectedParent, onSubmit, onCancel }: ParentFormPro
   const [phoneError, setPhoneError] = useState<string>('');
   const [alternatePhoneError, setAlternatePhoneError] = useState<string>('');
   const [emailError, setEmailError] = useState<string>('');
+  const [aadhaarError, setAadhaarError] = useState<string>('');
+  const [panError, setPanError] = useState<string>('');
+  const [pinCodeError, setPinCodeError] = useState<string>('');
 
   const form = useForm<ParentFormData>({
     defaultValues: {
@@ -57,6 +63,9 @@ export function ParentForm({ selectedParent, onSubmit, onCancel }: ParentFormPro
       employer_name: selectedParent?.employer_name || "",
       employer_address: selectedParent?.employer_address || "",
       alternate_phone: selectedParent?.alternate_phone || "",
+      aadhaar_number: (selectedParent as any)?.aadhaar_number || "",
+      pan_number: (selectedParent as any)?.pan_number || "",
+      education_qualification: (selectedParent as any)?.education_qualification || "",
     },
   });
 
@@ -111,6 +120,47 @@ export function ParentForm({ selectedParent, onSubmit, onCancel }: ParentFormPro
     }
   };
 
+  const handleAadhaarBlur = (value: string) => {
+    if (value.trim()) {
+      const aadhaarValidation = validateAadhaarNumber(value);
+      if (!aadhaarValidation.isValid) {
+        setAadhaarError(aadhaarValidation.error || 'Invalid Aadhaar number');
+      } else {
+        form.setValue('aadhaar_number', aadhaarValidation.formatted);
+        setAadhaarError('');
+      }
+    } else {
+      setAadhaarError('');
+    }
+  };
+
+  const handlePanBlur = (value: string) => {
+    if (value.trim()) {
+      const panRegex = /^[A-Z]{5}[0-9]{4}[A-Z]{1}$/;
+      if (!panRegex.test(value.toUpperCase())) {
+        setPanError('Invalid PAN format (e.g., ABCDE1234F)');
+      } else {
+        form.setValue('pan_number', value.toUpperCase());
+        setPanError('');
+      }
+    } else {
+      setPanError('');
+    }
+  };
+
+  const handlePinCodeBlur = (value: string) => {
+    if (value.trim()) {
+      const pinValidation = validatePinCode(value);
+      if (!pinValidation.isValid) {
+        setPinCodeError(pinValidation.error || 'Invalid PIN code');
+      } else {
+        setPinCodeError('');
+      }
+    } else {
+      setPinCodeError('');
+    }
+  };
+
   const handleSubmit = async (data: ParentFormData) => {
     // Validate phone numbers before submission
     if (data.phone_number) {
@@ -137,16 +187,44 @@ export function ParentForm({ selectedParent, onSubmit, onCancel }: ParentFormPro
       }
     }
 
+    if (data.aadhaar_number) {
+      const aadhaarValidation = validateAadhaarNumber(data.aadhaar_number);
+      if (!aadhaarValidation.isValid) {
+        setAadhaarError(aadhaarValidation.error || 'Invalid Aadhaar number');
+        return;
+      }
+    }
+
+    if (data.pan_number) {
+      const panRegex = /^[A-Z]{5}[0-9]{4}[A-Z]{1}$/;
+      if (!panRegex.test(data.pan_number.toUpperCase())) {
+        setPanError('Invalid PAN format (e.g., ABCDE1234F)');
+        return;
+      }
+    }
+
+    if (data.pin_code) {
+      const pinValidation = validatePinCode(data.pin_code);
+      if (!pinValidation.isValid) {
+        setPinCodeError(pinValidation.error || 'Invalid PIN code');
+        return;
+      }
+    }
+
     try {
       await onSubmit(data);
     } catch (error: any) {
       console.error("Error saving parent:", error);
       
-      // Handle phone number constraint violations
+      // Handle constraint violations
       if (error.message?.includes('phone_number_check')) {
         setPhoneError('Phone number must be in format +91XXXXXXXXXX');
       } else if (error.message?.includes('alternate_phone_check')) {
         setAlternatePhoneError('Alternate phone must be in format +91XXXXXXXXXX');
+      } else if (error.message?.includes('aadhaar_check')) {
+        setAadhaarError('Aadhaar number must be exactly 12 digits');
+      } else if (error.message?.includes('pan_check')) {
+        setPanError('PAN must be in format ABCDE1234F');
       }
     }
   };
@@ -259,6 +337,82 @@ export function ParentForm({ selectedParent, onSubmit, onCancel }: ParentFormPro
           </div>
         </div>
 
+        {/* Identity Information */}
+        <div className="space-y-4">
+          <h3 className="text-lg font-semibold">Identity Information</h3>
+          <div className="grid grid-cols-3 gap-4">
+            <FormField
+              control={form.control}
+              name="aadhaar_number"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Aadhaar Number</FormLabel>
+                  <FormControl>
+                    <Input 
+                      {...field} 
+                      placeholder="XXXX XXXX XXXX"
+                      maxLength={12}
+                      onChange={(e) => {
+                        const value = e.target.value.replace(/\D/g, '').slice(0, 12);
+                        field.onChange(value);
+                      }}
+                      onBlur={(e) => handleAadhaarBlur(e.target.value)}
+                    />
+                  </FormControl>
+                  {aadhaarError && (
+                    <p className="text-xs text-destructive mt-1">{aadhaarError}</p>
+                  )}
+                  <p className="text-xs text-gray-500 mt-1">12-digit unique identity number</p>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name="pan_number"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>PAN Number</FormLabel>
+                  <FormControl>
+                    <Input 
+                      {...field} 
+                      placeholder="ABCDE1234F"
+                      maxLength={10}
+                      style={{ textTransform: 'uppercase' }}
+                      onChange={(e) => {
+                        const value = e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 10);
+                        field.onChange(value);
+                      }}
+                      onBlur={(e) => handlePanBlur(e.target.value)}
+                    />
+                  </FormControl>
+                  {panError && (
+                    <p className="text-xs text-destructive mt-1">{panError}</p>
+                  )}
+                  <p className="text-xs text-gray-500 mt-1">Format: 5 letters + 4 digits + 1 letter</p>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name="education_qualification"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Education Qualification</FormLabel>
+                  <FormControl>
+                    <Input 
+                      {...field} 
+                      placeholder="e.g., B.Tech, M.A., etc."
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+          </div>
+        </div>
+
         {/* Professional Information */}
         <div className="space-y-4">
           <h3 className="text-lg font-semibold">Professional Information</h3>
@@ -281,7 +435,7 @@ export function ParentForm({ selectedParent, onSubmit, onCancel }: ParentFormPro
               name="annual_income"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Annual Income</FormLabel>
+                  <FormLabel>Annual Income (₹)</FormLabel>
                   <FormControl>
                     <Input 
                       {...field} 
@@ -422,8 +576,12 @@ export function ParentForm({ selectedParent, onSubmit, onCancel }: ParentFormPro
                         const value = e.target.value.replace(/\D/g, '').slice(0, 6);
                         field.onChange(value);
                       }}
+                      onBlur={(e) => handlePinCodeBlur(e.target.value)}
                     />
                   </FormControl>
+                  {pinCodeError && (
+                    <p className="text-xs text-destructive mt-1">{pinCodeError}</p>
+                  )}
                   <FormMessage />
                 </FormItem>
               )}
@@ -435,7 +593,7 @@ export function ParentForm({ selectedParent, onSubmit, onCancel }: ParentFormPro
           <Button type="button" variant="outline" onClick={onCancel}>
             Cancel
           </Button>
-          <Button type="submit" disabled={!!phoneError || !!alternatePhoneError || !!emailError}>
+          <Button type="submit" disabled={!!phoneError || !!alternatePhoneError || !!emailError || !!aadhaarError || !!panError || !!pinCodeError}>
             {selectedParent ? "Update" : "Create"} Parent
           </Button>
         </div>

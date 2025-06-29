@@ -3,6 +3,8 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { StudentFormData } from "./types";
+import { useState } from "react";
+import { validateAadhaarNumber } from "./utils/formValidation";
 
 interface IndianStudentFieldsProps {
   formData: StudentFormData;
@@ -22,13 +24,29 @@ const RELIGIONS = ["Hindu", "Muslim", "Christian", "Sikh", "Buddhist", "Jain", "
 const BLOOD_GROUPS = ["A+", "A-", "B+", "B-", "AB+", "AB-", "O+", "O-"];
 
 export function IndianStudentFields({ formData, setFormData }: IndianStudentFieldsProps) {
+  const [aadhaarError, setAadhaarError] = useState<string>('');
+
   const updateField = (field: keyof StudentFormData, value: string) => {
     setFormData({ ...formData, [field]: value });
   };
 
+  const handleAadhaarBlur = (value: string) => {
+    if (value.trim()) {
+      const aadhaarValidation = validateAadhaarNumber(value);
+      if (!aadhaarValidation.isValid) {
+        setAadhaarError(aadhaarValidation.error || 'Invalid Aadhaar number');
+      } else {
+        updateField('aadhaar_number', aadhaarValidation.formatted);
+        setAadhaarError('');
+      }
+    } else {
+      setAadhaarError('');
+    }
+  };
+
   return (
     <div className="space-y-4">
-      <h3 className="text-lg font-semibold">Indian Specific Information</h3>
+      <h3 className="text-lg font-semibold border-b pb-2">Indian Specific Information</h3>
       
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <div>
@@ -36,14 +54,23 @@ export function IndianStudentFields({ formData, setFormData }: IndianStudentFiel
           <Input
             id="aadhaar_number"
             value={formData.aadhaar_number}
-            onChange={(e) => updateField('aadhaar_number', e.target.value)}
+            onChange={(e) => {
+              const value = e.target.value.replace(/\D/g, '').slice(0, 12);
+              updateField('aadhaar_number', value);
+              if (aadhaarError) setAadhaarError('');
+            }}
+            onBlur={(e) => handleAadhaarBlur(e.target.value)}
             placeholder="XXXX XXXX XXXX"
             maxLength={12}
           />
+          {aadhaarError && (
+            <p className="text-xs text-destructive mt-1">{aadhaarError}</p>
+          )}
+          <p className="text-xs text-gray-500 mt-1">12-digit unique identity number</p>
         </div>
 
         <div>
-          <Label htmlFor="caste_category">Caste Category *</Label>
+          <Label htmlFor="caste_category">Caste Category</Label>
           <Select value={formData.caste_category} onValueChange={(value) => updateField('caste_category', value)}>
             <SelectTrigger>
               <SelectValue placeholder="Select category" />
