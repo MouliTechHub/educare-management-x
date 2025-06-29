@@ -6,6 +6,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Plus, Trash2 } from "lucide-react";
 import { relations } from "./constants";
 import { ParentFormData } from "./types";
+import { useState } from "react";
+import { validateAndFormatPhoneNumber, validateEmail, validatePinCode, validateAmount } from "./utils/formValidation";
 
 interface ParentFormSectionProps {
   parents: ParentFormData[];
@@ -13,6 +15,8 @@ interface ParentFormSectionProps {
 }
 
 export function ParentFormSection({ parents, setParents }: ParentFormSectionProps) {
+  const [validationErrors, setValidationErrors] = useState<Record<string, Record<string, string>>>({});
+
   const addParent = () => {
     setParents([...parents, {
       first_name: "",
@@ -39,6 +43,10 @@ export function ParentFormSection({ parents, setParents }: ParentFormSectionProp
   const removeParent = (index: number) => {
     if (parents.length > 1) {
       setParents(parents.filter((_, i) => i !== index));
+      // Remove validation errors for this parent
+      const newErrors = { ...validationErrors };
+      delete newErrors[index];
+      setValidationErrors(newErrors);
     }
   };
 
@@ -46,6 +54,64 @@ export function ParentFormSection({ parents, setParents }: ParentFormSectionProp
     const updatedParents = [...parents];
     updatedParents[index][field] = value;
     setParents(updatedParents);
+    
+    // Clear validation error for this field
+    if (validationErrors[index]?.[field]) {
+      const newErrors = { ...validationErrors };
+      if (!newErrors[index]) newErrors[index] = {};
+      delete newErrors[index][field];
+      setValidationErrors(newErrors);
+    }
+  };
+
+  const validateField = (index: number, field: keyof ParentFormData, value: string) => {
+    let error = '';
+    
+    switch (field) {
+      case 'phone_number':
+      case 'alternate_phone':
+        if (value) {
+          const phoneValidation = validateAndFormatPhoneNumber(value);
+          if (!phoneValidation.isValid) {
+            error = phoneValidation.error || 'Invalid phone number format';
+          } else {
+            // Update with formatted phone number
+            updateParent(index, field, phoneValidation.formatted);
+          }
+        }
+        break;
+      case 'email':
+        if (value) {
+          const emailValidation = validateEmail(value);
+          if (!emailValidation.isValid) {
+            error = emailValidation.error || 'Invalid email format';
+          }
+        }
+        break;
+      case 'pin_code':
+        if (value) {
+          const pinValidation = validatePinCode(value);
+          if (!pinValidation.isValid) {
+            error = pinValidation.error || 'Invalid PIN code';
+          }
+        }
+        break;
+      case 'annual_income':
+        if (value) {
+          const amountValidation = validateAmount(value);
+          if (!amountValidation.isValid) {
+            error = amountValidation.error || 'Invalid amount';
+          }
+        }
+        break;
+    }
+    
+    if (error) {
+      const newErrors = { ...validationErrors };
+      if (!newErrors[index]) newErrors[index] = {};
+      newErrors[index][field] = error;
+      setValidationErrors(newErrors);
+    }
   };
 
   return (
@@ -114,10 +180,14 @@ export function ParentFormSection({ parents, setParents }: ParentFormSectionProp
               <Input
                 value={parent.phone_number}
                 onChange={(e) => updateParent(index, 'phone_number', e.target.value)}
+                onBlur={(e) => validateField(index, 'phone_number', e.target.value)}
                 required
-                placeholder="10+ digits only"
+                placeholder="+91XXXXXXXXXX or 10-digit number"
               />
-              <p className="text-xs text-gray-500 mt-1">Enter at least 10 digits</p>
+              {validationErrors[index]?.phone_number && (
+                <p className="text-xs text-destructive mt-1">{validationErrors[index].phone_number}</p>
+              )}
+              <p className="text-xs text-gray-500 mt-1">Enter phone number (will be formatted automatically)</p>
             </div>
             <div>
               <Label>Email *</Label>
@@ -125,9 +195,13 @@ export function ParentFormSection({ parents, setParents }: ParentFormSectionProp
                 type="email"
                 value={parent.email}
                 onChange={(e) => updateParent(index, 'email', e.target.value)}
+                onBlur={(e) => validateField(index, 'email', e.target.value)}
                 required
                 placeholder="parent@example.com"
               />
+              {validationErrors[index]?.email && (
+                <p className="text-xs text-destructive mt-1">{validationErrors[index].email}</p>
+              )}
             </div>
           </div>
 
@@ -145,8 +219,47 @@ export function ParentFormSection({ parents, setParents }: ParentFormSectionProp
                 type="number"
                 value={parent.annual_income}
                 onChange={(e) => updateParent(index, 'annual_income', e.target.value)}
+                onBlur={(e) => validateField(index, 'annual_income', e.target.value)}
                 placeholder="Enter amount in numbers"
+                min="0"
               />
+              {validationErrors[index]?.annual_income && (
+                <p className="text-xs text-destructive mt-1">{validationErrors[index].annual_income}</p>
+              )}
+            </div>
+          </div>
+
+          <div className="grid grid-cols-3 gap-4">
+            <div>
+              <Label>Address Line 1</Label>
+              <Input
+                value={parent.address_line1}
+                onChange={(e) => updateParent(index, 'address_line1', e.target.value)}
+              />
+            </div>
+            <div>
+              <Label>City</Label>
+              <Input
+                value={parent.city}
+                onChange={(e) => updateParent(index, 'city', e.target.value)}
+              />
+            </div>
+            <div>
+              <Label>PIN Code</Label>
+              <Input
+                value={parent.pin_code}
+                onChange={(e) => {
+                  // Only allow digits and limit to 6 characters
+                  const value = e.target.value.replace(/\D/g, '').slice(0, 6);
+                  updateParent(index, 'pin_code', value);
+                }}
+                onBlur={(e) => validateField(index, 'pin_code', e.target.value)}
+                placeholder="6-digit PIN code"
+                maxLength={6}
+              />
+              {validationErrors[index]?.pin_code && (
+                <p className="text-xs text-destructive mt-1">{validationErrors[index].pin_code}</p>
+              )}
             </div>
           </div>
 
@@ -163,8 +276,12 @@ export function ParentFormSection({ parents, setParents }: ParentFormSectionProp
               <Input
                 value={parent.alternate_phone}
                 onChange={(e) => updateParent(index, 'alternate_phone', e.target.value)}
-                placeholder="10+ digits only (optional)"
+                onBlur={(e) => validateField(index, 'alternate_phone', e.target.value)}
+                placeholder="+91XXXXXXXXXX or 10-digit number (optional)"
               />
+              {validationErrors[index]?.alternate_phone && (
+                <p className="text-xs text-destructive mt-1">{validationErrors[index].alternate_phone}</p>
+              )}
             </div>
           </div>
 
@@ -173,7 +290,11 @@ export function ParentFormSection({ parents, setParents }: ParentFormSectionProp
               <Label>Aadhaar Number</Label>
               <Input
                 value={parent.aadhaar_number}
-                onChange={(e) => updateParent(index, 'aadhaar_number', e.target.value)}
+                onChange={(e) => {
+                  // Only allow digits and limit to 12 characters
+                  const value = e.target.value.replace(/\D/g, '').slice(0, 12);
+                  updateParent(index, 'aadhaar_number', value);
+                }}
                 placeholder="12-digit Aadhaar number"
                 maxLength={12}
               />
@@ -182,10 +303,13 @@ export function ParentFormSection({ parents, setParents }: ParentFormSectionProp
               <Label>PAN Number</Label>
               <Input
                 value={parent.pan_number}
-                onChange={(e) => updateParent(index, 'pan_number', e.target.value)}
+                onChange={(e) => {
+                  // Allow only alphanumeric and convert to uppercase
+                  const value = e.target.value.replace(/[^A-Za-z0-9]/g, '').toUpperCase().slice(0, 10);
+                  updateParent(index, 'pan_number', value);
+                }}
                 placeholder="10-character PAN"
                 maxLength={10}
-                style={{ textTransform: 'uppercase' }}
               />
             </div>
             <div>

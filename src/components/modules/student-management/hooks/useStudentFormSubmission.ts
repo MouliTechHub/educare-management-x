@@ -1,9 +1,13 @@
-
 import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { Student } from "@/types/database";
-import { checkAdmissionNumberExists } from "../utils/formValidation";
+import { 
+  checkAdmissionNumberExists, 
+  validateStudentFormData, 
+  validateParentFormData,
+  validateAndFormatPhoneNumber 
+} from "../utils/formValidation";
 
 interface FormData {
   first_name: string;
@@ -129,7 +133,35 @@ export function useStudentFormSubmission({
   const handleSubmit = async (formData: FormData, parents: Parent[]) => {
     setLoading(true);
     try {
-      console.log('Starting form submission...');
+      console.log('Starting form submission with validation...');
+
+      // Comprehensive form validation
+      const studentValidation = validateStudentFormData(formData);
+      if (!studentValidation.isValid) {
+        const firstError = Object.values(studentValidation.errors)[0];
+        toast({
+          title: "Validation Error",
+          description: firstError,
+          variant: "destructive",
+        });
+        return;
+      }
+
+      // Validate parent data for new students
+      if (!selectedStudent && parents.length > 0) {
+        for (let i = 0; i < parents.length; i++) {
+          const parentValidation = validateParentFormData(parents[i]);
+          if (!parentValidation.isValid) {
+            const firstError = Object.values(parentValidation.errors)[0];
+            toast({
+              title: "Parent Validation Error",
+              description: `Parent ${i + 1}: ${firstError}`,
+              variant: "destructive",
+            });
+            return;
+          }
+        }
+      }
 
       // Validate admission number uniqueness
       if (!selectedStudent) {
@@ -155,34 +187,43 @@ export function useStudentFormSubmission({
         }
       }
 
+      // Format phone numbers before saving
+      const formattedFormData = { ...formData };
+      if (formData.emergency_contact_phone) {
+        const phoneValidation = validateAndFormatPhoneNumber(formData.emergency_contact_phone);
+        if (phoneValidation.isValid) {
+          formattedFormData.emergency_contact_phone = phoneValidation.formatted;
+        }
+      }
+
       let studentData;
       if (selectedStudent) {
         // Update existing student
         const { data, error } = await supabase
           .from("students")
           .update({
-            first_name: formData.first_name,
-            last_name: formData.last_name,
-            admission_number: formData.admission_number,
-            date_of_birth: formData.date_of_birth,
-            gender: formData.gender,
-            class_id: formData.class_id || null,
-            address_line1: formData.address_line1 || null,
-            address_line2: formData.address_line2 || null,
-            city: formData.city || null,
-            state: formData.state || null,
-            pin_code: formData.pin_code || null,
-            blood_group: formData.blood_group || null,
-            religion: formData.religion || null,
-            caste_category: formData.caste_category || null,
-            previous_school: formData.previous_school || null,
-            transport_route: formData.transport_route || null,
-            transport_stop: formData.transport_stop || null,
-            medical_information: formData.medical_information || null,
-            emergency_contact_name: formData.emergency_contact_name || null,
-            emergency_contact_phone: formData.emergency_contact_phone || null,
-            emergency_contact_relation: formData.emergency_contact_relation || null,
-            aadhaar_number: formData.aadhaar_number || null,
+            first_name: formattedFormData.first_name,
+            last_name: formattedFormData.last_name,
+            admission_number: formattedFormData.admission_number,
+            date_of_birth: formattedFormData.date_of_birth,
+            gender: formattedFormData.gender,
+            class_id: formattedFormData.class_id || null,
+            address_line1: formattedFormData.address_line1 || null,
+            address_line2: formattedFormData.address_line2 || null,
+            city: formattedFormData.city || null,
+            state: formattedFormData.state || null,
+            pin_code: formattedFormData.pin_code || null,
+            blood_group: formattedFormData.blood_group || null,
+            religion: formattedFormData.religion || null,
+            caste_category: formattedFormData.caste_category || null,
+            previous_school: formattedFormData.previous_school || null,
+            transport_route: formattedFormData.transport_route || null,
+            transport_stop: formattedFormData.transport_stop || null,
+            medical_information: formattedFormData.medical_information || null,
+            emergency_contact_name: formattedFormData.emergency_contact_name || null,
+            emergency_contact_phone: formattedFormData.emergency_contact_phone || null,
+            emergency_contact_relation: formattedFormData.emergency_contact_relation || null,
+            aadhaar_number: formattedFormData.aadhaar_number || null,
           })
           .eq("id", selectedStudent.id)
           .select()
@@ -195,28 +236,28 @@ export function useStudentFormSubmission({
         const { data, error } = await supabase
           .from("students")
           .insert({
-            first_name: formData.first_name,
-            last_name: formData.last_name,
-            admission_number: formData.admission_number,
-            date_of_birth: formData.date_of_birth,
-            gender: formData.gender,
-            class_id: formData.class_id || null,
-            address_line1: formData.address_line1 || null,
-            address_line2: formData.address_line2 || null,
-            city: formData.city || null,
-            state: formData.state || null,
-            pin_code: formData.pin_code || null,
-            blood_group: formData.blood_group || null,
-            religion: formData.religion || null,
-            caste_category: formData.caste_category || null,
-            previous_school: formData.previous_school || null,
-            transport_route: formData.transport_route || null,
-            transport_stop: formData.transport_stop || null,
-            medical_information: formData.medical_information || null,
-            emergency_contact_name: formData.emergency_contact_name || null,
-            emergency_contact_phone: formData.emergency_contact_phone || null,
-            emergency_contact_relation: formData.emergency_contact_relation || null,
-            aadhaar_number: formData.aadhaar_number || null,
+            first_name: formattedFormData.first_name,
+            last_name: formattedFormData.last_name,
+            admission_number: formattedFormData.admission_number,
+            date_of_birth: formattedFormData.date_of_birth,
+            gender: formattedFormData.gender,
+            class_id: formattedFormData.class_id || null,
+            address_line1: formattedFormData.address_line1 || null,
+            address_line2: formattedFormData.address_line2 || null,
+            city: formattedFormData.city || null,
+            state: formattedFormData.state || null,
+            pin_code: formattedFormData.pin_code || null,
+            blood_group: formattedFormData.blood_group || null,
+            religion: formattedFormData.religion || null,
+            caste_category: formattedFormData.caste_category || null,
+            previous_school: formattedFormData.previous_school || null,
+            transport_route: formattedFormData.transport_route || null,
+            transport_stop: formattedFormData.transport_stop || null,
+            medical_information: formattedFormData.medical_information || null,
+            emergency_contact_name: formattedFormData.emergency_contact_name || null,
+            emergency_contact_phone: formattedFormData.emergency_contact_phone || null,
+            emergency_contact_relation: formattedFormData.emergency_contact_relation || null,
+            aadhaar_number: formattedFormData.aadhaar_number || null,
           })
           .select()
           .single();
@@ -235,23 +276,37 @@ export function useStudentFormSubmission({
         for (const parent of parents) {
           console.log('Inserting parent data:', parent);
 
-          // Remove aadhaar_number and other non-existent fields from parent data
+          // Format parent phone numbers
+          const formattedParent = { ...parent };
+          if (parent.phone_number) {
+            const phoneValidation = validateAndFormatPhoneNumber(parent.phone_number);
+            if (phoneValidation.isValid) {
+              formattedParent.phone_number = phoneValidation.formatted;
+            }
+          }
+          if (parent.alternate_phone) {
+            const altPhoneValidation = validateAndFormatPhoneNumber(parent.alternate_phone);
+            if (altPhoneValidation.isValid) {
+              formattedParent.alternate_phone = altPhoneValidation.formatted;
+            }
+          }
+
           const parentData = {
-            first_name: parent.first_name,
-            last_name: parent.last_name,
-            relation: parent.relation,
-            phone_number: parent.phone_number,
-            email: parent.email,
-            annual_income: parent.annual_income,
-            address_line1: parent.address_line1 || null,
-            address_line2: parent.address_line2 || null,
-            city: parent.city || null,
-            state: parent.state || null,
-            pin_code: parent.pin_code || null,
-            occupation: parent.occupation || null,
-            employer_name: parent.employer_name || null,
-            employer_address: parent.employer_address || null,
-            alternate_phone: parent.alternate_phone || null,
+            first_name: formattedParent.first_name,
+            last_name: formattedParent.last_name,
+            relation: formattedParent.relation,
+            phone_number: formattedParent.phone_number,
+            email: formattedParent.email,
+            annual_income: formattedParent.annual_income,
+            address_line1: formattedParent.address_line1 || null,
+            address_line2: formattedParent.address_line2 || null,
+            city: formattedParent.city || null,
+            state: formattedParent.state || null,
+            pin_code: formattedParent.pin_code || null,
+            occupation: formattedParent.occupation || null,
+            employer_name: formattedParent.employer_name || null,
+            employer_address: formattedParent.employer_address || null,
+            alternate_phone: formattedParent.alternate_phone || null,
           };
 
           const { data: parentRecord, error: parentError } = await supabase
@@ -290,10 +345,22 @@ export function useStudentFormSubmission({
       // Provide user-friendly error messages
       let errorMessage = `Failed to ${selectedStudent ? "update" : "create"} student`;
       
-      if (error.message?.includes('fees_fee_type_check')) {
+      if (error.message?.includes('phone_number_check')) {
+        errorMessage = 'Invalid phone number format. Please use international format (+91XXXXXXXXXX for India).';
+      } else if (error.message?.includes('email_check')) {
+        errorMessage = 'Invalid email format. Please enter a valid email address.';
+      } else if (error.message?.includes('pin_code_check')) {
+        errorMessage = 'Invalid PIN code. Please enter exactly 6 digits.';
+      } else if (error.message?.includes('aadhaar_number_check')) {
+        errorMessage = 'Invalid Aadhaar number. Please enter exactly 12 digits.';
+      } else if (error.message?.includes('fees_fee_type_check')) {
         errorMessage = 'Invalid fee type detected. Please contact the administrator.';
       } else if (error.message?.includes('students_admission_number_key')) {
         errorMessage = 'This admission number is already in use. Please use a different one.';
+      } else if (error.message?.includes('gender_check')) {
+        errorMessage = 'Invalid gender selection. Please select Male, Female, or Other.';
+      } else if (error.message?.includes('relation_check')) {
+        errorMessage = 'Invalid parent relation. Please select Mother, Father, Guardian, or Other.';
       } else if (error.message) {
         errorMessage = error.message;
       }
