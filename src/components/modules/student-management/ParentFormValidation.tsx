@@ -86,10 +86,13 @@ export function useParentFormValidation({
   };
 
   const validateAllParents = () => {
+    console.log('Starting comprehensive parent validation...');
     let hasErrors = false;
     const allErrors: Record<string, Record<string, string>> = {};
+    const updatedParents = [...parents];
 
     parents.forEach((parent, index) => {
+      console.log(`Validating parent ${index + 1}:`, parent);
       const parentErrors: Record<string, string> = {};
 
       // Validate required fields
@@ -110,34 +113,38 @@ export function useParentFormValidation({
         hasErrors = true;
       }
 
-      // Validate phone number (required)
+      // Validate and format primary phone number (required)
       if (!parent.phone_number.trim()) {
         parentErrors.phone_number = 'Phone number is required';
         hasErrors = true;
       } else {
+        console.log(`Final validation - primary phone for parent ${index + 1}:`, parent.phone_number);
         const phoneValidation = validateAndFormatPhoneNumber(parent.phone_number);
+        console.log(`Final validation result - primary phone:`, phoneValidation);
+        
         if (!phoneValidation.isValid) {
           parentErrors.phone_number = phoneValidation.error || 'Invalid phone number format';
           hasErrors = true;
         } else {
-          // Update the parent data with formatted number
-          const updatedParents = [...parents];
+          // Ensure the parent data has the properly formatted number
           updatedParents[index].phone_number = phoneValidation.formatted;
-          setParents(updatedParents);
+          console.log(`Updated parent ${index + 1} primary phone to:`, phoneValidation.formatted);
         }
       }
 
-      // Validate alternate phone (optional)
+      // Validate and format alternate phone (optional)
       if (parent.alternate_phone && parent.alternate_phone.trim()) {
+        console.log(`Final validation - alternate phone for parent ${index + 1}:`, parent.alternate_phone);
         const altPhoneValidation = validateAndFormatPhoneNumber(parent.alternate_phone);
+        console.log(`Final validation result - alternate phone:`, altPhoneValidation);
+        
         if (!altPhoneValidation.isValid) {
           parentErrors.alternate_phone = altPhoneValidation.error || 'Invalid phone number format';
           hasErrors = true;
         } else {
-          // Update the parent data with formatted number
-          const updatedParents = [...parents];
+          // Ensure the parent data has the properly formatted number
           updatedParents[index].alternate_phone = altPhoneValidation.formatted;
-          setParents(updatedParents);
+          console.log(`Updated parent ${index + 1} alternate phone to:`, altPhoneValidation.formatted);
         }
       }
 
@@ -155,7 +162,11 @@ export function useParentFormValidation({
       }
     });
 
+    // Update parents with formatted phone numbers
+    setParents(updatedParents);
     setValidationErrors(allErrors);
+    
+    console.log('Final validation result:', { hasErrors, updatedParents, allErrors });
     return !hasErrors;
   };
 

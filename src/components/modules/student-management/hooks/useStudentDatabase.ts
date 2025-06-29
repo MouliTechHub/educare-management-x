@@ -1,6 +1,6 @@
 
 import { supabase } from "@/integrations/supabase/client";
-import { validateAndFormatPhoneNumber } from "../utils/formValidation";
+import { validateAndFormatPhoneNumber, ensurePhoneFormat } from "../utils/formValidation";
 import { Student } from "@/types/database";
 
 interface FormData {
@@ -144,7 +144,7 @@ export function useStudentDatabase() {
         altPhone: parent.alternate_phone
       });
 
-      // Validate and format parent phone numbers with detailed logging
+      // Double-check and format parent phone numbers with detailed logging
       const formattedParent = { ...parent };
       
       // Primary phone validation (required)
@@ -152,37 +152,38 @@ export function useStudentDatabase() {
         throw new Error(`Parent ${i + 1}: Phone number is required`);
       }
       
-      console.log(`Validating primary phone for parent ${i + 1}:`, parent.phone_number);
-      const phoneValidation = validateAndFormatPhoneNumber(parent.phone_number);
-      console.log(`Primary phone validation result for parent ${i + 1}:`, phoneValidation);
+      console.log(`Final format check - primary phone for parent ${i + 1}:`, parent.phone_number);
+      const finalPhoneValidation = validateAndFormatPhoneNumber(parent.phone_number);
+      console.log(`Final format check result for parent ${i + 1}:`, finalPhoneValidation);
       
-      if (!phoneValidation.isValid) {
-        console.error(`Primary phone validation failed for parent ${i + 1}:`, phoneValidation.error);
-        throw new Error(`Parent ${i + 1} - ${phoneValidation.error}`);
+      if (!finalPhoneValidation.isValid) {
+        console.error(`Final primary phone validation failed for parent ${i + 1}:`, finalPhoneValidation.error);
+        throw new Error(`Parent ${i + 1} - ${finalPhoneValidation.error}`);
       }
-      formattedParent.phone_number = phoneValidation.formatted;
+      formattedParent.phone_number = finalPhoneValidation.formatted;
       
       // Alternate phone validation (optional)
       if (parent.alternate_phone && parent.alternate_phone.trim()) {
-        console.log(`Validating alternate phone for parent ${i + 1}:`, parent.alternate_phone);
-        const altPhoneValidation = validateAndFormatPhoneNumber(parent.alternate_phone);
-        console.log(`Alternate phone validation result for parent ${i + 1}:`, altPhoneValidation);
+        console.log(`Final format check - alternate phone for parent ${i + 1}:`, parent.alternate_phone);
+        const finalAltPhoneValidation = validateAndFormatPhoneNumber(parent.alternate_phone);
+        console.log(`Final format check result - alternate phone for parent ${i + 1}:`, finalAltPhoneValidation);
         
-        if (!altPhoneValidation.isValid) {
-          console.error(`Alternate phone validation failed for parent ${i + 1}:`, altPhoneValidation.error);
-          throw new Error(`Parent ${i + 1} alternate phone - ${altPhoneValidation.error}`);
+        if (!finalAltPhoneValidation.isValid) {
+          console.error(`Final alternate phone validation failed for parent ${i + 1}:`, finalAltPhoneValidation.error);
+          throw new Error(`Parent ${i + 1} alternate phone - ${finalAltPhoneValidation.error}`);
         }
-        formattedParent.alternate_phone = altPhoneValidation.formatted;
+        formattedParent.alternate_phone = finalAltPhoneValidation.formatted;
       } else {
-        // Set empty alternate phone to null
+        // Ensure empty alternate phone is null
         formattedParent.alternate_phone = null;
       }
 
+      // Prepare final parent data with extra safety formatting
       const parentData = {
         first_name: formattedParent.first_name,
         last_name: formattedParent.last_name,
         relation: formattedParent.relation,
-        phone_number: formattedParent.phone_number,
+        phone_number: ensurePhoneFormat(formattedParent.phone_number), // Extra safety check
         email: formattedParent.email,
         annual_income: formattedParent.annual_income,
         address_line1: formattedParent.address_line1 || null,
@@ -193,13 +194,15 @@ export function useStudentDatabase() {
         occupation: formattedParent.occupation || null,
         employer_name: formattedParent.employer_name || null,
         employer_address: formattedParent.employer_address || null,
-        alternate_phone: formattedParent.alternate_phone,
+        alternate_phone: formattedParent.alternate_phone ? ensurePhoneFormat(formattedParent.alternate_phone) : null, // Extra safety check
       };
 
-      console.log(`Final parent data for parent ${i + 1}:`, {
+      console.log(`Final parent data for database insert (parent ${i + 1}):`, {
         ...parentData,
         phone_number: parentData.phone_number,
-        alternate_phone: parentData.alternate_phone
+        alternate_phone: parentData.alternate_phone,
+        phoneLength: parentData.phone_number?.length,
+        altPhoneLength: parentData.alternate_phone?.length
       });
 
       try {

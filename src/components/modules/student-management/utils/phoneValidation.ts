@@ -1,3 +1,4 @@
+
 // Single source of truth for Indian phone number validation
 const INDIAN_PHONE_REGEX = /^\+91[0-9]{10}$/;
 
@@ -53,4 +54,17 @@ export const validateAndFormatPhoneNumber = (phone: string): { isValid: boolean;
   
   console.log('Phone validation successful:', formatted);
   return { isValid: true, formatted };
+};
+
+// Helper function to ensure phone number is properly formatted before database operations
+export const ensurePhoneFormat = (phone: string): string => {
+  if (!phone) return '';
+  
+  const validation = validateAndFormatPhoneNumber(phone);
+  if (validation.isValid) {
+    return validation.formatted;
+  }
+  
+  // If validation fails, return the original phone (this will cause a database error with clear message)
+  return phone;
 };
