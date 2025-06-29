@@ -54,7 +54,7 @@ export function ParentFormSection({ parents, setParents }: ParentFormSectionProp
     updatedParents[index][field] = value;
     setParents(updatedParents);
     
-    // Clear validation error for this field
+    // Clear validation error for this field when user starts typing
     if (validationErrors[index]?.[field]) {
       const newErrors = { ...validationErrors };
       if (!newErrors[index]) newErrors[index] = {};
@@ -66,33 +66,56 @@ export function ParentFormSection({ parents, setParents }: ParentFormSectionProp
   const validateField = (index: number, field: keyof ParentFormData, value: string) => {
     let error = '';
     
+    console.log(`Validating field ${field} for parent ${index} with value:`, value);
+    
     switch (field) {
       case 'phone_number':
-      case 'alternate_phone':
-        if (value.trim()) {
-          console.log(`Validating ${field} for parent ${index}:`, value);
+        if (!value.trim()) {
+          error = 'Phone number is required';
+        } else {
+          console.log(`Validating primary phone for parent ${index}:`, value);
           const phoneValidation = validateAndFormatPhoneNumber(value);
-          console.log(`${field} validation result:`, phoneValidation);
+          console.log(`Primary phone validation result:`, phoneValidation);
           
           if (!phoneValidation.isValid) {
             error = phoneValidation.error || 'Invalid phone number format';
           } else {
-            // Update with formatted phone number
-            updateParent(index, field, phoneValidation.formatted);
+            // Update with formatted phone number - do this after validation
+            setTimeout(() => {
+              updateParent(index, field, phoneValidation.formatted);
+            }, 0);
           }
-        } else if (field === 'phone_number') {
-          // Primary phone is required
-          error = 'Phone number is required';
         }
         break;
+        
+      case 'alternate_phone':
+        if (value.trim()) { // Only validate if not empty (alternate phone is optional)
+          console.log(`Validating alternate phone for parent ${index}:`, value);
+          const phoneValidation = validateAndFormatPhoneNumber(value);
+          console.log(`Alternate phone validation result:`, phoneValidation);
+          
+          if (!phoneValidation.isValid) {
+            error = phoneValidation.error || 'Invalid phone number format';
+          } else {
+            // Update with formatted phone number - do this after validation
+            setTimeout(() => {
+              updateParent(index, field, phoneValidation.formatted);
+            }, 0);
+          }
+        }
+        break;
+        
       case 'email':
         if (value.trim()) {
           const emailValidation = validateEmail(value);
           if (!emailValidation.isValid) {
             error = emailValidation.error || 'Invalid email format';
           }
+        } else {
+          error = 'Email is required';
         }
         break;
+        
       case 'pin_code':
         if (value.trim()) {
           const pinValidation = validatePinCode(value);
@@ -101,6 +124,7 @@ export function ParentFormSection({ parents, setParents }: ParentFormSectionProp
           }
         }
         break;
+        
       case 'annual_income':
         if (value.trim()) {
           const amountValidation = validateAmount(value);
@@ -111,12 +135,19 @@ export function ParentFormSection({ parents, setParents }: ParentFormSectionProp
         break;
     }
     
+    // Set or clear error
+    const newErrors = { ...validationErrors };
+    if (!newErrors[index]) newErrors[index] = {};
+    
     if (error) {
-      const newErrors = { ...validationErrors };
-      if (!newErrors[index]) newErrors[index] = {};
       newErrors[index][field] = error;
-      setValidationErrors(newErrors);
+      console.log(`Validation error for ${field}:`, error);
+    } else {
+      delete newErrors[index][field];
+      console.log(`Validation passed for ${field}`);
     }
+    
+    setValidationErrors(newErrors);
   };
 
   return (

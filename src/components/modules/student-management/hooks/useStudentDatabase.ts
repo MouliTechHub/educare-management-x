@@ -52,9 +52,14 @@ export function useStudentDatabase() {
     // Format phone numbers before saving
     const formattedFormData = { ...formData };
     if (formData.emergency_contact_phone) {
+      console.log('Validating student emergency contact phone:', formData.emergency_contact_phone);
       const phoneValidation = validateAndFormatPhoneNumber(formData.emergency_contact_phone);
+      console.log('Student emergency contact phone validation result:', phoneValidation);
+      
       if (phoneValidation.isValid) {
         formattedFormData.emergency_contact_phone = phoneValidation.formatted;
+      } else {
+        throw new Error(`Invalid emergency contact phone: ${phoneValidation.error}`);
       }
     }
 
@@ -129,38 +134,47 @@ export function useStudentDatabase() {
   };
 
   const saveParentData = async (parents: Parent[], studentId: string) => {
-    for (const parent of parents) {
-      console.log('Processing parent data before validation:', parent);
+    console.log('Starting to save parent data for', parents.length, 'parents');
+    
+    for (let i = 0; i < parents.length; i++) {
+      const parent = parents[i];
+      console.log(`Processing parent ${i + 1}:`, {
+        name: `${parent.first_name} ${parent.last_name}`,
+        phone: parent.phone_number,
+        altPhone: parent.alternate_phone
+      });
 
-      // Format parent phone numbers with detailed logging
+      // Validate and format parent phone numbers with detailed logging
       const formattedParent = { ...parent };
       
-      if (parent.phone_number) {
-        console.log('Validating primary phone:', parent.phone_number);
-        const phoneValidation = validateAndFormatPhoneNumber(parent.phone_number);
-        console.log('Primary phone validation result:', phoneValidation);
-        
-        if (phoneValidation.isValid) {
-          formattedParent.phone_number = phoneValidation.formatted;
-        } else {
-          console.error('Primary phone validation failed:', phoneValidation.error);
-          throw new Error(`Invalid primary phone number: ${phoneValidation.error}`);
-        }
+      // Primary phone validation (required)
+      if (!parent.phone_number || !parent.phone_number.trim()) {
+        throw new Error(`Parent ${i + 1}: Phone number is required`);
       }
       
+      console.log(`Validating primary phone for parent ${i + 1}:`, parent.phone_number);
+      const phoneValidation = validateAndFormatPhoneNumber(parent.phone_number);
+      console.log(`Primary phone validation result for parent ${i + 1}:`, phoneValidation);
+      
+      if (!phoneValidation.isValid) {
+        console.error(`Primary phone validation failed for parent ${i + 1}:`, phoneValidation.error);
+        throw new Error(`Parent ${i + 1} - ${phoneValidation.error}`);
+      }
+      formattedParent.phone_number = phoneValidation.formatted;
+      
+      // Alternate phone validation (optional)
       if (parent.alternate_phone && parent.alternate_phone.trim()) {
-        console.log('Validating alternate phone:', parent.alternate_phone);
+        console.log(`Validating alternate phone for parent ${i + 1}:`, parent.alternate_phone);
         const altPhoneValidation = validateAndFormatPhoneNumber(parent.alternate_phone);
-        console.log('Alternate phone validation result:', altPhoneValidation);
+        console.log(`Alternate phone validation result for parent ${i + 1}:`, altPhoneValidation);
         
-        if (altPhoneValidation.isValid) {
-          formattedParent.alternate_phone = altPhoneValidation.formatted;
-        } else {
-          console.error('Alternate phone validation failed:', altPhoneValidation.error);
-          throw new Error(`Invalid alternate phone number: ${altPhoneValidation.error}`);
+        if (!altPhoneValidation.isValid) {
+          console.error(`Alternate phone validation failed for parent ${i + 1}:`, altPhoneValidation.error);
+          throw new Error(`Parent ${i + 1} alternate phone - ${altPhoneValidation.error}`);
         }
+        formattedParent.alternate_phone = altPhoneValidation.formatted;
       } else {
-        // Set empty alternate phone to null instead of empty string
+        // Set empty alternate phone to null
         formattedParent.alternate_phone = null;
       }
 
@@ -182,29 +196,56 @@ export function useStudentDatabase() {
         alternate_phone: formattedParent.alternate_phone,
       };
 
-      console.log('Final parent data being inserted:', parentData);
+      console.log(`Final parent data for parent ${i + 1}:`, {
+        ...parentData,
+        phone_number: parentData.phone_number,
+        alternate_phone: parentData.alternate_phone
+      });
 
-      const { data: parentRecord, error: parentError } = await supabase
-        .from("parents")
-        .insert(parentData)
-        .select()
-        .single();
+      try {
+        const { data: parentRecord, error: parentError } = await supabase
+          .from("parents")
+          .insert(parentData)
+          .select()
+          .single();
 
-      if (parentError) {
-        console.error('Parent insertion error:', parentError);
-        throw parentError;
+        if (parentError) {
+          console.error(`Database error inserting parent ${i + 1}:`, parentError);
+          
+          // Provide more specific error messages
+          if (parentError.message?.includes('phone_number_check')) {
+            throw new Error(`Parent ${i + 1}: Phone number format is invalid. Please use format +91XXXXXXXXXX`);
+          } else if (parentError.message?.includes('email_check')) {
+            throw new Error(`Parent ${i + 1}: Email format is invalid`);
+          } else {
+            throw new Error(`Parent ${i + 1}: ${parentError.message}`);
+          }
+        }
+
+        console.log(`Successfully inserted parent ${i + 1} with ID:`, parentRecord.id);
+
+        // Link student to parent
+        const { error: linkError } = await supabase
+          .from("student_parent_links")
+          .insert({
+            student_id: studentId,
+            parent_id: parentRecord.id,
+          });
+
+        if (linkError) {
+          console.error(`Error linking parent ${i + 1} to student:`, linkError);
+          throw linkError;
+        }
+
+        console.log(`Successfully linked parent ${i + 1} to student`);
+        
+      } catch (error) {
+        console.error(`Error processing parent ${i + 1}:`, error);
+        throw error;
       }
-
-      // Link student to parent
-      const { error: linkError } = await supabase
-        .from("student_parent_links")
-        .insert({
-          student_id: studentId,
-          parent_id: parentRecord.id,
-        });
-
-      if (linkError) throw linkError;
     }
+    
+    console.log('Successfully saved all parent data');
   };
 
   return { saveStudentData, saveParentData };

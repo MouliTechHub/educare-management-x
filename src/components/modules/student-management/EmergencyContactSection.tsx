@@ -21,13 +21,18 @@ export function EmergencyContactSection({ formData, setFormData }: EmergencyCont
 
   const handlePhoneBlur = (value: string) => {
     if (value.trim()) {
+      console.log('Validating emergency contact phone:', value);
       const phoneValidation = validateAndFormatPhoneNumber(value);
+      console.log('Emergency contact phone validation result:', phoneValidation);
+      
       if (!phoneValidation.isValid) {
         setPhoneError(phoneValidation.error || 'Invalid phone number format');
       } else {
         setFormData({ ...formData, emergency_contact_phone: phoneValidation.formatted });
         setPhoneError('');
       }
+    } else {
+      setPhoneError('');
     }
   };
 
