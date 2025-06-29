@@ -461,12 +461,14 @@ export type Database = {
       }
       parents: {
         Row: {
+          aadhaar_number: string | null
           address_line1: string | null
           address_line2: string | null
           alternate_phone: string | null
           annual_income: number | null
           city: string | null
           created_at: string | null
+          education_qualification: string | null
           email: string
           employer_address: string | null
           employer_name: string | null
@@ -474,6 +476,7 @@ export type Database = {
           id: string
           last_name: string
           occupation: string | null
+          pan_number: string | null
           phone_number: string
           pin_code: string | null
           relation: string
@@ -481,12 +484,14 @@ export type Database = {
           updated_at: string | null
         }
         Insert: {
+          aadhaar_number?: string | null
           address_line1?: string | null
           address_line2?: string | null
           alternate_phone?: string | null
           annual_income?: number | null
           city?: string | null
           created_at?: string | null
+          education_qualification?: string | null
           email: string
           employer_address?: string | null
           employer_name?: string | null
@@ -494,6 +499,7 @@ export type Database = {
           id?: string
           last_name: string
           occupation?: string | null
+          pan_number?: string | null
           phone_number: string
           pin_code?: string | null
           relation: string
@@ -501,12 +507,14 @@ export type Database = {
           updated_at?: string | null
         }
         Update: {
+          aadhaar_number?: string | null
           address_line1?: string | null
           address_line2?: string | null
           alternate_phone?: string | null
           annual_income?: number | null
           city?: string | null
           created_at?: string | null
+          education_qualification?: string | null
           email?: string
           employer_address?: string | null
           employer_name?: string | null
@@ -514,6 +522,7 @@ export type Database = {
           id?: string
           last_name?: string
           occupation?: string | null
+          pan_number?: string | null
           phone_number?: string
           pin_code?: string | null
           relation?: string
@@ -765,12 +774,15 @@ export type Database = {
           id: string
           last_name: string
           medical_information: string | null
+          mother_tongue: string | null
+          nationality: string | null
           photo_url: string | null
           pin_code: string | null
           previous_school: string | null
           religion: string | null
           state: string | null
           status: string
+          transfer_certificate: string | null
           transport_route: string | null
           transport_stop: string | null
           updated_at: string | null
@@ -794,12 +806,15 @@ export type Database = {
           id?: string
           last_name: string
           medical_information?: string | null
+          mother_tongue?: string | null
+          nationality?: string | null
           photo_url?: string | null
           pin_code?: string | null
           previous_school?: string | null
           religion?: string | null
           state?: string | null
           status?: string
+          transfer_certificate?: string | null
           transport_route?: string | null
           transport_stop?: string | null
           updated_at?: string | null
@@ -823,12 +838,15 @@ export type Database = {
           id?: string
           last_name?: string
           medical_information?: string | null
+          mother_tongue?: string | null
+          nationality?: string | null
           photo_url?: string | null
           pin_code?: string | null
           previous_school?: string | null
           religion?: string | null
           state?: string | null
           status?: string
+          transfer_certificate?: string | null
           transport_route?: string | null
           transport_stop?: string | null
           updated_at?: string | null
@@ -896,6 +914,7 @@ export type Database = {
       }
       teachers: {
         Row: {
+          aadhaar_number: string | null
           address_line1: string | null
           address_line2: string | null
           city: string | null
@@ -912,6 +931,7 @@ export type Database = {
           hire_date: string
           id: string
           last_name: string
+          pan_number: string | null
           phone_number: string
           pin_code: string | null
           qualification: string | null
@@ -921,6 +941,7 @@ export type Database = {
           updated_at: string | null
         }
         Insert: {
+          aadhaar_number?: string | null
           address_line1?: string | null
           address_line2?: string | null
           city?: string | null
@@ -937,6 +958,7 @@ export type Database = {
           hire_date: string
           id?: string
           last_name: string
+          pan_number?: string | null
           phone_number: string
           pin_code?: string | null
           qualification?: string | null
@@ -946,6 +968,7 @@ export type Database = {
           updated_at?: string | null
         }
         Update: {
+          aadhaar_number?: string | null
           address_line1?: string | null
           address_line2?: string | null
           city?: string | null
@@ -962,6 +985,7 @@ export type Database = {
           hire_date?: string
           id?: string
           last_name?: string
+          pan_number?: string | null
           phone_number?: string
           pin_code?: string | null
           qualification?: string | null

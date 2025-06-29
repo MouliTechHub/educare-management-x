@@ -58,9 +58,6 @@ export function ParentManagement({ onNavigateToStudent, highlightedParentId }: P
         .from('parents')
         .select(`
           *,
-          aadhaar_number,
-          pan_number,
-          education_qualification,
           student_parent_links(
             students(
               id,

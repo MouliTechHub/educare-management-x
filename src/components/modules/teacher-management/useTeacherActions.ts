@@ -39,11 +39,7 @@ export function useTeacherActions() {
     try {
       const { data, error } = await supabase
         .from("teachers")
-        .select(`
-          *,
-          aadhaar_number,
-          pan_number
-        `)
+        .select("*")
         .order("created_at", { ascending: false });
 
       if (error) throw error;
