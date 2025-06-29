@@ -1,6 +1,7 @@
 
 import { supabase } from "@/integrations/supabase/client";
-import { validateAndFormatPhoneNumber, ensurePhoneFormat } from "../utils/formValidation";
+import { validateAndFormatPhoneNumber } from "../utils/formValidation";
+import { ensurePhoneFormat } from "../utils/phoneValidation";
 import { Student } from "@/types/database";
 
 interface FormData {
