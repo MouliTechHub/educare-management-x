@@ -1,12 +1,12 @@
+
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Plus, Trash2 } from "lucide-react";
-import { relations } from "./constants";
 import { ParentFormData } from "./types";
 import { useState } from "react";
 import { validateAndFormatPhoneNumber, validateEmail, validatePinCode, validateAmount } from "./utils/formValidation";
+import { ParentFormBasicInfo } from "./ParentFormBasicInfo";
+import { ParentFormContactInfo } from "./ParentFormContactInfo";
+import { ParentFormProfessionalInfo } from "./ParentFormProfessionalInfo";
 
 interface ParentFormSectionProps {
   parents: ParentFormData[];
@@ -139,190 +139,29 @@ export function ParentFormSection({ parents, setParents }: ParentFormSectionProp
             )}
           </div>
 
-          <div className="grid grid-cols-3 gap-4">
-            <div>
-              <Label>First Name *</Label>
-              <Input
-                value={parent.first_name}
-                onChange={(e) => updateParent(index, 'first_name', e.target.value)}
-                required
-              />
-            </div>
-            <div>
-              <Label>Last Name *</Label>
-              <Input
-                value={parent.last_name}
-                onChange={(e) => updateParent(index, 'last_name', e.target.value)}
-                required
-              />
-            </div>
-            <div>
-              <Label>Relation *</Label>
-              <Select value={parent.relation} onValueChange={(value) => updateParent(index, 'relation', value)}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Select relation" />
-                </SelectTrigger>
-                <SelectContent>
-                  {relations.map((relation) => (
-                    <SelectItem key={relation} value={relation}>
-                      {relation}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
+          <ParentFormBasicInfo
+            parent={parent}
+            index={index}
+            updateParent={updateParent}
+            validationErrors={validationErrors[index] || {}}
+            onFieldBlur={validateField}
+          />
 
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <Label>Phone Number *</Label>
-              <Input
-                value={parent.phone_number}
-                onChange={(e) => updateParent(index, 'phone_number', e.target.value)}
-                onBlur={(e) => validateField(index, 'phone_number', e.target.value)}
-                required
-                placeholder="Enter 10-digit number or +91XXXXXXXXXX"
-                maxLength={15}
-              />
-              {validationErrors[index]?.phone_number && (
-                <p className="text-xs text-destructive mt-1">{validationErrors[index].phone_number}</p>
-              )}
-              <p className="text-xs text-gray-500 mt-1">Format: +91XXXXXXXXXX (exactly 13 characters)</p>
-            </div>
-            <div>
-              <Label>Email *</Label>
-              <Input
-                type="email"
-                value={parent.email}
-                onChange={(e) => updateParent(index, 'email', e.target.value)}
-                onBlur={(e) => validateField(index, 'email', e.target.value)}
-                required
-                placeholder="parent@example.com"
-              />
-              {validationErrors[index]?.email && (
-                <p className="text-xs text-destructive mt-1">{validationErrors[index].email}</p>
-              )}
-            </div>
-          </div>
+          <ParentFormProfessionalInfo
+            parent={parent}
+            index={index}
+            updateParent={updateParent}
+            validationErrors={validationErrors[index] || {}}
+            onFieldBlur={validateField}
+          />
 
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <Label>Occupation</Label>
-              <Input
-                value={parent.occupation}
-                onChange={(e) => updateParent(index, 'occupation', e.target.value)}
-              />
-            </div>
-            <div>
-              <Label>Annual Income</Label>
-              <Input
-                type="number"
-                value={parent.annual_income}
-                onChange={(e) => updateParent(index, 'annual_income', e.target.value)}
-                onBlur={(e) => validateField(index, 'annual_income', e.target.value)}
-                placeholder="Enter amount in numbers"
-                min="0"
-              />
-              {validationErrors[index]?.annual_income && (
-                <p className="text-xs text-destructive mt-1">{validationErrors[index].annual_income}</p>
-              )}
-            </div>
-          </div>
-
-          <div className="grid grid-cols-3 gap-4">
-            <div>
-              <Label>Address Line 1</Label>
-              <Input
-                value={parent.address_line1}
-                onChange={(e) => updateParent(index, 'address_line1', e.target.value)}
-              />
-            </div>
-            <div>
-              <Label>City</Label>
-              <Input
-                value={parent.city}
-                onChange={(e) => updateParent(index, 'city', e.target.value)}
-              />
-            </div>
-            <div>
-              <Label>PIN Code</Label>
-              <Input
-                value={parent.pin_code}
-                onChange={(e) => {
-                  // Only allow digits and limit to 6 characters
-                  const value = e.target.value.replace(/\D/g, '').slice(0, 6);
-                  updateParent(index, 'pin_code', value);
-                }}
-                onBlur={(e) => validateField(index, 'pin_code', e.target.value)}
-                placeholder="6-digit PIN code"
-                maxLength={6}
-              />
-              {validationErrors[index]?.pin_code && (
-                <p className="text-xs text-destructive mt-1">{validationErrors[index].pin_code}</p>
-              )}
-            </div>
-          </div>
-
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <Label>Employer Name</Label>
-              <Input
-                value={parent.employer_name}
-                onChange={(e) => updateParent(index, 'employer_name', e.target.value)}
-              />
-            </div>
-            <div>
-              <Label>Alternate Phone</Label>
-              <Input
-                value={parent.alternate_phone}
-                onChange={(e) => updateParent(index, 'alternate_phone', e.target.value)}
-                onBlur={(e) => validateField(index, 'alternate_phone', e.target.value)}
-                placeholder="Enter 10-digit number or +91XXXXXXXXXX (optional)"
-                maxLength={15}
-              />
-              {validationErrors[index]?.alternate_phone && (
-                <p className="text-xs text-destructive mt-1">{validationErrors[index].alternate_phone}</p>
-              )}
-              <p className="text-xs text-gray-500 mt-1">Format: +91XXXXXXXXXX (exactly 13 characters, optional)</p>
-            </div>
-          </div>
-
-          <div className="grid grid-cols-3 gap-4">
-            <div>
-              <Label>Aadhaar Number</Label>
-              <Input
-                value={parent.aadhaar_number}
-                onChange={(e) => {
-                  // Only allow digits and limit to 12 characters
-                  const value = e.target.value.replace(/\D/g, '').slice(0, 12);
-                  updateParent(index, 'aadhaar_number', value);
-                }}
-                placeholder="12-digit Aadhaar number"
-                maxLength={12}
-              />
-            </div>
-            <div>
-              <Label>PAN Number</Label>
-              <Input
-                value={parent.pan_number}
-                onChange={(e) => {
-                  // Allow only alphanumeric and convert to uppercase
-                  const value = e.target.value.replace(/[^A-Za-z0-9]/g, '').toUpperCase().slice(0, 10);
-                  updateParent(index, 'pan_number', value);
-                }}
-                placeholder="10-character PAN"
-                maxLength={10}
-              />
-            </div>
-            <div>
-              <Label>Education Qualification</Label>
-              <Input
-                value={parent.education_qualification}
-                onChange={(e) => updateParent(index, 'education_qualification', e.target.value)}
-                placeholder="Highest qualification"
-              />
-            </div>
-          </div>
+          <ParentFormContactInfo
+            parent={parent}
+            index={index}
+            updateParent={updateParent}
+            validationErrors={validationErrors[index] || {}}
+            onFieldBlur={validateField}
+          />
         </div>
       ))}
     </div>
