@@ -26,6 +26,8 @@ interface TeacherFormData {
   emergency_contact_name?: string;
   emergency_contact_phone?: string;
   emergency_contact_relation?: string;
+  aadhaar_number?: string;
+  pan_number?: string;
 }
 
 export function useTeacherActions() {
@@ -42,10 +44,12 @@ export function useTeacherActions() {
 
       if (error) throw error;
       
-      // Type cast the status field to match our enum
+      // Type cast the status field to match our enum and ensure all fields are included
       const typedTeachers = (data || []).map(teacher => ({
         ...teacher,
-        status: teacher.status as 'Active' | 'On Leave' | 'Retired'
+        status: teacher.status as 'Active' | 'On Leave' | 'Retired',
+        aadhaar_number: teacher.aadhaar_number || null,
+        pan_number: teacher.pan_number || null,
       }));
       
       setTeachers(typedTeachers);
@@ -95,6 +99,8 @@ export function useTeacherActions() {
       emergency_contact_name: data.emergency_contact_name || null,
       emergency_contact_phone: data.emergency_contact_phone || null,
       emergency_contact_relation: data.emergency_contact_relation || null,
+      aadhaar_number: data.aadhaar_number || null,
+      pan_number: data.pan_number || null,
     };
 
     if (selectedTeacher) {

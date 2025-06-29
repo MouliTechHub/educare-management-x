@@ -68,6 +68,9 @@ export const useStudentFetcher = () => {
           ...student,
           gender: student.gender as 'Male' | 'Female' | 'Other',
           status: student.status as 'Active' | 'Inactive' | 'Alumni',
+          mother_tongue: student.mother_tongue || null,
+          nationality: student.nationality || 'Indian',
+          transfer_certificate: student.transfer_certificate || null,
           parents: student.student_parent_links?.map(link => ({
             ...link.parents,
             relation: link.parents.relation as 'Mother' | 'Father' | 'Guardian' | 'Other'

@@ -42,6 +42,9 @@ export function ParentManagement({ onNavigateToStudent, highlightedParentId }: P
     employer_name: "",
     employer_address: "",
     alternate_phone: "",
+    aadhaar_number: "",
+    pan_number: "",
+    education_qualification: "",
   });
 
   useEffect(() => {
@@ -68,10 +71,13 @@ export function ParentManagement({ onNavigateToStudent, highlightedParentId }: P
 
       if (error) throw error;
       
-      // Transform the data to include students array
+      // Transform the data to include students array and ensure all required fields
       const parentsWithStudents = (data || []).map(parent => ({
         ...parent,
         relation: parent.relation as 'Mother' | 'Father' | 'Guardian' | 'Other',
+        aadhaar_number: parent.aadhaar_number || null,
+        pan_number: parent.pan_number || null,
+        education_qualification: parent.education_qualification || null,
         students: parent.student_parent_links?.map(link => link.students).filter(Boolean) || []
       }));
       
@@ -107,11 +113,11 @@ export function ParentManagement({ onNavigateToStudent, highlightedParentId }: P
       return;
     }
 
-    // Validate phone number
-    if (!/^\d{10}$/.test(formData.phone_number)) {
+    // Validate phone number format
+    if (!/^\+91[6-9][0-9]{9}$/.test(formData.phone_number)) {
       toast({
-        title: "Validation Error",
-        description: "Phone number must be 10 digits",
+        title: "Validation Error", 
+        description: "Phone number must be in format +91XXXXXXXXXX and start with 6, 7, 8, or 9",
         variant: "destructive",
       });
       return;
@@ -122,6 +128,26 @@ export function ParentManagement({ onNavigateToStudent, highlightedParentId }: P
       toast({
         title: "Validation Error",
         description: "PIN code must be 6 digits",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Validate Aadhaar if provided
+    if (formData.aadhaar_number && !/^\d{12}$/.test(formData.aadhaar_number)) {
+      toast({
+        title: "Validation Error",
+        description: "Aadhaar number must be 12 digits",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Validate PAN if provided
+    if (formData.pan_number && !/^[A-Z]{5}[0-9]{4}[A-Z]{1}$/.test(formData.pan_number)) {
+      toast({
+        title: "Validation Error",
+        description: "PAN must be in format ABCDE1234F",
         variant: "destructive",
       });
       return;
@@ -140,6 +166,9 @@ export function ParentManagement({ onNavigateToStudent, highlightedParentId }: P
         employer_name: formData.employer_name || null,
         employer_address: formData.employer_address || null,
         alternate_phone: formData.alternate_phone || null,
+        aadhaar_number: formData.aadhaar_number || null,
+        pan_number: formData.pan_number || null,
+        education_qualification: formData.education_qualification || null,
       };
 
       if (editingParent) {
@@ -197,6 +226,9 @@ export function ParentManagement({ onNavigateToStudent, highlightedParentId }: P
       employer_name: parent.employer_name || "",
       employer_address: parent.employer_address || "",
       alternate_phone: parent.alternate_phone || "",
+      aadhaar_number: parent.aadhaar_number || "",
+      pan_number: parent.pan_number || "",
+      education_qualification: parent.education_qualification || "",
     });
     setDialogOpen(true);
   };
@@ -246,6 +278,9 @@ export function ParentManagement({ onNavigateToStudent, highlightedParentId }: P
       employer_name: "",
       employer_address: "",
       alternate_phone: "",
+      aadhaar_number: "",
+      pan_number: "",
+      education_qualification: "",
     });
     setEditingParent(null);
   };
@@ -333,8 +368,7 @@ export function ParentManagement({ onNavigateToStudent, highlightedParentId }: P
                       id="phone_number"
                       value={formData.phone_number}
                       onChange={(e) => setFormData({ ...formData, phone_number: e.target.value })}
-                      pattern="[0-9]{10}"
-                      title="Phone number must be 10 digits"
+                      placeholder="+91XXXXXXXXXX"
                       required
                     />
                   </div>
@@ -357,6 +391,43 @@ export function ParentManagement({ onNavigateToStudent, highlightedParentId }: P
                       id="alternate_phone"
                       value={formData.alternate_phone}
                       onChange={(e) => setFormData({ ...formData, alternate_phone: e.target.value })}
+                      placeholder="+91XXXXXXXXXX"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Indian Specific Information */}
+              <div className="space-y-4">
+                <h3 className="text-lg font-semibold">Indian Specific Information</h3>
+                <div className="grid grid-cols-3 gap-4">
+                  <div>
+                    <Label htmlFor="aadhaar_number">Aadhaar Number</Label>
+                    <Input
+                      id="aadhaar_number"
+                      value={formData.aadhaar_number}
+                      onChange={(e) => setFormData({ ...formData, aadhaar_number: e.target.value.replace(/\D/g, '').slice(0, 12) })}
+                      placeholder="XXXXXXXXXXXX"
+                      maxLength={12}
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="pan_number">PAN Number</Label>
+                    <Input
+                      id="pan_number"
+                      value={formData.pan_number}
+                      onChange={(e) => setFormData({ ...formData, pan_number: e.target.value.toUpperCase().slice(0, 10) })}
+                      placeholder="ABCDE1234F"
+                      maxLength={10}
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="education_qualification">Education Qualification</Label>
+                    <Input
+                      id="education_qualification"
+                      value={formData.education_qualification}
+                      onChange={(e) => setFormData({ ...formData, education_qualification: e.target.value })}
+                      placeholder="e.g., B.A., M.Com, etc."
                     />
                   </div>
                 </div>
@@ -447,9 +518,9 @@ export function ParentManagement({ onNavigateToStudent, highlightedParentId }: P
                     <Input
                       id="pin_code"
                       value={formData.pin_code}
-                      onChange={(e) => setFormData({ ...formData, pin_code: e.target.value })}
-                      pattern="[0-9]{6}"
-                      title="PIN code must be 6 digits"
+                      onChange={(e) => setFormData({ ...formData, pin_code: e.target.value.replace(/\D/g, '').slice(0, 6) })}
+                      placeholder="XXXXXX"
+                      maxLength={6}
                     />
                   </div>
                 </div>

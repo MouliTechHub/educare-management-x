@@ -73,7 +73,9 @@ export function useClassData() {
       
       const typedTeachers = (data || []).map(teacher => ({
         ...teacher,
-        status: teacher.status as 'Active' | 'On Leave' | 'Retired'
+        status: teacher.status as 'Active' | 'On Leave' | 'Retired',
+        aadhaar_number: teacher.aadhaar_number || null,
+        pan_number: teacher.pan_number || null,
       }));
       
       setTeachers(typedTeachers);
