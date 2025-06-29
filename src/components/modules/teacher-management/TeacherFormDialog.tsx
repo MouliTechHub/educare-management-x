@@ -8,12 +8,12 @@ interface TeacherFormDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   selectedTeacher: Teacher | null;
-  onSubmit: (data: TeacherFormData) => Promise<void>;
+  onSubmit: (data: TeacherFormData, selectedTeacher: Teacher | null) => Promise<void>;
 }
 
 export function TeacherFormDialog({ open, onOpenChange, selectedTeacher, onSubmit }: TeacherFormDialogProps) {
   const handleSubmit = async (data: TeacherFormData) => {
-    await onSubmit(data);
+    await onSubmit(data, selectedTeacher);
     onOpenChange(false);
   };
 
