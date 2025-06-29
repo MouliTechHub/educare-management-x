@@ -11,6 +11,7 @@ import { MedicalSection } from "./MedicalSection";
 import { ParentFormSection } from "./ParentFormSection";
 import { useStudentFormData } from "./hooks/useStudentFormData";
 import { useStudentFormSubmission } from "./hooks/useStudentFormSubmission";
+import { useToast } from "@/hooks/use-toast";
 
 interface StudentFormProps {
   open: boolean;
@@ -27,9 +28,23 @@ export function StudentForm({ open, onOpenChange, selectedStudent, classes, onSt
     onStudentSaved,
     onOpenChange
   });
+  const { toast } = useToast();
 
   const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    // Validate parent data before submission if we have parents
+    if (!selectedStudent && parents.length > 0) {
+      const validateParentData = (window as any).validateParentData;
+      if (validateParentData && !validateParentData()) {
+        toast({
+          title: "Validation Error",
+          description: "Please fix the errors in parent information before submitting.",
+          variant: "destructive",
+        });
+        return;
+      }
+    }
     
     // Convert ParentFormData to Parent format
     const convertedParents = parents.map(parent => ({
