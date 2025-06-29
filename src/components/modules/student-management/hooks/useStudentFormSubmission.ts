@@ -3,6 +3,7 @@ import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { Student } from "@/types/database";
+import { checkAdmissionNumberExists } from "../utils/formValidation";
 
 interface FormData {
   first_name: string;
@@ -83,11 +84,11 @@ export function useStudentFormSubmission({
         return;
       }
 
-      // Create default fee records with valid fee types
+      // Create default fee records with valid fee types that match the database constraint
       const defaultFees = [
         {
           student_id: studentId,
-          fee_type: 'Tuition Fee',
+          fee_type: 'Tuition', // Changed from 'Tuition Fee' to 'Tuition'
           amount: 5000,
           actual_amount: 5000,
           discount_amount: 0,
@@ -98,7 +99,7 @@ export function useStudentFormSubmission({
         },
         {
           student_id: studentId,
-          fee_type: 'Development Fee',
+          fee_type: 'Development', // Changed from 'Development Fee' to 'Development'
           amount: 1000,
           actual_amount: 1000,
           discount_amount: 0,
@@ -129,6 +130,30 @@ export function useStudentFormSubmission({
     setLoading(true);
     try {
       console.log('Starting form submission...');
+
+      // Validate admission number uniqueness
+      if (!selectedStudent) {
+        const admissionExists = await checkAdmissionNumberExists(formData.admission_number);
+        if (admissionExists) {
+          toast({
+            title: "Error",
+            description: "This admission number is already in use. Please use a different one.",
+            variant: "destructive",
+          });
+          return;
+        }
+      } else {
+        // For updates, check if admission number exists for other students
+        const admissionExists = await checkAdmissionNumberExists(formData.admission_number, selectedStudent.id);
+        if (admissionExists) {
+          toast({
+            title: "Error",
+            description: "This admission number is already in use by another student.",
+            variant: "destructive",
+          });
+          return;
+        }
+      }
 
       let studentData;
       if (selectedStudent) {
@@ -261,9 +286,21 @@ export function useStudentFormSubmission({
       onOpenChange(false);
     } catch (error: any) {
       console.error("Error saving student:", error);
+      
+      // Provide user-friendly error messages
+      let errorMessage = `Failed to ${selectedStudent ? "update" : "create"} student`;
+      
+      if (error.message?.includes('fees_fee_type_check')) {
+        errorMessage = 'Invalid fee type detected. Please contact the administrator.';
+      } else if (error.message?.includes('students_admission_number_key')) {
+        errorMessage = 'This admission number is already in use. Please use a different one.';
+      } else if (error.message) {
+        errorMessage = error.message;
+      }
+      
       toast({
         title: "Error",
-        description: error.message || `Failed to ${selectedStudent ? "update" : "create"} student`,
+        description: errorMessage,
         variant: "destructive",
       });
     } finally {
