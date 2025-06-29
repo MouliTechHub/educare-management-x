@@ -82,6 +82,23 @@ export function TeacherForm({ selectedTeacher, onSubmit, onCancel }: TeacherForm
   };
 
   const handleSubmit = async (data: TeacherFormData) => {
+    // Validate phone numbers before submission
+    if (data.phone_number) {
+      const phoneValidation = validateAndFormatPhoneNumber(data.phone_number);
+      if (!phoneValidation.isValid) {
+        setPhoneError(phoneValidation.error || 'Invalid phone number format');
+        return;
+      }
+    }
+
+    if (data.emergency_contact_phone) {
+      const emergencyPhoneValidation = validateAndFormatPhoneNumber(data.emergency_contact_phone);
+      if (!emergencyPhoneValidation.isValid) {
+        setEmergencyPhoneError(emergencyPhoneValidation.error || 'Invalid emergency contact phone number format');
+        return;
+      }
+    }
+
     try {
       await onSubmit(data);
     } catch (error: any) {
@@ -431,7 +448,7 @@ export function TeacherForm({ selectedTeacher, onSubmit, onCancel }: TeacherForm
           <Button type="button" variant="outline" onClick={onCancel}>
             Cancel
           </Button>
-          <Button type="submit">
+          <Button type="submit" disabled={!!phoneError || !!emergencyPhoneError}>
             {selectedTeacher ? "Update" : "Create"} Teacher
           </Button>
         </div>
