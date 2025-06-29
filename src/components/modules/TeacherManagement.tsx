@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -15,6 +14,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Teacher, Subject } from "@/types/database";
 import { useForm } from "react-hook-form";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
+import { validateAndFormatPhoneNumber } from "@/components/modules/student-management/utils/phoneValidation";
 
 interface TeacherFormData {
   first_name: string;
@@ -46,6 +46,8 @@ export function TeacherManagement() {
   const [loading, setLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [selectedTeacher, setSelectedTeacher] = useState<Teacher | null>(null);
+  const [phoneError, setPhoneError] = useState<string>('');
+  const [emergencyPhoneError, setEmergencyPhoneError] = useState<string>('');
   const { toast } = useToast();
 
   const form = useForm<TeacherFormData>({
@@ -119,7 +121,63 @@ export function TeacherManagement() {
     }
   };
 
+  const handlePhoneChange = (value: string, field: 'phone_number' | 'emergency_contact_phone') => {
+    form.setValue(field, value);
+    // Clear error when user starts typing
+    if (field === 'phone_number' && phoneError) setPhoneError('');
+    if (field === 'emergency_contact_phone' && emergencyPhoneError) setEmergencyPhoneError('');
+  };
+
+  const handlePhoneBlur = (value: string, field: 'phone_number' | 'emergency_contact_phone') => {
+    if (!value.trim()) {
+      if (field === 'phone_number') {
+        setPhoneError('Phone number is required');
+      } else {
+        setEmergencyPhoneError(''); // Emergency phone is optional
+      }
+      return;
+    }
+
+    console.log(`Validating teacher ${field}:`, value);
+    const phoneValidation = validateAndFormatPhoneNumber(value);
+    console.log(`Teacher ${field} validation result:`, phoneValidation);
+    
+    if (!phoneValidation.isValid) {
+      if (field === 'phone_number') {
+        setPhoneError(phoneValidation.error || 'Invalid phone number format');
+      } else {
+        setEmergencyPhoneError(phoneValidation.error || 'Invalid phone number format');
+      }
+    } else {
+      form.setValue(field, phoneValidation.formatted);
+      if (field === 'phone_number') {
+        setPhoneError('');
+      } else {
+        setEmergencyPhoneError('');
+      }
+    }
+  };
+
   const onSubmit = async (data: TeacherFormData) => {
+    // Validate phone numbers before submission
+    if (data.phone_number) {
+      const phoneValidation = validateAndFormatPhoneNumber(data.phone_number);
+      if (!phoneValidation.isValid) {
+        setPhoneError(phoneValidation.error || 'Invalid phone number format');
+        return;
+      }
+      data.phone_number = phoneValidation.formatted;
+    }
+
+    if (data.emergency_contact_phone) {
+      const emergencyPhoneValidation = validateAndFormatPhoneNumber(data.emergency_contact_phone);
+      if (!emergencyPhoneValidation.isValid) {
+        setEmergencyPhoneError(emergencyPhoneValidation.error || 'Invalid phone number format');
+        return;
+      }
+      data.emergency_contact_phone = emergencyPhoneValidation.formatted;
+    }
+
     try {
       // Convert empty strings to null for optional fields
       const cleanedData = {
@@ -161,12 +219,23 @@ export function TeacherManagement() {
       setDialogOpen(false);
       setSelectedTeacher(null);
       form.reset();
+      setPhoneError('');
+      setEmergencyPhoneError('');
     } catch (error: any) {
-      toast({
-        title: "Error saving teacher",
-        description: error.message,
-        variant: "destructive",
-      });
+      console.error("Error saving teacher:", error);
+      
+      // Handle phone number constraint violations
+      if (error.message?.includes('phone_number_check')) {
+        setPhoneError('Phone number must be in format +91XXXXXXXXXX');
+      } else if (error.message?.includes('emergency_contact_phone_check')) {
+        setEmergencyPhoneError('Emergency contact phone must be in format +91XXXXXXXXXX');
+      } else {
+        toast({
+          title: "Error saving teacher",
+          description: error.message,
+          variant: "destructive",
+        });
+      }
     }
   };
 
@@ -215,6 +284,8 @@ export function TeacherManagement() {
       emergency_contact_phone: teacher.emergency_contact_phone || "",
       emergency_contact_relation: teacher.emergency_contact_relation || "",
     });
+    setPhoneError('');
+    setEmergencyPhoneError('');
     setDialogOpen(true);
   };
 
@@ -244,6 +315,8 @@ export function TeacherManagement() {
             <Button onClick={() => {
               setSelectedTeacher(null);
               form.reset();
+              setPhoneError('');
+              setEmergencyPhoneError('');
             }}>
               <Plus className="w-4 h-4 mr-2" />
               Add Teacher
@@ -325,8 +398,19 @@ export function TeacherManagement() {
                         <FormItem>
                           <FormLabel>Phone Number *</FormLabel>
                           <FormControl>
-                            <Input {...field} required />
+                            <Input 
+                              {...field} 
+                              required 
+                              placeholder="Enter 10-digit number or +91XXXXXXXXXX"
+                              maxLength={15}
+                              onChange={(e) => handlePhoneChange(e.target.value, 'phone_number')}
+                              onBlur={(e) => handlePhoneBlur(e.target.value, 'phone_number')}
+                            />
                           </FormControl>
+                          {phoneError && (
+                            <p className="text-xs text-destructive mt-1">{phoneError}</p>
+                          )}
+                          <p className="text-xs text-gray-500 mt-1">Format: +91XXXXXXXXXX (exactly 13 characters)</p>
                           <FormMessage />
                         </FormItem>
                       )}
@@ -543,8 +627,18 @@ export function TeacherManagement() {
                         <FormItem>
                           <FormLabel>Emergency Contact Phone</FormLabel>
                           <FormControl>
-                            <Input {...field} />
+                            <Input 
+                              {...field} 
+                              placeholder="Enter 10-digit number or +91XXXXXXXXXX (optional)"
+                              maxLength={15}
+                              onChange={(e) => handlePhoneChange(e.target.value, 'emergency_contact_phone')}
+                              onBlur={(e) => handlePhoneBlur(e.target.value, 'emergency_contact_phone')}
+                            />
                           </FormControl>
+                          {emergencyPhoneError && (
+                            <p className="text-xs text-destructive mt-1">{emergencyPhoneError}</p>
+                          )}
+                          <p className="text-xs text-gray-500 mt-1">Format: +91XXXXXXXXXX (exactly 13 characters, optional)</p>
                           <FormMessage />
                         </FormItem>
                       )}
