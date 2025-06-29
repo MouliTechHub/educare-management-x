@@ -13,6 +13,9 @@ export const useStudentFetcher = () => {
         .from("students")
         .select(`
           *,
+          mother_tongue,
+          nationality,
+          transfer_certificate,
           classes(id, name, section),
           student_parent_links(
             parents(

@@ -65,7 +65,11 @@ export function useClassData() {
     try {
       const { data, error } = await supabase
         .from("teachers")
-        .select("*")
+        .select(`
+          *,
+          aadhaar_number,
+          pan_number
+        `)
         .eq("status", "Active")
         .order("first_name");
 
