@@ -240,9 +240,34 @@ export function TeacherManagement() {
   };
 
   const deleteTeacher = async (id: string) => {
-    if (!confirm("Are you sure you want to delete this teacher?")) return;
-
+    // Check if teacher is assigned as homeroom teacher to any classes
     try {
+      const { data: classes, error: checkError } = await supabase
+        .from("classes")
+        .select("name, section")
+        .eq("homeroom_teacher_id", id);
+
+      if (checkError) throw checkError;
+
+      let confirmMessage = "Are you sure you want to delete this teacher?";
+      if (classes && classes.length > 0) {
+        const classNames = classes.map(c => `${c.name}${c.section ? ` - ${c.section}` : ''}`).join(', ');
+        confirmMessage = `This teacher is currently assigned as homeroom teacher for: ${classNames}. Deleting will remove them from these classes. Are you sure you want to continue?`;
+      }
+
+      if (!confirm(confirmMessage)) return;
+
+      // Remove teacher from homeroom assignments first
+      if (classes && classes.length > 0) {
+        const { error: updateError } = await supabase
+          .from("classes")
+          .update({ homeroom_teacher_id: null })
+          .eq("homeroom_teacher_id", id);
+
+        if (updateError) throw updateError;
+      }
+
+      // Then delete the teacher
       const { error } = await supabase
         .from("teachers")
         .delete()

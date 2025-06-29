@@ -67,8 +67,40 @@ export function useClassActions(fetchClasses: () => Promise<void>) {
     }
   };
 
+  const deleteTeacher = async (teacherId: string) => {
+    if (!confirm("Are you sure you want to delete this teacher? They will be removed from any classes where they are assigned as homeroom teacher.")) return;
+
+    try {
+      // First, remove the teacher from any classes where they are homeroom teacher
+      const { error: updateError } = await supabase
+        .from("classes")
+        .update({ homeroom_teacher_id: null })
+        .eq("homeroom_teacher_id", teacherId);
+
+      if (updateError) throw updateError;
+
+      // Then delete the teacher
+      const { error: deleteError } = await supabase
+        .from("teachers")
+        .delete()
+        .eq("id", teacherId);
+
+      if (deleteError) throw deleteError;
+      
+      toast({ title: "Teacher deleted successfully" });
+      fetchClasses(); // Refresh classes to show updated homeroom teacher assignments
+    } catch (error: any) {
+      toast({
+        title: "Error deleting teacher",
+        description: error.message,
+        variant: "destructive",
+      });
+    }
+  };
+
   return {
     saveClass,
     deleteClass,
+    deleteTeacher,
   };
 }
