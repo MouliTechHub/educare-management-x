@@ -130,21 +130,38 @@ export function useStudentDatabase() {
 
   const saveParentData = async (parents: Parent[], studentId: string) => {
     for (const parent of parents) {
-      console.log('Inserting parent data:', parent);
+      console.log('Processing parent data before validation:', parent);
 
-      // Format parent phone numbers
+      // Format parent phone numbers with detailed logging
       const formattedParent = { ...parent };
+      
       if (parent.phone_number) {
+        console.log('Validating primary phone:', parent.phone_number);
         const phoneValidation = validateAndFormatPhoneNumber(parent.phone_number);
+        console.log('Primary phone validation result:', phoneValidation);
+        
         if (phoneValidation.isValid) {
           formattedParent.phone_number = phoneValidation.formatted;
+        } else {
+          console.error('Primary phone validation failed:', phoneValidation.error);
+          throw new Error(`Invalid primary phone number: ${phoneValidation.error}`);
         }
       }
-      if (parent.alternate_phone) {
+      
+      if (parent.alternate_phone && parent.alternate_phone.trim()) {
+        console.log('Validating alternate phone:', parent.alternate_phone);
         const altPhoneValidation = validateAndFormatPhoneNumber(parent.alternate_phone);
+        console.log('Alternate phone validation result:', altPhoneValidation);
+        
         if (altPhoneValidation.isValid) {
           formattedParent.alternate_phone = altPhoneValidation.formatted;
+        } else {
+          console.error('Alternate phone validation failed:', altPhoneValidation.error);
+          throw new Error(`Invalid alternate phone number: ${altPhoneValidation.error}`);
         }
+      } else {
+        // Set empty alternate phone to null instead of empty string
+        formattedParent.alternate_phone = null;
       }
 
       const parentData = {
@@ -162,8 +179,10 @@ export function useStudentDatabase() {
         occupation: formattedParent.occupation || null,
         employer_name: formattedParent.employer_name || null,
         employer_address: formattedParent.employer_address || null,
-        alternate_phone: formattedParent.alternate_phone || null,
+        alternate_phone: formattedParent.alternate_phone,
       };
+
+      console.log('Final parent data being inserted:', parentData);
 
       const { data: parentRecord, error: parentError } = await supabase
         .from("parents")

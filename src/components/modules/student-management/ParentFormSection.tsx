@@ -70,13 +70,19 @@ export function ParentFormSection({ parents, setParents }: ParentFormSectionProp
       case 'phone_number':
       case 'alternate_phone':
         if (value.trim()) {
+          console.log(`Validating ${field} for parent ${index}:`, value);
           const phoneValidation = validateAndFormatPhoneNumber(value);
+          console.log(`${field} validation result:`, phoneValidation);
+          
           if (!phoneValidation.isValid) {
             error = phoneValidation.error || 'Invalid phone number format';
           } else {
             // Update with formatted phone number
             updateParent(index, field, phoneValidation.formatted);
           }
+        } else if (field === 'phone_number') {
+          // Primary phone is required
+          error = 'Phone number is required';
         }
         break;
       case 'email':
