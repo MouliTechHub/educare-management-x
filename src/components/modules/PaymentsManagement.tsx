@@ -58,10 +58,10 @@ export function PaymentsManagement() {
 
       if (yearsError) throw yearsError;
 
-      // Fetch students
+      // Fetch students - Fix the missing class id issue
       const { data: studentsData, error: studentsError } = await supabase
         .from("students")
-        .select("*, classes:class_id(name, section)")
+        .select("*, classes:class_id(id, name, section)")
         .eq("status", "Active")
         .order("first_name");
 
@@ -72,7 +72,12 @@ export function PaymentsManagement() {
         ...student,
         gender: student.gender as 'Male' | 'Female' | 'Other',
         status: student.status as 'Active' | 'Inactive' | 'Alumni',
-        caste_category: student.caste_category as Student['caste_category']
+        caste_category: student.caste_category as Student['caste_category'],
+        classes: student.classes ? {
+          id: student.classes.id,
+          name: student.classes.name,
+          section: student.classes.section
+        } : null
       }));
 
       // Fetch fee structures
