@@ -47,7 +47,10 @@ export function FeeTable({ fees, onPaymentClick, onDiscountClick, onHistoryClick
   const [changeHistoryOpen, setChangeHistoryOpen] = useState(false);
   const [selectedFeeForHistory, setSelectedFeeForHistory] = useState<Fee | null>(null);
 
+  console.log('FeeTable rendering with fees:', fees.length);
+
   const openChangeHistory = (fee: Fee) => {
+    console.log('Opening change history for fee:', fee);
     setSelectedFeeForHistory(fee);
     setChangeHistoryOpen(true);
   };
@@ -90,15 +93,27 @@ export function FeeTable({ fees, onPaymentClick, onDiscountClick, onHistoryClick
 
   if (fees.length === 0) {
     return (
-      <div className="text-center py-8 text-gray-500">
-        <Users className="w-12 h-12 mx-auto mb-4 opacity-50" />
-        <p>No fee records found matching your criteria</p>
+      <div className="text-center py-12 bg-gray-50 rounded-lg border-2 border-dashed border-gray-300">
+        <Users className="w-16 h-16 mx-auto mb-4 text-gray-400" />
+        <h3 className="text-lg font-medium text-gray-900 mb-2">No Fee Records Found</h3>
+        <p className="text-gray-500 mb-4">No fee records match your current criteria</p>
+        <div className="text-sm text-gray-400 space-y-1">
+          <p>• Try adjusting your search filters</p>
+          <p>• Check if the correct academic year is selected</p>
+          <p>• Ensure students have been assigned fees</p>
+        </div>
       </div>
     );
   }
 
   return (
     <>
+      <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 mb-4">
+        <p className="text-blue-800 text-sm">
+          📋 Displaying {fees.length} fee record(s). Click "History" to view detailed payment timeline with exact timestamps.
+        </p>
+      </div>
+
       <Table>
         <TableHeader>
           <TableRow>

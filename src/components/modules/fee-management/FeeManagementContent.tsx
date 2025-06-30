@@ -84,6 +84,13 @@ export function FeeManagementContent({
   onDiscountClick,
   onHistoryClick
 }: FeeManagementContentProps) {
+  console.log('FeeManagementContent rendering with:', {
+    currentYear: currentYear?.year_name,
+    searchTerm,
+    classesCount: classes.length,
+    filteredFeesCount: filteredFees.length
+  });
+
   return (
     <Card>
       <CardHeader>
@@ -91,7 +98,7 @@ export function FeeManagementContent({
           <div>
             <CardTitle>Fee Records</CardTitle>
             <CardDescription>
-              Academic year-based fee management with change tracking
+              Comprehensive fee management with detailed payment history and time tracking
               {currentYear && 
                 ` - ${currentYear.year_name}${currentYear.is_current ? ' (Current Year)' : ''}`
               }
@@ -109,6 +116,16 @@ export function FeeManagementContent({
         </div>
       </CardHeader>
       <CardContent className="space-y-4">
+        <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+          <h4 className="font-medium text-green-900 mb-2">📊 Current Data Status</h4>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm text-green-800">
+            <div>Classes Available: {classes.length}</div>
+            <div>Fee Records: {filteredFees.length}</div>
+            <div>Search Term: "{searchTerm || 'None'}"</div>
+            <div>Academic Year: {currentYear?.year_name || 'All Years'}</div>
+          </div>
+        </div>
+
         <FeeManagementFilters
           searchTerm={searchTerm}
           onSearchChange={onSearchChange}

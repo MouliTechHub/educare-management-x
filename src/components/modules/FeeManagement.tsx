@@ -40,6 +40,8 @@ interface Fee {
 }
 
 export function FeeManagement() {
+  console.log('FeeManagement component rendering...');
+  
   const { 
     fees, 
     academicYears, 
@@ -47,6 +49,8 @@ export function FeeManagement() {
     setSelectedAcademicYear, 
     loading 
   } = useFeeData();
+  
+  console.log('Fee data:', { fees: fees.length, academicYears: academicYears.length, loading });
   
   const {
     classes,
@@ -62,36 +66,60 @@ export function FeeManagement() {
     applyFilters
   } = useFeeManagement();
 
+  console.log('Fee management data:', { classes: classes.length, searchTerm, filters });
+
   // Get year-wise summary
   const yearWiseSummary = useYearWiseSummary(fees, academicYears, selectedAcademicYear);
+  console.log('Year wise summary:', yearWiseSummary);
 
   const handleHistoryClick = (student: Fee['student']) => {
+    console.log('History clicked for student:', student);
     openHistoryDialog(student, fees);
   };
 
   const handlePaymentClick = (fee: Fee) => {
-    // TODO: Implement payment dialog
     console.log('Payment clicked for fee:', fee);
+    // TODO: Implement payment dialog
   };
 
   const handleDiscountClick = (fee: Fee) => {
-    // TODO: Implement discount dialog
     console.log('Discount clicked for fee:', fee);
+    // TODO: Implement discount dialog
   };
 
   if (loading) {
+    console.log('Fee Management is loading...');
     return (
       <div className="flex items-center justify-center min-h-[400px]">
         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+        <p className="ml-4 text-gray-600">Loading fee management data...</p>
       </div>
     );
   }
 
   const currentYear = academicYears.find(year => year.id === selectedAcademicYear);
   const filteredFees = applyFilters(fees);
+  
+  console.log('Rendering Fee Management with:', {
+    currentYear: currentYear?.year_name,
+    filteredFeesCount: filteredFees.length,
+    totalFeesCount: fees.length
+  });
 
   return (
     <div className="space-y-6">
+      <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+        <h3 className="text-blue-900 font-semibold mb-2">🔍 Debug Information</h3>
+        <div className="text-sm text-blue-800 space-y-1">
+          <p>Total Fees: {fees.length}</p>
+          <p>Filtered Fees: {filteredFees.length}</p>
+          <p>Academic Years: {academicYears.length}</p>
+          <p>Classes: {classes.length}</p>
+          <p>Loading: {loading ? 'Yes' : 'No'}</p>
+          <p>Current Year: {currentYear?.year_name || 'None selected'}</p>
+        </div>
+      </div>
+
       <FeeManagementHeader
         academicYears={academicYears}
         selectedAcademicYear={selectedAcademicYear}
