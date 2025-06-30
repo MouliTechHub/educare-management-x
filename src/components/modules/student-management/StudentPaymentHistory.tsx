@@ -79,13 +79,13 @@ export function StudentPaymentHistory({
   return (
     <>
       <Dialog open={open} onOpenChange={onOpenChange}>
-        <DialogContent className="max-w-6xl max-h-[80vh] overflow-y-auto">
+        <DialogContent className="max-w-7xl max-h-[85vh] overflow-y-auto">
           <PaymentHistoryDialogHeader 
             studentName={studentName} 
             currentYear={currentYear} 
           />
           
-          <div className="space-y-4">
+          <div className="space-y-6">
             <PaymentHistoryFilters
               searchTerm={searchTerm}
               onSearchChange={setSearchTerm}
@@ -96,17 +96,35 @@ export function StudentPaymentHistory({
 
             <Tabs defaultValue="payments" className="w-full">
               <TabsList className="grid w-full grid-cols-2">
-                <TabsTrigger value="payments">Detailed Payment History</TabsTrigger>
-                <TabsTrigger value="fees">Fee Records</TabsTrigger>
+                <TabsTrigger value="payments" className="flex items-center space-x-2">
+                  <span>📊 Payment Timeline</span>
+                </TabsTrigger>
+                <TabsTrigger value="fees" className="flex items-center space-x-2">
+                  <span>📋 Fee Summary</span>
+                </TabsTrigger>
               </TabsList>
               
               <TabsContent value="payments" className="space-y-4">
-                <div className="bg-blue-50 p-4 rounded-lg">
-                  <h3 className="font-medium text-blue-900 mb-2">Payment History with Time Details</h3>
-                  <p className="text-sm text-blue-700">
-                    This shows all payments made by the student with exact date and time information. 
-                    Multiple payments on the same day will show different times.
-                  </p>
+                <div className="bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-lg p-6">
+                  <h3 className="font-semibold text-blue-900 mb-3 text-lg">Management Payment Overview</h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+                    <div className="space-y-2">
+                      <p className="text-blue-700">
+                        <strong>📅 Complete Timeline:</strong> View all payments with exact dates and times
+                      </p>
+                      <p className="text-blue-700">
+                        <strong>🔍 Multiple Daily Payments:</strong> See separate entries for morning and evening payments
+                      </p>
+                    </div>
+                    <div className="space-y-2">
+                      <p className="text-blue-700">
+                        <strong>💰 Amount Tracking:</strong> Track original amounts and any reversals/refunds
+                      </p>
+                      <p className="text-blue-700">
+                        <strong>📝 Full Documentation:</strong> Complete payment method and receiver details
+                      </p>
+                    </div>
+                  </div>
                 </div>
                 <PaymentHistoryTab
                   paymentHistory={filteredPaymentHistory}
@@ -117,6 +135,13 @@ export function StudentPaymentHistory({
               </TabsContent>
               
               <TabsContent value="fees" className="space-y-4">
+                <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+                  <h3 className="font-medium text-yellow-900 mb-2">Fee Records Summary</h3>
+                  <p className="text-sm text-yellow-700">
+                    This shows the overall fee structure and payment status for each fee type. 
+                    Use the Payment Timeline tab for detailed transaction history.
+                  </p>
+                </div>
                 <FeeRecordsTab fees={filteredFees} />
               </TabsContent>
             </Tabs>

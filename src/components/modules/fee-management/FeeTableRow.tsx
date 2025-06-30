@@ -50,7 +50,7 @@ export function FeeTableRow({
   onDiscountClick, 
   onHistoryClick, 
   onChangeHistoryClick,
-  showPaymentActions = true 
+  showPaymentActions = false // Changed default to false
 }: FeeTableRowProps) {
   const getStatusColor = (status: string) => {
     switch (status) {

@@ -120,11 +120,11 @@ export function FeeTable({ fees, onPaymentClick, onDiscountClick, onHistoryClick
             <FeeTableRow
               key={fee.id}
               fee={fee}
-              onPaymentClick={() => {}} // Removed payment functionality
-              onDiscountClick={() => {}} // Removed discount functionality
+              onPaymentClick={onPaymentClick}
+              onDiscountClick={onDiscountClick}
               onHistoryClick={onHistoryClick}
               onChangeHistoryClick={openChangeHistory}
-              showPaymentActions={false} // New prop to hide payment actions
+              showPaymentActions={false} // Explicitly set to false to hide payment actions
             />
           ))}
         </TableBody>
