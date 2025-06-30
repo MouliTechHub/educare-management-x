@@ -1,28 +1,22 @@
 
-import { supabase } from "@/integrations/supabase/client";
+import { useState } from "react";
 import { useToast } from "@/hooks/use-toast";
-import { Class } from "@/types/database";
+import { supabase } from "@/integrations/supabase/client";
+import { ClassWithStats } from "@/types/database";
 
-interface ClassFormData {
-  name: string;
-  section?: string;
-  homeroom_teacher_id?: string;
-}
-
-export function useClassActions(fetchClasses: () => Promise<void>) {
+export function useClassActions(refetchClasses: () => void) {
   const { toast } = useToast();
 
-  const saveClass = async (data: ClassFormData, selectedClass: Class | null) => {
+  const saveClass = async (data: any, selectedClass: ClassWithStats | null) => {
     try {
-      const classData = {
-        ...data,
-        homeroom_teacher_id: data.homeroom_teacher_id || null,
-      };
-
       if (selectedClass) {
         const { error } = await supabase
           .from("classes")
-          .update(classData)
+          .update({
+            name: data.name,
+            section: data.section || null,
+            homeroom_teacher_id: data.homeroom_teacher_id || null,
+          })
           .eq("id", selectedClass.id);
 
         if (error) throw error;
@@ -30,13 +24,17 @@ export function useClassActions(fetchClasses: () => Promise<void>) {
       } else {
         const { error } = await supabase
           .from("classes")
-          .insert([classData]);
+          .insert([{
+            name: data.name,
+            section: data.section || null,
+            homeroom_teacher_id: data.homeroom_teacher_id || null,
+          }]);
 
         if (error) throw error;
         toast({ title: "Class created successfully" });
       }
 
-      fetchClasses();
+      refetchClasses();
     } catch (error: any) {
       toast({
         title: "Error saving class",
@@ -57,7 +55,7 @@ export function useClassActions(fetchClasses: () => Promise<void>) {
 
       if (error) throw error;
       toast({ title: "Class deleted successfully" });
-      fetchClasses();
+      refetchClasses();
     } catch (error: any) {
       toast({
         title: "Error deleting class",
@@ -67,40 +65,8 @@ export function useClassActions(fetchClasses: () => Promise<void>) {
     }
   };
 
-  const deleteTeacher = async (teacherId: string) => {
-    if (!confirm("Are you sure you want to delete this teacher? They will be removed from any classes where they are assigned as homeroom teacher.")) return;
-
-    try {
-      // First, remove the teacher from any classes where they are homeroom teacher
-      const { error: updateError } = await supabase
-        .from("classes")
-        .update({ homeroom_teacher_id: null })
-        .eq("homeroom_teacher_id", teacherId);
-
-      if (updateError) throw updateError;
-
-      // Then delete the teacher
-      const { error: deleteError } = await supabase
-        .from("teachers")
-        .delete()
-        .eq("id", teacherId);
-
-      if (deleteError) throw deleteError;
-      
-      toast({ title: "Teacher deleted successfully" });
-      fetchClasses(); // Refresh classes to show updated homeroom teacher assignments
-    } catch (error: any) {
-      toast({
-        title: "Error deleting teacher",
-        description: error.message,
-        variant: "destructive",
-      });
-    }
-  };
-
   return {
     saveClass,
     deleteClass,
-    deleteTeacher,
   };
 }

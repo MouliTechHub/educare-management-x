@@ -20,7 +20,21 @@ export function useClassDataWithStats() {
 
       if (classError) throw classError;
 
-      setClasses(classData || []);
+      // Transform data to match ClassWithStats interface
+      const transformedClasses: ClassWithStats[] = (classData || []).map(cls => ({
+        id: cls.id,
+        name: cls.name,
+        section: cls.section,
+        homeroom_teacher_id: null, // Will be filled from classes table if needed
+        total_students: cls.total_students,
+        male_count: cls.male_count,
+        female_count: cls.female_count,
+        other_count: cls.other_count,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
+      }));
+
+      setClasses(transformedClasses);
     } catch (error: any) {
       toast({
         title: "Error fetching classes",

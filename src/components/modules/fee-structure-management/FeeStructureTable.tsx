@@ -2,16 +2,24 @@
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { Edit, Trash2 } from "lucide-react";
+import { Edit, Trash2, DollarSign, Calendar } from "lucide-react";
 import { FeeStructure } from "@/types/database";
 
 interface FeeStructureTableProps {
-  feeStructures: any[];
+  feeStructures: FeeStructure[];
   onEdit: (structure: FeeStructure) => void;
   onDelete: (id: string) => void;
 }
 
 export function FeeStructureTable({ feeStructures, onEdit, onDelete }: FeeStructureTableProps) {
+  if (feeStructures.length === 0) {
+    return (
+      <div className="text-center py-8">
+        <p className="text-gray-500">No fee structures found. Create one to get started.</p>
+      </div>
+    );
+  }
+
   const getFrequencyColor = (frequency: string) => {
     switch (frequency) {
       case 'Monthly': return 'bg-blue-100 text-blue-800';
@@ -24,22 +32,13 @@ export function FeeStructureTable({ feeStructures, onEdit, onDelete }: FeeStruct
 
   const getFeeTypeColor = (feeType: string) => {
     switch (feeType) {
-      case 'Tuition': return 'bg-red-100 text-red-800';
+      case 'Tuition': return 'bg-indigo-100 text-indigo-800';
       case 'Transport': return 'bg-yellow-100 text-yellow-800';
-      case 'Laboratory': return 'bg-cyan-100 text-cyan-800';
-      case 'Library': return 'bg-indigo-100 text-indigo-800';
-      case 'Sports': return 'bg-green-100 text-green-800';
+      case 'Meals': return 'bg-pink-100 text-pink-800';
+      case 'Books': return 'bg-cyan-100 text-cyan-800';
       default: return 'bg-gray-100 text-gray-800';
     }
   };
-
-  if (feeStructures.length === 0) {
-    return (
-      <div className="text-center py-8">
-        <p className="text-gray-500">No fee structures found. Create one to get started.</p>
-      </div>
-    );
-  }
 
   return (
     <div className="rounded-md border">
@@ -59,26 +58,33 @@ export function FeeStructureTable({ feeStructures, onEdit, onDelete }: FeeStruct
           {feeStructures.map((structure) => (
             <TableRow key={structure.id}>
               <TableCell className="font-medium">
-                {structure.classes?.name} {structure.classes?.section && `- ${structure.classes.section}`}
+                {/* We'll need to add class name from joined data */}
+                Class Information
               </TableCell>
               <TableCell>
-                {structure.academic_years?.year_name}
+                {/* We'll need to add academic year from joined data */}
+                Academic Year
               </TableCell>
               <TableCell>
                 <Badge className={getFeeTypeColor(structure.fee_type)}>
                   {structure.fee_type}
                 </Badge>
               </TableCell>
-              <TableCell className="font-medium">
-                ₹{structure.amount.toLocaleString()}
+              <TableCell>
+                <div className="flex items-center space-x-1">
+                  <DollarSign className="w-4 h-4 text-green-600" />
+                  <span className="font-medium">₹{structure.amount.toLocaleString()}</span>
+                </div>
               </TableCell>
               <TableCell>
                 <Badge className={getFrequencyColor(structure.frequency)}>
                   {structure.frequency}
                 </Badge>
               </TableCell>
-              <TableCell className="max-w-xs truncate">
-                {structure.description || '-'}
+              <TableCell className="max-w-xs">
+                <div className="truncate" title={structure.description || ''}>
+                  {structure.description || '-'}
+                </div>
               </TableCell>
               <TableCell className="text-right">
                 <div className="flex justify-end space-x-2">

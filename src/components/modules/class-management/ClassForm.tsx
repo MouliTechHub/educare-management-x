@@ -1,156 +1,110 @@
 
-
-import { useForm } from "react-hook-form";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
-import { Teacher } from "@/types/database";
-
-interface ClassFormData {
-  name: string;
-  section?: string;
-  homeroom_teacher_id?: string;
-}
+import { useState, useEffect } from "react";
+import { ClassWithStats, TeacherBasic } from "@/types/database";
 
 interface ClassFormProps {
-  teachers: Teacher[];
-  selectedClass: any;
-  onSubmit: (data: ClassFormData) => Promise<void>;
+  teachers: TeacherBasic[];
+  selectedClass: ClassWithStats | null;
+  onSubmit: (data: any) => void;
   onCancel: () => void;
 }
 
 export function ClassForm({ teachers, selectedClass, onSubmit, onCancel }: ClassFormProps) {
-  const form = useForm<ClassFormData>({
-    defaultValues: {
-      name: selectedClass?.name || "",
-      section: selectedClass?.section || "",
-      homeroom_teacher_id: selectedClass?.homeroom_teacher_id && 
-        selectedClass.homeroom_teacher_id.trim() !== "" 
-        ? selectedClass.homeroom_teacher_id 
-        : undefined,
-    },
+  const [formData, setFormData] = useState({
+    name: '',
+    section: '',
+    homeroom_teacher_id: '',
   });
 
-  // Ultra-robust filtering for valid teachers
-  const validTeachers = teachers.filter((teacher) => {
-    console.log('Raw teacher data:', teacher);
-    
-    // Check if teacher exists and has an id property
-    if (!teacher || !teacher.id) {
-      console.log('Teacher missing or no ID:', teacher);
-      return false;
+  useEffect(() => {
+    if (selectedClass) {
+      setFormData({
+        name: selectedClass.name,
+        section: selectedClass.section || '',
+        homeroom_teacher_id: selectedClass.homeroom_teacher_id || '',
+      });
+    } else {
+      setFormData({
+        name: '',
+        section: '',
+        homeroom_teacher_id: '',
+      });
     }
+  }, [selectedClass]);
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
     
-    // Ensure ID is a string and not empty after trimming
-    const teacherId = String(teacher.id).trim();
-    if (teacherId === "" || teacherId.length === 0) {
-      console.log('Teacher ID is empty after trimming:', teacher.id);
-      return false;
+    if (!formData.name.trim()) {
+      alert('Class name is required');
+      return;
     }
-    
-    // Check for valid names
-    const hasValidName = teacher.first_name && teacher.last_name && 
-                        String(teacher.first_name).trim() !== "" && 
-                        String(teacher.last_name).trim() !== "";
-    
-    console.log('Teacher validation result:', {
-      id: teacher.id,
-      trimmedId: teacherId,
-      hasValidName,
-      isValid: hasValidName
+
+    onSubmit({
+      ...formData,
+      homeroom_teacher_id: formData.homeroom_teacher_id || null,
     });
-    
-    return hasValidName;
-  });
+  };
 
-  console.log('Valid teachers count:', validTeachers.length);
-  console.log('Valid teachers:', validTeachers);
+  const handleInputChange = (field: string, value: string) => {
+    setFormData({ ...formData, [field]: value });
+  };
 
   return (
-    <Form {...form}>
-      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-        <FormField
-          control={form.control}
-          name="name"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Class Name</FormLabel>
-              <FormControl>
-                <Input {...field} placeholder="e.g., Grade 10, Class XII" required />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
+    <form onSubmit={handleSubmit} className="space-y-4">
+      <div className="space-y-2">
+        <Label htmlFor="name">Class Name *</Label>
+        <Input
+          id="name"
+          value={formData.name}
+          onChange={(e) => handleInputChange('name', e.target.value)}
+          placeholder="e.g., Class 1, Grade 10"
+          required
         />
-        <FormField
-          control={form.control}
-          name="section"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Section</FormLabel>
-              <FormControl>
-                <Input {...field} placeholder="e.g., A, B, Science" />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
+      </div>
+
+      <div className="space-y-2">
+        <Label htmlFor="section">Section</Label>
+        <Input
+          id="section"
+          value={formData.section}
+          onChange={(e) => handleInputChange('section', e.target.value)}
+          placeholder="e.g., A, B, Alpha"
         />
-        <FormField
-          control={form.control}
-          name="homeroom_teacher_id"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Homeroom Teacher</FormLabel>
-              <Select 
-                onValueChange={field.onChange} 
-                value={field.value}
-              >
-                <FormControl>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select a teacher" />
-                  </SelectTrigger>
-                </FormControl>
-                <SelectContent>
-                  {validTeachers.length > 0 ? (
-                    validTeachers.map((teacher) => {
-                      const teacherId = String(teacher.id).trim();
-                      console.log('About to render SelectItem for teacher ID:', teacherId);
-                      
-                      // CRITICAL: Final safety check before rendering SelectItem
-                      // This is the ultimate guard against empty string values
-                      if (!teacherId || teacherId === "" || teacherId.length === 0) {
-                        console.error('CRITICAL: Prevented rendering SelectItem with empty value:', teacher);
-                        return null;
-                      }
-                      
-                      return (
-                        <SelectItem key={teacherId} value={teacherId}>
-                          {teacher.first_name} {teacher.last_name}
-                        </SelectItem>
-                      );
-                    }).filter(Boolean) // Remove any null values
-                  ) : (
-                    <SelectItem value="no-teachers-available" disabled>
-                      No teachers available
-                    </SelectItem>
-                  )}
-                </SelectContent>
-              </Select>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-        <div className="flex justify-end space-x-2 pt-4">
-          <Button type="button" variant="outline" onClick={onCancel}>
-            Cancel
-          </Button>
-          <Button type="submit">
-            {selectedClass ? "Update" : "Create"} Class
-          </Button>
-        </div>
-      </form>
-    </Form>
+      </div>
+
+      <div className="space-y-2">
+        <Label htmlFor="homeroom_teacher_id">Homeroom Teacher</Label>
+        <Select
+          value={formData.homeroom_teacher_id}
+          onValueChange={(value) => handleInputChange('homeroom_teacher_id', value)}
+        >
+          <SelectTrigger>
+            <SelectValue placeholder="Select a teacher" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="">No teacher assigned</SelectItem>
+            {teachers.map((teacher) => (
+              <SelectItem key={teacher.id} value={teacher.id}>
+                {teacher.first_name} {teacher.last_name}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
+
+      <div className="flex justify-end space-x-2 pt-4">
+        <Button type="button" variant="outline" onClick={onCancel}>
+          Cancel
+        </Button>
+        <Button type="submit">
+          {selectedClass ? "Update Class" : "Create Class"}
+        </Button>
+      </div>
+    </form>
   );
 }
-

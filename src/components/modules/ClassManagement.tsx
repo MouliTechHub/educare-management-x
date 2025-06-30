@@ -5,7 +5,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Plus, Search } from "lucide-react";
-import { ClassWithStats } from "@/types/database";
+import { ClassWithStats, TeacherBasic } from "@/types/database";
 import { ClassForm } from "./class-management/ClassForm";
 import { ClassTableWithStats } from "./class-management/ClassTableWithStats";
 import { useClassDataWithStats } from "./class-management/useClassDataWithStats";

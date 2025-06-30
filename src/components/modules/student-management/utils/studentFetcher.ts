@@ -68,6 +68,7 @@ export const useStudentFetcher = () => {
           ...student,
           gender: student.gender as 'Male' | 'Female' | 'Other',
           status: student.status as 'Active' | 'Inactive' | 'Alumni',
+          caste_category: student.caste_category as 'SC' | 'ST' | 'OC' | 'BC-A' | 'BC-B' | 'BC-C' | 'BC-D' | 'BC-E' | 'EWS' | null,
           mother_tongue: student.mother_tongue || null,
           nationality: student.nationality || 'Indian',
           transfer_certificate: student.transfer_certificate || null,

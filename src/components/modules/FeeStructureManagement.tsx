@@ -42,6 +42,20 @@ export function FeeStructureManagement() {
 
       if (structuresError) throw structuresError;
 
+      // Transform data to match FeeStructure interface
+      const transformedStructures: FeeStructure[] = (structuresData || []).map(structure => ({
+        id: structure.id,
+        class_id: structure.class_id,
+        academic_year_id: structure.academic_year_id,
+        fee_type: structure.fee_type as FeeStructure['fee_type'],
+        amount: structure.amount,
+        frequency: structure.frequency as FeeStructure['frequency'],
+        description: structure.description,
+        is_active: structure.is_active,
+        created_at: structure.created_at,
+        updated_at: structure.updated_at
+      }));
+
       // Fetch classes
       const { data: classesData, error: classesError } = await supabase
         .from("classes")
@@ -58,7 +72,7 @@ export function FeeStructureManagement() {
 
       if (yearsError) throw yearsError;
 
-      setFeeStructures(structuresData || []);
+      setFeeStructures(transformedStructures);
       setClasses(classesData || []);
       setAcademicYears(yearsData || []);
     } catch (error: any) {

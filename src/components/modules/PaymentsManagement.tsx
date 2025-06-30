@@ -67,6 +67,14 @@ export function PaymentsManagement() {
 
       if (studentsError) throw studentsError;
 
+      // Transform students data to match Student interface
+      const transformedStudents: Student[] = (studentsData || []).map(student => ({
+        ...student,
+        gender: student.gender as 'Male' | 'Female' | 'Other',
+        status: student.status as 'Active' | 'Inactive' | 'Alumni',
+        caste_category: student.caste_category as Student['caste_category']
+      }));
+
       // Fetch fee structures
       const { data: structuresData, error: structuresError } = await supabase
         .from("fee_structures")
@@ -76,11 +84,18 @@ export function PaymentsManagement() {
 
       if (structuresError) throw structuresError;
 
+      // Transform fee structures data to match FeeStructure interface
+      const transformedStructures: FeeStructure[] = (structuresData || []).map(structure => ({
+        ...structure,
+        fee_type: structure.fee_type as FeeStructure['fee_type'],
+        frequency: structure.frequency as FeeStructure['frequency']
+      }));
+
       setPayments(paymentsData || []);
       setClasses(classesData || []);
       setAcademicYears(yearsData || []);
-      setStudents(studentsData || []);
-      setFeeStructures(structuresData || []);
+      setStudents(transformedStudents);
+      setFeeStructures(transformedStructures);
     } catch (error: any) {
       toast({
         title: "Error fetching data",

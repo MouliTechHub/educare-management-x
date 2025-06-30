@@ -40,8 +40,6 @@ export function StudentTable({ students, onEditStudent, onDeleteStudent, onViewP
             <TableHead>Class</TableHead>
             <TableHead>Parents</TableHead>
             <TableHead>Date of Birth</TableHead>
-            <TableHead>Total Paid</TableHead>
-            <TableHead>Pending</TableHead>
             <TableHead>Status</TableHead>
             <TableHead>Actions</TableHead>
           </TableRow>
@@ -63,69 +61,54 @@ export function StudentTable({ students, onEditStudent, onDeleteStudent, onViewP
                 {student.classes ? (
                   <span>{student.classes.name} {student.classes.section && `- ${student.classes.section}`}</span>
                 ) : (
-                  <span className="text-gray-400">Not assigned</span>
+                  <span className="text-gray-400">No class assigned</span>
                 )}
               </TableCell>
               <TableCell>
-                {student.parents && student.parents.length > 0 ? (
-                  <div className="space-y-1">
-                    {student.parents.map((parent, index) => (
-                      <div key={parent.id} className="flex items-center space-x-1 text-sm">
-                        <Users className="w-3 h-3 text-green-600" />
+                <div className="space-y-1">
+                  {student.parents && student.parents.length > 0 ? (
+                    student.parents.slice(0, 2).map((parent) => (
+                      <div key={parent.id} className="flex items-center space-x-2">
+                        <Badge variant="outline" className="text-xs">
+                          {parent.relation}
+                        </Badge>
                         <button
                           onClick={() => handleParentClick(parent.id, `${parent.first_name} ${parent.last_name}`)}
-                          className="font-medium text-blue-600 hover:text-blue-800 hover:underline flex items-center space-x-1"
+                          className="text-blue-600 hover:underline cursor-pointer flex items-center space-x-1"
                         >
-                          <span>{parent.first_name} {parent.last_name}</span>
+                          <span className="text-xs">{parent.first_name} {parent.last_name}</span>
                           <ExternalLink className="w-3 h-3" />
                         </button>
-                        <span className="text-gray-500">({parent.relation})</span>
-                        {index < student.parents!.length - 1 && <span className="text-gray-300">|</span>}
                       </div>
-                    ))}
-                  </div>
-                ) : (
-                  <span className="text-gray-400 flex items-center space-x-1">
-                    <Users className="w-3 h-3" />
-                    <span>No parents linked</span>
-                  </span>
-                )}
+                    ))
+                  ) : (
+                    <span className="text-gray-400 text-sm">No parents linked</span>
+                  )}
+                  {student.parents && student.parents.length > 2 && (
+                    <div className="text-xs text-gray-500">
+                      +{student.parents.length - 2} more
+                    </div>
+                  )}
+                </div>
               </TableCell>
               <TableCell>
                 <div className="flex items-center space-x-1">
                   <Calendar className="w-4 h-4 text-gray-400" />
-                  <span>{new Date(student.date_of_birth).toLocaleDateString()}</span>
-                </div>
-              </TableCell>
-              <TableCell>
-                <div className="flex items-center space-x-1 text-green-600">
-                  <DollarSign className="w-4 h-4" />
-                  <span className="font-medium">₹{(student.total_paid || 0).toLocaleString()}</span>
-                </div>
-              </TableCell>
-              <TableCell>
-                <div className="flex items-center space-x-1">
-                  <DollarSign className="w-4 h-4 text-orange-500" />
-                  <span className={`font-medium ${(student.total_pending || 0) > 0 ? 'text-red-600' : 'text-gray-500'}`}>
-                    ₹{(student.total_pending || 0).toLocaleString()}
+                  <span className="text-sm">
+                    {new Date(student.date_of_birth).toLocaleDateString()}
                   </span>
                 </div>
               </TableCell>
               <TableCell>
-                <Badge variant={student.status === "Active" ? "default" : "secondary"}>
+                <Badge 
+                  variant={student.status === 'Active' ? 'default' : 'secondary'}
+                  className={student.status === 'Active' ? 'bg-green-100 text-green-800' : ''}
+                >
                   {student.status}
                 </Badge>
               </TableCell>
               <TableCell>
-                <div className="flex items-center space-x-2">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => openPaymentHistory(student)}
-                    title="View Payment History"
-                  >
-                    <History className="w-4 h-4" />
-                  </Button>
+                <div className="flex space-x-2">
                   <Button
                     variant="outline"
                     size="sm"
@@ -152,7 +135,9 @@ export function StudentTable({ students, onEditStudent, onDeleteStudent, onViewP
           open={historyOpen}
           onOpenChange={setHistoryOpen}
           studentName={`${selectedStudent.first_name} ${selectedStudent.last_name}`}
-          fees={selectedStudent.fees || []}
+          fees={[]} // Will be populated when fee history is available
+          academicYears={[]}
+          selectedAcademicYear=""
         />
       )}
     </>
