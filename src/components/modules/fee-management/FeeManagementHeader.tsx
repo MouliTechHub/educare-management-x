@@ -1,73 +1,59 @@
 
-import { Button } from "@/components/ui/button";
-import { FileText } from "lucide-react";
-import { ExportButtons } from "./ExportButtons";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { FeeFormDialog } from "./FeeFormDialog";
+import { FeeStructureDialog } from "./FeeStructureDialog";
+import { DiscountReportsDialog } from "./DiscountReportsDialog";
+import { ExportButtons } from "./ExportButtons";
+import { AcademicYearSelector } from "./AcademicYearSelector";
 
-interface Fee {
+interface AcademicYear {
   id: string;
-  student_id: string;
-  amount: number;
-  actual_amount: number;
-  discount_amount: number;
-  total_paid: number;
-  fee_type: string;
-  due_date: string;
-  payment_date: string | null;
-  status: 'Pending' | 'Paid' | 'Overdue';
-  receipt_number: string | null;
-  created_at: string;
-  updated_at: string;
-  discount_notes: string | null;
-  discount_updated_by: string | null;
-  discount_updated_at: string | null;
-  academic_year_id: string;
-  student?: {
-    id: string;
-    first_name: string;
-    last_name: string;
-    admission_number: string;
-    class_name?: string;
-    section?: string;
-    parent_phone?: string;
-    parent_email?: string;
-    class_id?: string;
-  };
+  year_name: string;
+  start_date: string;
+  end_date: string;
+  is_current: boolean;
 }
 
 interface FeeManagementHeaderProps {
-  filteredFees: Fee[];
-  academicYear: string;
-  onExport: (format: 'excel' | 'pdf') => void;
-  onReportsClick: () => void;
+  academicYears: AcademicYear[];
+  selectedAcademicYear: string;
+  onYearChange: (yearId: string) => void;
   onFeeCreated: () => void;
+  onStructureCreated: () => void;
+  filteredFees: any[];
 }
 
-export function FeeManagementHeader({
-  filteredFees,
-  academicYear,
-  onExport,
-  onReportsClick,
-  onFeeCreated
+export function FeeManagementHeader({ 
+  academicYears, 
+  selectedAcademicYear, 
+  onYearChange, 
+  onFeeCreated,
+  onStructureCreated,
+  filteredFees 
 }: FeeManagementHeaderProps) {
   return (
-    <div className="flex justify-between items-center">
-      <div>
-        <h1 className="text-3xl font-bold text-gray-900">Fee Management</h1>
-        <p className="text-gray-600 mt-2">Academic year-based fee tracking with comprehensive analytics</p>
-      </div>
-      <div className="flex space-x-2">
-        <ExportButtons 
-          data={filteredFees} 
-          academicYear={academicYear}
-          onExport={onExport}
-        />
-        <Button variant="outline" onClick={onReportsClick}>
-          <FileText className="w-4 h-4 mr-2" />
-          Discount Reports
-        </Button>
-        <FeeFormDialog onFeeCreated={onFeeCreated} />
-      </div>
-    </div>
+    <Card>
+      <CardHeader>
+        <div className="flex items-center justify-between">
+          <div>
+            <CardTitle>Fee Management</CardTitle>
+            <CardDescription>
+              Manage student fees, payments, and fee structures across academic years
+            </CardDescription>
+          </div>
+          <div className="flex items-center space-x-2">
+            <AcademicYearSelector
+              academicYears={academicYears}
+              selectedYear={selectedAcademicYear}
+              onYearChange={onYearChange}
+            />
+            <ExportButtons fees={filteredFees} />
+            <DiscountReportsDialog />
+            <FeeStructureDialog onStructureCreated={onStructureCreated} />
+            <FeeFormDialog onFeeCreated={onFeeCreated} />
+          </div>
+        </div>
+      </CardHeader>
+    </Card>
   );
 }

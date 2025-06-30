@@ -29,6 +29,7 @@ export interface Student {
   mother_tongue: string | null;
   nationality: string | null;
   transfer_certificate: string | null;
+  date_of_join: string | null;
   created_at: string;
   updated_at: string;
   classes?: {
@@ -119,6 +120,35 @@ export interface Subject {
   name: string;
   code: string;
   created_at: string;
+}
+
+// Enhanced fee structure with new fields
+export interface FeeStructure {
+  id: string;
+  class_id: string;
+  academic_year_id: string;
+  fee_type: 'Tuition' | 'Transport' | 'Meals' | 'Books' | 'Uniform' | 'Activities' | 'Laboratory' | 'Library' | 'Sports' | 'Other';
+  amount: number;
+  frequency: 'Monthly' | 'Quarterly' | 'Annually' | 'One Time';
+  description: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+// Payment record from new payments table
+export interface Payment {
+  id: string;
+  student_id: string;
+  fee_structure_id: string;
+  amount_paid: number;
+  payment_date: string;
+  payment_method: 'PhonePe' | 'GPay' | 'Card' | 'Online' | 'Cash' | 'Cheque' | 'Bank Transfer';
+  late_fee: number;
+  reference_number: string | null;
+  payment_received_by: string;
+  notes: string | null;
+  created_at: string;
+  updated_at: string;
 }
 
 // Simplified types for join queries

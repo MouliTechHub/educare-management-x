@@ -2,66 +2,84 @@
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Class } from "@/types/database";
-import { bloodGroups, religions, casteCategories } from "./constants";
-import { StudentFormData } from "./types";
+import { IndianStudentFields } from "./IndianStudentFields";
 
 interface BasicInformationSectionProps {
-  formData: StudentFormData;
-  setFormData: (data: StudentFormData) => void;
+  formData: any;
+  setFormData: (data: any) => void;
   classes: Class[];
 }
 
 export function BasicInformationSection({ formData, setFormData, classes }: BasicInformationSectionProps) {
+  const handleInputChange = (field: string, value: string) => {
+    setFormData({ ...formData, [field]: value });
+  };
+
   return (
-    <div className="space-y-4">
-      <h3 className="text-lg font-semibold border-b pb-2">Basic Information</h3>
-      <div className="grid grid-cols-3 gap-4">
-        <div>
+    <Card>
+      <CardHeader>
+        <CardTitle>Basic Information</CardTitle>
+      </CardHeader>
+      <CardContent className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        <div className="space-y-2">
           <Label htmlFor="first_name">First Name *</Label>
           <Input
             id="first_name"
             value={formData.first_name}
-            onChange={(e) => setFormData({ ...formData, first_name: e.target.value })}
+            onChange={(e) => handleInputChange('first_name', e.target.value)}
             required
           />
         </div>
-        <div>
+
+        <div className="space-y-2">
           <Label htmlFor="last_name">Last Name *</Label>
           <Input
             id="last_name"
             value={formData.last_name}
-            onChange={(e) => setFormData({ ...formData, last_name: e.target.value })}
+            onChange={(e) => handleInputChange('last_name', e.target.value)}
             required
           />
         </div>
-        <div>
+
+        <div className="space-y-2">
           <Label htmlFor="admission_number">Admission Number *</Label>
           <Input
             id="admission_number"
             value={formData.admission_number}
-            onChange={(e) => setFormData({ ...formData, admission_number: e.target.value })}
+            onChange={(e) => handleInputChange('admission_number', e.target.value)}
             required
-            placeholder="Must be unique"
           />
-          <p className="text-xs text-gray-500 mt-1">Each student must have a unique admission number</p>
         </div>
-      </div>
 
-      <div className="grid grid-cols-3 gap-4">
-        <div>
+        <div className="space-y-2">
           <Label htmlFor="date_of_birth">Date of Birth *</Label>
           <Input
             id="date_of_birth"
             type="date"
             value={formData.date_of_birth}
-            onChange={(e) => setFormData({ ...formData, date_of_birth: e.target.value })}
+            onChange={(e) => handleInputChange('date_of_birth', e.target.value)}
             required
           />
         </div>
-        <div>
+
+        <div className="space-y-2">
+          <Label htmlFor="date_of_join">Date of Joining</Label>
+          <Input
+            id="date_of_join"
+            type="date"
+            value={formData.date_of_join || ''}
+            onChange={(e) => handleInputChange('date_of_join', e.target.value)}
+          />
+        </div>
+
+        <div className="space-y-2">
           <Label htmlFor="gender">Gender *</Label>
-          <Select value={formData.gender} onValueChange={(value) => setFormData({ ...formData, gender: value })}>
+          <Select
+            value={formData.gender}
+            onValueChange={(value) => handleInputChange('gender', value)}
+          >
             <SelectTrigger>
               <SelectValue placeholder="Select gender" />
             </SelectTrigger>
@@ -72,86 +90,33 @@ export function BasicInformationSection({ formData, setFormData, classes }: Basi
             </SelectContent>
           </Select>
         </div>
-        <div>
-          <Label htmlFor="aadhaar_number">Aadhaar Number</Label>
-          <Input
-            id="aadhaar_number"
-            value={formData.aadhaar_number}
-            onChange={(e) => setFormData({ ...formData, aadhaar_number: e.target.value })}
-            placeholder="12-digit Aadhaar number"
-            maxLength={12}
-          />
-          <p className="text-xs text-gray-500 mt-1">12-digit unique identification number</p>
-        </div>
-      </div>
 
-      <div className="grid grid-cols-3 gap-4">
-        <div>
+        <div className="space-y-2">
           <Label htmlFor="class_id">Class</Label>
-          <Select value={formData.class_id} onValueChange={(value) => setFormData({ ...formData, class_id: value })}>
+          <Select
+            value={formData.class_id || ""}
+            onValueChange={(value) => handleInputChange('class_id', value)}
+          >
             <SelectTrigger>
               <SelectValue placeholder="Select class" />
             </SelectTrigger>
             <SelectContent>
+              <SelectItem value="">No Class Assigned</SelectItem>
               {classes.map((cls) => (
                 <SelectItem key={cls.id} value={cls.id}>
-                  {cls.name} {cls.section && `- ${cls.section}`}
+                  {cls.name} {cls.section && `- Section ${cls.section}`}
                 </SelectItem>
               ))}
             </SelectContent>
           </Select>
         </div>
-        <div>
-          <Label htmlFor="blood_group">Blood Group</Label>
-          <Select value={formData.blood_group} onValueChange={(value) => setFormData({ ...formData, blood_group: value })}>
-            <SelectTrigger>
-              <SelectValue placeholder="Select blood group" />
-            </SelectTrigger>
-            <SelectContent>
-              {bloodGroups.map((group) => (
-                <SelectItem key={group} value={group}>
-                  {group}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-        <div>
-          <Label htmlFor="religion">Religion</Label>
-          <Select value={formData.religion} onValueChange={(value) => setFormData({ ...formData, religion: value })}>
-            <SelectTrigger>
-              <SelectValue placeholder="Select religion" />
-            </SelectTrigger>
-            <SelectContent>
-              {religions.map((religion) => (
-                <SelectItem key={religion} value={religion}>
-                  {religion}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-      </div>
 
-      <div className="grid grid-cols-3 gap-4">
-        <div>
-          <Label htmlFor="caste_category">Caste/Category</Label>
-          <Select value={formData.caste_category} onValueChange={(value) => setFormData({ ...formData, caste_category: value })}>
-            <SelectTrigger>
-              <SelectValue placeholder="Select category" />
-            </SelectTrigger>
-            <SelectContent>
-              {casteCategories.map((category) => (
-                <SelectItem key={category} value={category}>
-                  {category}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-        <div>
+        <div className="space-y-2">
           <Label htmlFor="status">Status</Label>
-          <Select value={formData.status} onValueChange={(value) => setFormData({ ...formData, status: value })}>
+          <Select
+            value={formData.status || "Active"}
+            onValueChange={(value) => handleInputChange('status', value)}
+          >
             <SelectTrigger>
               <SelectValue />
             </SelectTrigger>
@@ -162,7 +127,9 @@ export function BasicInformationSection({ formData, setFormData, classes }: Basi
             </SelectContent>
           </Select>
         </div>
-      </div>
-    </div>
+
+        <IndianStudentFields formData={formData} setFormData={setFormData} />
+      </CardContent>
+    </Card>
   );
 }
