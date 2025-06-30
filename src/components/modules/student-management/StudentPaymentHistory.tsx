@@ -1,43 +1,15 @@
 
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Badge } from "@/components/ui/badge";
+import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useState, useEffect } from "react";
-import { Receipt, History } from "lucide-react";
 import { Fee } from "@/types/database";
-import { supabase } from "@/integrations/supabase/client";
-import { useToast } from "@/hooks/use-toast";
 import { PaymentReversalDialog } from "../fee-management/PaymentReversalDialog";
 import { PaymentHistoryFilters } from "./PaymentHistoryFilters";
 import { FeeRecordsTab } from "./FeeRecordsTab";
 import { PaymentHistoryTab } from "./PaymentHistoryTab";
-
-interface PaymentHistory {
-  id: string;
-  fee_id: string;
-  student_id: string;
-  amount_paid: number;
-  payment_date: string;
-  payment_time?: string; // Added payment_time field
-  receipt_number: string;
-  payment_receiver: string;
-  payment_method: string;
-  notes: string | null;
-  fee_type: string;
-  created_at: string;
-}
-
-interface PaymentReversal {
-  id: string;
-  payment_history_id: string;
-  reversal_type: 'reversal' | 'refund';
-  reversal_amount: number;
-  reversal_date: string;
-  reason: string;
-  notes: string | null;
-  authorized_by: string;
-  created_at: string;
-}
+import { PaymentHistoryDialogHeader } from "./PaymentHistoryDialogHeader";
+import { PaymentHistoryEmptyState } from "./PaymentHistoryEmptyState";
+import { useStudentPaymentHistory } from "./useStudentPaymentHistory";
 
 interface AcademicYear {
   id: string;
@@ -65,79 +37,18 @@ export function StudentPaymentHistory({
   selectedAcademicYear 
 }: StudentPaymentHistoryProps) {
   const [searchTerm, setSearchTerm] = useState("");
-  const [paymentHistory, setPaymentHistory] = useState<PaymentHistory[]>([]);
-  const [paymentReversals, setPaymentReversals] = useState<PaymentReversal[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [reversalDialogOpen, setReversalDialogOpen] = useState(false);
-  const [selectedPayment, setSelectedPayment] = useState<PaymentHistory | null>(null);
   const [currentAcademicYear, setCurrentAcademicYear] = useState(selectedAcademicYear || "");
-  const { toast } = useToast();
 
-  const fetchPaymentHistory = async () => {
-    if (!fees.length) return;
-    
-    setLoading(true);
-    try {
-      const studentId = fees[0].student_id;
-      
-      // Get all payment history for the student with payment_time
-      const { data: historyData, error: historyError } = await supabase
-        .from('payment_history')
-        .select('*, payment_time')
-        .eq('student_id', studentId)
-        .order('payment_date', { ascending: false })
-        .order('payment_time', { ascending: false });
-
-      if (historyError) {
-        console.error('Payment history fetch error:', historyError);
-        setPaymentHistory([]);
-      } else {
-        // Filter by academic year if selected
-        let filteredHistory = historyData || [];
-        if (currentAcademicYear) {
-          // Get fee IDs for the selected academic year
-          const yearFeeIds = fees
-            .filter(fee => fee.academic_year_id === currentAcademicYear)
-            .map(fee => fee.id);
-          
-          filteredHistory = filteredHistory.filter(payment => 
-            yearFeeIds.includes(payment.fee_id)
-          );
-        }
-        
-        setPaymentHistory(filteredHistory as PaymentHistory[]);
-      }
-
-      // Fetch payment reversals
-      const { data: reversalData, error: reversalError } = await supabase
-        .from('payment_reversals')
-        .select('*')
-        .order('created_at', { ascending: false });
-
-      if (reversalError) {
-        console.error('Payment reversals fetch error:', reversalError);
-        setPaymentReversals([]);
-      } else {
-        setPaymentReversals((reversalData || []) as PaymentReversal[]);
-      }
-    } catch (error: any) {
-      console.error('Unexpected error fetching payment history:', error);
-      toast({
-        title: "Error fetching payment history",
-        description: "Could not load payment history. Please try again.",
-        variant: "destructive",
-      });
-      setPaymentHistory([]);
-      setPaymentReversals([]);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const openReversalDialog = (payment: PaymentHistory) => {
-    setSelectedPayment(payment);
-    setReversalDialogOpen(true);
-  };
+  const {
+    paymentHistory,
+    paymentReversals,
+    loading,
+    reversalDialogOpen,
+    setReversalDialogOpen,
+    selectedPayment,
+    openReversalDialog,
+    fetchPaymentHistory
+  } = useStudentPaymentHistory(fees, currentAcademicYear);
 
   useEffect(() => {
     if (open) {
@@ -163,24 +74,16 @@ export function StudentPaymentHistory({
     payment.receipt_number.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
+  const showEmptyState = filteredFees.length === 0 && filteredPaymentHistory.length === 0;
+
   return (
     <>
       <Dialog open={open} onOpenChange={onOpenChange}>
         <DialogContent className="max-w-6xl max-h-[80vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle className="flex items-center justify-between">
-              <div className="flex items-center space-x-2">
-                <Receipt className="w-5 h-5" />
-                <span>Detailed Payment History - {studentName}</span>
-              </div>
-              {currentYear && (
-                <Badge variant="outline" className="text-sm">
-                  Academic Year: {currentYear.year_name}
-                  {currentYear.is_current && " (Current)"}
-                </Badge>
-              )}
-            </DialogTitle>
-          </DialogHeader>
+          <PaymentHistoryDialogHeader 
+            studentName={studentName} 
+            currentYear={currentYear} 
+          />
           
           <div className="space-y-4">
             <PaymentHistoryFilters
@@ -218,12 +121,7 @@ export function StudentPaymentHistory({
               </TabsContent>
             </Tabs>
 
-            {filteredFees.length === 0 && filteredPaymentHistory.length === 0 && (
-              <div className="text-center py-8 text-gray-500">
-                <History className="w-12 h-12 mx-auto mb-4 opacity-50" />
-                <p>No records found for the selected academic year and search criteria.</p>
-              </div>
-            )}
+            {showEmptyState && <PaymentHistoryEmptyState />}
           </div>
         </DialogContent>
       </Dialog>
