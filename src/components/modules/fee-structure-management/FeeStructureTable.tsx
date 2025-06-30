@@ -8,9 +8,9 @@ interface FeeStructure {
   id: string;
   class_id: string;
   academic_year_id: string;
-  fee_type: string;
+  fee_type: 'Tuition' | 'Transport' | 'Meals' | 'Books' | 'Uniform' | 'Activities' | 'Laboratory' | 'Library' | 'Sports' | 'Other';
   amount: number;
-  frequency: string;
+  frequency: 'Monthly' | 'Quarterly' | 'Annually' | 'One Time';
   description: string | null;
   is_active: boolean;
   created_at: string;

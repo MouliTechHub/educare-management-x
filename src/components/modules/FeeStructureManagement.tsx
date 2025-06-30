@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -15,9 +14,9 @@ interface FeeStructure {
   id: string;
   class_id: string;
   academic_year_id: string;
-  fee_type: string;
+  fee_type: 'Tuition' | 'Transport' | 'Meals' | 'Books' | 'Uniform' | 'Activities' | 'Laboratory' | 'Library' | 'Sports' | 'Other';
   amount: number;
-  frequency: string;
+  frequency: 'Monthly' | 'Quarterly' | 'Annually' | 'One Time';
   description: string | null;
   is_active: boolean;
   created_at: string;
@@ -67,9 +66,9 @@ export function FeeStructureManagement() {
         id: structure.id,
         class_id: structure.class_id,
         academic_year_id: structure.academic_year_id,
-        fee_type: structure.fee_type,
+        fee_type: structure.fee_type as FeeStructure['fee_type'],
         amount: structure.amount,
-        frequency: structure.frequency,
+        frequency: structure.frequency as FeeStructure['frequency'],
         description: structure.description,
         is_active: structure.is_active,
         created_at: structure.created_at,
@@ -154,20 +153,7 @@ export function FeeStructureManagement() {
   };
 
   const handleEdit = (structure: FeeStructure) => {
-    // Convert the structure back to the expected format for the form
-    const formStructure = {
-      id: structure.id,
-      class_id: structure.class_id,
-      academic_year_id: structure.academic_year_id,
-      fee_type: structure.fee_type,
-      amount: structure.amount,
-      frequency: structure.frequency,
-      description: structure.description,
-      is_active: structure.is_active,
-      created_at: structure.created_at,
-      updated_at: structure.updated_at
-    };
-    setSelectedStructure(formStructure as any);
+    setSelectedStructure(structure);
     setDialogOpen(true);
   };
 
