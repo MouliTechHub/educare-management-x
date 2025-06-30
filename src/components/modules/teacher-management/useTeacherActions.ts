@@ -26,7 +26,7 @@ interface TeacherFormData {
   emergency_contact_name?: string;
   emergency_contact_phone?: string;
   emergency_contact_relation?: string;
-  aadhaar_number?: string;
+  aadhaar_number: string; // Now required
   pan_number?: string;
 }
 
@@ -48,7 +48,7 @@ export function useTeacherActions() {
       const typedTeachers = (data || []).map(teacher => ({
         ...teacher,
         status: teacher.status as 'Active' | 'On Leave' | 'Retired',
-        aadhaar_number: teacher.aadhaar_number || null,
+        aadhaar_number: teacher.aadhaar_number || '',
         pan_number: teacher.pan_number || null,
       }));
       
@@ -65,6 +65,11 @@ export function useTeacherActions() {
   };
 
   const saveTeacher = async (data: TeacherFormData, selectedTeacher: Teacher | null) => {
+    // Validate required Aadhaar number (12 digits)
+    if (!data.aadhaar_number || !/^[0-9]{12}$/.test(data.aadhaar_number.replace(/\s/g, ''))) {
+      throw new Error('Aadhaar number is required and must be exactly 12 digits');
+    }
+
     // Validate phone numbers before submission
     if (data.phone_number) {
       const phoneValidation = validateAndFormatPhoneNumber(data.phone_number);
@@ -82,9 +87,13 @@ export function useTeacherActions() {
       data.emergency_contact_phone = emergencyPhoneValidation.formatted;
     }
 
+    // Clean Aadhaar number (remove spaces)
+    const cleanedAadhaar = data.aadhaar_number.replace(/\s/g, '');
+
     // Convert empty strings to null for optional fields
     const cleanedData = {
       ...data,
+      aadhaar_number: cleanedAadhaar,
       employee_id: data.employee_id || null,
       department: data.department || null,
       designation: data.designation || null,
@@ -99,7 +108,6 @@ export function useTeacherActions() {
       emergency_contact_name: data.emergency_contact_name || null,
       emergency_contact_phone: data.emergency_contact_phone || null,
       emergency_contact_relation: data.emergency_contact_relation || null,
-      aadhaar_number: data.aadhaar_number || null,
       pan_number: data.pan_number || null,
     };
 

@@ -5,18 +5,18 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Plus, Search } from "lucide-react";
-import { Class } from "@/types/database";
+import { ClassWithStats } from "@/types/database";
 import { ClassForm } from "./class-management/ClassForm";
-import { ClassTable } from "./class-management/ClassTable";
-import { useClassData } from "./class-management/useClassData";
+import { ClassTableWithStats } from "./class-management/ClassTableWithStats";
+import { useClassDataWithStats } from "./class-management/useClassDataWithStats";
 import { useClassActions } from "./class-management/useClassActions";
 
 export function ClassManagement() {
   const [searchTerm, setSearchTerm] = useState("");
   const [dialogOpen, setDialogOpen] = useState(false);
-  const [selectedClass, setSelectedClass] = useState<Class | null>(null);
+  const [selectedClass, setSelectedClass] = useState<ClassWithStats | null>(null);
 
-  const { classes, teachers, loading, fetchClasses } = useClassData();
+  const { classes, teachers, loading, fetchClasses } = useClassDataWithStats();
   const { saveClass, deleteClass } = useClassActions(fetchClasses);
 
   const handleSubmit = async (data: any) => {
@@ -25,7 +25,7 @@ export function ClassManagement() {
     setSelectedClass(null);
   };
 
-  const openEditDialog = (classItem: Class) => {
+  const openEditDialog = (classItem: ClassWithStats) => {
     setSelectedClass(classItem);
     setDialogOpen(true);
   };
@@ -52,7 +52,7 @@ export function ClassManagement() {
       <div className="flex justify-between items-center">
         <div>
           <h1 className="text-3xl font-bold text-gray-900">Class Management</h1>
-          <p className="text-gray-600 mt-2">Manage classes, sections, and homeroom teachers</p>
+          <p className="text-gray-600 mt-2">Manage classes, sections, and view student statistics</p>
         </div>
         <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
           <DialogTrigger asChild>
@@ -83,7 +83,7 @@ export function ClassManagement() {
           <div className="flex items-center justify-between">
             <div>
               <CardTitle>Classes</CardTitle>
-              <CardDescription>Manage school classes and sections</CardDescription>
+              <CardDescription>Manage school classes and sections with student statistics</CardDescription>
             </div>
             <div className="flex items-center space-x-2">
               <Search className="w-4 h-4 text-gray-400" />
@@ -97,7 +97,7 @@ export function ClassManagement() {
           </div>
         </CardHeader>
         <CardContent>
-          <ClassTable
+          <ClassTableWithStats
             classes={filteredClasses}
             onEdit={openEditDialog}
             onDelete={deleteClass}

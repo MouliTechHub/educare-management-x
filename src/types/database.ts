@@ -1,4 +1,3 @@
-
 // Database types that match Supabase schema
 export interface Student {
   id: string;
@@ -6,8 +5,9 @@ export interface Student {
   last_name: string;
   admission_number: string;
   date_of_birth: string;
+  date_of_join: string; // Now required
   gender: 'Male' | 'Female' | 'Other';
-  class_id: string | null;
+  class_id: string; // Now required
   address_line1: string | null;
   address_line2: string | null;
   city: string | null;
@@ -17,7 +17,7 @@ export interface Student {
   status: 'Active' | 'Inactive' | 'Alumni';
   blood_group: string | null;
   religion: string | null;
-  caste_category: string | null;
+  caste_category: 'SC' | 'ST' | 'OC' | 'BC-A' | 'BC-B' | 'BC-C' | 'BC-D' | 'BC-E' | 'EWS' | null;
   previous_school: string | null;
   transport_route: string | null;
   transport_stop: string | null;
@@ -25,11 +25,10 @@ export interface Student {
   emergency_contact_name: string | null;
   emergency_contact_phone: string | null;
   emergency_contact_relation: string | null;
-  aadhaar_number: string | null;
+  aadhaar_number: string; // 12-digit validation
   mother_tongue: string | null;
   nationality: string | null;
   transfer_certificate: string | null;
-  date_of_join: string | null;
   created_at: string;
   updated_at: string;
   classes?: {
@@ -38,10 +37,6 @@ export interface Student {
     section: string | null;
   } | null;
   parents?: ParentBasic[];
-  // Financial information
-  total_paid?: number;
-  total_pending?: number;
-  fees?: Fee[];
 }
 
 // Simplified student type for dropdowns and selections
@@ -100,12 +95,72 @@ export interface Teacher {
   emergency_contact_name: string | null;
   emergency_contact_phone: string | null;
   emergency_contact_relation: string | null;
-  aadhaar_number: string | null;
+  aadhaar_number: string; // Now required with 12-digit validation
   pan_number: string | null;
   created_at: string;
   updated_at: string;
 }
 
+// New comprehensive fee structure
+export interface FeeStructure {
+  id: string;
+  class_id: string;
+  academic_year_id: string;
+  fee_type: 'Tuition' | 'Transport' | 'Meals' | 'Books' | 'Uniform' | 'Activities' | 'Laboratory' | 'Library' | 'Sports' | 'Other';
+  amount: number;
+  frequency: 'Monthly' | 'Quarterly' | 'Annually' | 'One Time';
+  description: string | null;
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+// New payment structure
+export interface StudentPayment {
+  id: string;
+  student_id: string;
+  fee_structure_id: string;
+  amount_paid: number;
+  payment_date: string;
+  payment_method: 'PhonePe' | 'GPay' | 'Card' | 'Online' | 'Cash' | 'Cheque' | 'Bank Transfer';
+  late_fee: number;
+  reference_number: string | null;
+  payment_received_by: string;
+  notes: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+// Fee assignment tracking
+export interface StudentFeeAssignment {
+  id: string;
+  student_id: string;
+  fee_structure_id: string;
+  total_amount: number;
+  paid_amount: number;
+  balance_amount: number;
+  assigned_date: string;
+  due_date: string | null;
+  status: 'Pending' | 'Partial' | 'Paid' | 'Overdue';
+  created_at: string;
+  updated_at: string;
+}
+
+// Class with gender statistics
+export interface ClassWithStats {
+  id: string;
+  name: string;
+  section: string | null;
+  homeroom_teacher_id: string | null;
+  total_students: number;
+  male_count: number;
+  female_count: number;
+  other_count: number;
+  created_at: string;
+  updated_at: string;
+}
+
+// Keep existing types
 export interface Class {
   id: string;
   name: string;
@@ -122,36 +177,6 @@ export interface Subject {
   created_at: string;
 }
 
-// Enhanced fee structure with new fields
-export interface FeeStructure {
-  id: string;
-  class_id: string;
-  academic_year_id: string;
-  fee_type: 'Tuition' | 'Transport' | 'Meals' | 'Books' | 'Uniform' | 'Activities' | 'Laboratory' | 'Library' | 'Sports' | 'Other';
-  amount: number;
-  frequency: 'Monthly' | 'Quarterly' | 'Annually' | 'One Time';
-  description: string | null;
-  created_at: string;
-  updated_at: string;
-}
-
-// Payment record from new payments table
-export interface Payment {
-  id: string;
-  student_id: string;
-  fee_structure_id: string;
-  amount_paid: number;
-  payment_date: string;
-  payment_method: 'PhonePe' | 'GPay' | 'Card' | 'Online' | 'Cash' | 'Cheque' | 'Bank Transfer';
-  late_fee: number;
-  reference_number: string | null;
-  payment_received_by: string;
-  notes: string | null;
-  created_at: string;
-  updated_at: string;
-}
-
-// Simplified types for join queries
 export interface TeacherBasic {
   id: string;
   first_name: string;
@@ -184,26 +209,6 @@ export interface StudentParentLink {
   parent_id: string;
 }
 
-export interface Fee {
-  id: string;
-  student_id: string;
-  fee_type: string;
-  amount: number;
-  actual_amount: number;
-  discount_amount: number;
-  total_paid: number;
-  due_date: string;
-  payment_date: string | null;
-  receipt_number: string | null;
-  status: 'Pending' | 'Paid' | 'Overdue';
-  discount_notes: string | null;
-  discount_updated_by: string | null;
-  discount_updated_at: string | null;
-  academic_year_id: string;
-  created_at: string;
-  updated_at: string;
-}
-
 export interface AcademicYear {
   id: string;
   year_name: string;
@@ -224,6 +229,27 @@ export interface StudentAcademicRecord {
   departure_date: string | null;
   departure_reason: string | null;
   promoted_from_class: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+// Legacy fee interface for backward compatibility
+export interface Fee {
+  id: string;
+  student_id: string;
+  fee_type: string;
+  amount: number;
+  actual_amount: number;
+  discount_amount: number;
+  total_paid: number;
+  due_date: string;
+  payment_date: string | null;
+  receipt_number: string | null;
+  status: 'Pending' | 'Paid' | 'Overdue';
+  discount_notes: string | null;
+  discount_updated_by: string | null;
+  discount_updated_at: string | null;
+  academic_year_id: string;
   created_at: string;
   updated_at: string;
 }

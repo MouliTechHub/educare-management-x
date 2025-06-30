@@ -19,7 +19,8 @@ const INDIAN_STATES = [
   "Uttarakhand", "West Bengal", "Delhi", "Jammu and Kashmir", "Ladakh"
 ];
 
-const CASTE_CATEGORIES = ["General", "OBC", "SC", "ST", "EWS"];
+// Updated Indian caste categories as per requirements
+const CASTE_CATEGORIES = ["SC", "ST", "OC", "BC-A", "BC-B", "BC-C", "BC-D", "BC-E", "EWS"];
 const RELIGIONS = ["Hindu", "Muslim", "Christian", "Sikh", "Buddhist", "Jain", "Parsi", "Other"];
 const BLOOD_GROUPS = ["A+", "A-", "B+", "B-", "AB+", "AB-", "O+", "O-"];
 
@@ -32,11 +33,14 @@ export function IndianStudentFields({ formData, setFormData }: IndianStudentFiel
 
   const handleAadhaarBlur = (value: string) => {
     if (value.trim()) {
-      const aadhaarValidation = validateAadhaarNumber(value);
-      if (!aadhaarValidation.isValid) {
-        setAadhaarError(aadhaarValidation.error || 'Invalid Aadhaar number');
+      // Validate 12-digit Aadhaar number
+      if (!/^[0-9]{12}$/.test(value.replace(/\s/g, ''))) {
+        setAadhaarError('Aadhaar number must be exactly 12 digits');
       } else {
-        updateField('aadhaar_number', aadhaarValidation.formatted);
+        // Format with spaces for display
+        const formatted = value.replace(/\s/g, '');
+        const formattedDisplay = formatted.replace(/(\d{4})(\d{4})(\d{4})/, '$1 $2 $3');
+        updateField('aadhaar_number', formatted);
         setAadhaarError('');
       }
     } else {
@@ -53,7 +57,7 @@ export function IndianStudentFields({ formData, setFormData }: IndianStudentFiel
           <Label htmlFor="aadhaar_number">Aadhaar Number</Label>
           <Input
             id="aadhaar_number"
-            value={formData.aadhaar_number}
+            value={formData.aadhaar_number || ''}
             onChange={(e) => {
               const value = e.target.value.replace(/\D/g, '').slice(0, 12);
               updateField('aadhaar_number', value);
@@ -61,7 +65,7 @@ export function IndianStudentFields({ formData, setFormData }: IndianStudentFiel
             }}
             onBlur={(e) => handleAadhaarBlur(e.target.value)}
             placeholder="XXXX XXXX XXXX"
-            maxLength={12}
+            maxLength={14} // Allow for spaces in display
           />
           {aadhaarError && (
             <p className="text-xs text-destructive mt-1">{aadhaarError}</p>
@@ -70,8 +74,8 @@ export function IndianStudentFields({ formData, setFormData }: IndianStudentFiel
         </div>
 
         <div>
-          <Label htmlFor="caste_category">Caste Category</Label>
-          <Select value={formData.caste_category} onValueChange={(value) => updateField('caste_category', value)}>
+          <Label htmlFor="caste_category">Caste Category *</Label>
+          <Select value={formData.caste_category || ''} onValueChange={(value) => updateField('caste_category', value)}>
             <SelectTrigger>
               <SelectValue placeholder="Select category" />
             </SelectTrigger>
@@ -85,7 +89,7 @@ export function IndianStudentFields({ formData, setFormData }: IndianStudentFiel
 
         <div>
           <Label htmlFor="religion">Religion</Label>
-          <Select value={formData.religion} onValueChange={(value) => updateField('religion', value)}>
+          <Select value={formData.religion || ''} onValueChange={(value) => updateField('religion', value)}>
             <SelectTrigger>
               <SelectValue placeholder="Select religion" />
             </SelectTrigger>
@@ -99,7 +103,7 @@ export function IndianStudentFields({ formData, setFormData }: IndianStudentFiel
 
         <div>
           <Label htmlFor="blood_group">Blood Group</Label>
-          <Select value={formData.blood_group} onValueChange={(value) => updateField('blood_group', value)}>
+          <Select value={formData.blood_group || ''} onValueChange={(value) => updateField('blood_group', value)}>
             <SelectTrigger>
               <SelectValue placeholder="Select blood group" />
             </SelectTrigger>
@@ -137,7 +141,7 @@ export function IndianStudentFields({ formData, setFormData }: IndianStudentFiel
           <Label htmlFor="previous_school">Previous School</Label>
           <Input
             id="previous_school"
-            value={formData.previous_school}
+            value={formData.previous_school || ''}
             onChange={(e) => updateField('previous_school', e.target.value)}
             placeholder="Name of previous school"
           />

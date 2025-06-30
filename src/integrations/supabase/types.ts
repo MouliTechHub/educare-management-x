@@ -72,6 +72,13 @@ export type Database = {
             foreignKeyName: "attendance_class_id_fkey"
             columns: ["class_id"]
             isOneToOne: false
+            referencedRelation: "class_gender_stats"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "attendance_class_id_fkey"
+            columns: ["class_id"]
+            isOneToOne: false
             referencedRelation: "classes"
             referencedColumns: ["id"]
           },
@@ -98,6 +105,13 @@ export type Database = {
           subject_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "class_subject_links_class_id_fkey"
+            columns: ["class_id"]
+            isOneToOne: false
+            referencedRelation: "class_gender_stats"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "class_subject_links_class_id_fkey"
             columns: ["class_id"]
@@ -206,6 +220,13 @@ export type Database = {
             foreignKeyName: "exams_class_id_fkey"
             columns: ["class_id"]
             isOneToOne: false
+            referencedRelation: "class_gender_stats"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "exams_class_id_fkey"
+            columns: ["class_id"]
+            isOneToOne: false
             referencedRelation: "classes"
             referencedColumns: ["id"]
           },
@@ -257,82 +278,40 @@ export type Database = {
       }
       fee_structures: {
         Row: {
-          academic_year_id: string | null
-          activity_fee: number
-          amount: number | null
-          book_fee: number
-          caution_deposit: number
+          academic_year_id: string
+          amount: number
           class_id: string
-          computer_fee: number
-          created_at: string | null
+          created_at: string
           description: string | null
-          development_fee: number
-          examination_fee: number
-          fee_type: string | null
-          frequency: string | null
-          hostel_fee: number
+          fee_type: string
+          frequency: string
           id: string
-          laboratory_fee: number
-          library_fee: number
-          medical_fee: number
-          sports_fee: number
-          stationary_fee: number
-          transport_fee: number
-          tuition_fee: number
-          uniform_fee: number
-          updated_at: string | null
+          is_active: boolean
+          updated_at: string
         }
         Insert: {
-          academic_year_id?: string | null
-          activity_fee?: number
-          amount?: number | null
-          book_fee?: number
-          caution_deposit?: number
+          academic_year_id: string
+          amount: number
           class_id: string
-          computer_fee?: number
-          created_at?: string | null
+          created_at?: string
           description?: string | null
-          development_fee?: number
-          examination_fee?: number
-          fee_type?: string | null
-          frequency?: string | null
-          hostel_fee?: number
+          fee_type: string
+          frequency: string
           id?: string
-          laboratory_fee?: number
-          library_fee?: number
-          medical_fee?: number
-          sports_fee?: number
-          stationary_fee?: number
-          transport_fee?: number
-          tuition_fee?: number
-          uniform_fee?: number
-          updated_at?: string | null
+          is_active?: boolean
+          updated_at?: string
         }
         Update: {
-          academic_year_id?: string | null
-          activity_fee?: number
-          amount?: number | null
-          book_fee?: number
-          caution_deposit?: number
+          academic_year_id?: string
+          amount?: number
           class_id?: string
-          computer_fee?: number
-          created_at?: string | null
+          created_at?: string
           description?: string | null
-          development_fee?: number
-          examination_fee?: number
-          fee_type?: string | null
-          frequency?: string | null
-          hostel_fee?: number
+          fee_type?: string
+          frequency?: string
           id?: string
-          laboratory_fee?: number
-          library_fee?: number
-          medical_fee?: number
-          sports_fee?: number
-          stationary_fee?: number
-          transport_fee?: number
-          tuition_fee?: number
-          uniform_fee?: number
-          updated_at?: string | null
+          is_active?: boolean
+          updated_at?: string
         }
         Relationships: [
           {
@@ -345,7 +324,14 @@ export type Database = {
           {
             foreignKeyName: "fee_structures_class_id_fkey"
             columns: ["class_id"]
-            isOneToOne: true
+            isOneToOne: false
+            referencedRelation: "class_gender_stats"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fee_structures_class_id_fkey"
+            columns: ["class_id"]
+            isOneToOne: false
             referencedRelation: "classes"
             referencedColumns: ["id"]
           },
@@ -697,13 +683,6 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: "payments_fee_structure_id_fkey"
-            columns: ["fee_structure_id"]
-            isOneToOne: false
-            referencedRelation: "fee_structures"
-            referencedColumns: ["id"]
-          },
-          {
             foreignKeyName: "payments_student_id_fkey"
             columns: ["student_id"]
             isOneToOne: false
@@ -794,6 +773,13 @@ export type Database = {
             foreignKeyName: "student_academic_records_class_id_fkey"
             columns: ["class_id"]
             isOneToOne: false
+            referencedRelation: "class_gender_stats"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "student_academic_records_class_id_fkey"
+            columns: ["class_id"]
+            isOneToOne: false
             referencedRelation: "classes"
             referencedColumns: ["id"]
           },
@@ -801,7 +787,71 @@ export type Database = {
             foreignKeyName: "student_academic_records_promoted_from_class_fkey"
             columns: ["promoted_from_class"]
             isOneToOne: false
+            referencedRelation: "class_gender_stats"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "student_academic_records_promoted_from_class_fkey"
+            columns: ["promoted_from_class"]
+            isOneToOne: false
             referencedRelation: "classes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      student_fee_assignments: {
+        Row: {
+          assigned_date: string
+          balance_amount: number | null
+          created_at: string
+          due_date: string | null
+          fee_structure_id: string
+          id: string
+          paid_amount: number
+          status: string
+          student_id: string
+          total_amount: number
+          updated_at: string
+        }
+        Insert: {
+          assigned_date?: string
+          balance_amount?: number | null
+          created_at?: string
+          due_date?: string | null
+          fee_structure_id: string
+          id?: string
+          paid_amount?: number
+          status?: string
+          student_id: string
+          total_amount: number
+          updated_at?: string
+        }
+        Update: {
+          assigned_date?: string
+          balance_amount?: number | null
+          created_at?: string
+          due_date?: string | null
+          fee_structure_id?: string
+          id?: string
+          paid_amount?: number
+          status?: string
+          student_id?: string
+          total_amount?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "student_fee_assignments_fee_structure_id_fkey"
+            columns: ["fee_structure_id"]
+            isOneToOne: false
+            referencedRelation: "fee_structures"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "student_fee_assignments_student_id_fkey"
+            columns: ["student_id"]
+            isOneToOne: false
+            referencedRelation: "students"
             referencedColumns: ["id"]
           },
         ]
@@ -836,6 +886,66 @@ export type Database = {
           },
         ]
       }
+      student_payments: {
+        Row: {
+          amount_paid: number
+          created_at: string
+          fee_structure_id: string
+          id: string
+          late_fee: number | null
+          notes: string | null
+          payment_date: string
+          payment_method: string
+          payment_received_by: string
+          reference_number: string | null
+          student_id: string
+          updated_at: string
+        }
+        Insert: {
+          amount_paid: number
+          created_at?: string
+          fee_structure_id: string
+          id?: string
+          late_fee?: number | null
+          notes?: string | null
+          payment_date: string
+          payment_method: string
+          payment_received_by: string
+          reference_number?: string | null
+          student_id: string
+          updated_at?: string
+        }
+        Update: {
+          amount_paid?: number
+          created_at?: string
+          fee_structure_id?: string
+          id?: string
+          late_fee?: number | null
+          notes?: string | null
+          payment_date?: string
+          payment_method?: string
+          payment_received_by?: string
+          reference_number?: string | null
+          student_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "student_payments_fee_structure_id_fkey"
+            columns: ["fee_structure_id"]
+            isOneToOne: false
+            referencedRelation: "fee_structures"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "student_payments_student_id_fkey"
+            columns: ["student_id"]
+            isOneToOne: false
+            referencedRelation: "students"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       students: {
         Row: {
           aadhaar_number: string | null
@@ -845,7 +955,7 @@ export type Database = {
           blood_group: string | null
           caste_category: string | null
           city: string | null
-          class_id: string | null
+          class_id: string
           created_at: string | null
           date_of_birth: string
           date_of_join: string | null
@@ -878,7 +988,7 @@ export type Database = {
           blood_group?: string | null
           caste_category?: string | null
           city?: string | null
-          class_id?: string | null
+          class_id: string
           created_at?: string | null
           date_of_birth: string
           date_of_join?: string | null
@@ -911,7 +1021,7 @@ export type Database = {
           blood_group?: string | null
           caste_category?: string | null
           city?: string | null
-          class_id?: string | null
+          class_id?: string
           created_at?: string | null
           date_of_birth?: string
           date_of_join?: string | null
@@ -937,6 +1047,13 @@ export type Database = {
           updated_at?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "fk_students_class_id"
+            columns: ["class_id"]
+            isOneToOne: false
+            referencedRelation: "class_gender_stats"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "fk_students_class_id"
             columns: ["class_id"]
@@ -999,7 +1116,7 @@ export type Database = {
       }
       teachers: {
         Row: {
-          aadhaar_number: string | null
+          aadhaar_number: string
           address_line1: string | null
           address_line2: string | null
           city: string | null
@@ -1026,7 +1143,7 @@ export type Database = {
           updated_at: string | null
         }
         Insert: {
-          aadhaar_number?: string | null
+          aadhaar_number: string
           address_line1?: string | null
           address_line2?: string | null
           city?: string | null
@@ -1053,7 +1170,7 @@ export type Database = {
           updated_at?: string | null
         }
         Update: {
-          aadhaar_number?: string | null
+          aadhaar_number?: string
           address_line1?: string | null
           address_line2?: string | null
           city?: string | null
@@ -1120,6 +1237,13 @@ export type Database = {
             foreignKeyName: "timetables_class_id_fkey"
             columns: ["class_id"]
             isOneToOne: false
+            referencedRelation: "class_gender_stats"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "timetables_class_id_fkey"
+            columns: ["class_id"]
+            isOneToOne: false
             referencedRelation: "classes"
             referencedColumns: ["id"]
           },
@@ -1141,7 +1265,18 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      class_gender_stats: {
+        Row: {
+          female_count: number | null
+          id: string | null
+          male_count: number | null
+          name: string | null
+          other_count: number | null
+          section: string | null
+          total_students: number | null
+        }
+        Relationships: []
+      }
     }
     Functions: {
       [_ in never]: never

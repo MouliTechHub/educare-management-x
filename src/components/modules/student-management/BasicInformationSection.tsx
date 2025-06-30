@@ -65,12 +65,13 @@ export function BasicInformationSection({ formData, setFormData, classes }: Basi
         </div>
 
         <div className="space-y-2">
-          <Label htmlFor="date_of_join">Date of Joining</Label>
+          <Label htmlFor="date_of_join">Date of Joining (Admission Date) *</Label>
           <Input
             id="date_of_join"
             type="date"
             value={formData.date_of_join || ''}
             onChange={(e) => handleInputChange('date_of_join', e.target.value)}
+            required
           />
         </div>
 
@@ -92,7 +93,7 @@ export function BasicInformationSection({ formData, setFormData, classes }: Basi
         </div>
 
         <div className="space-y-2">
-          <Label htmlFor="class_id">Class</Label>
+          <Label htmlFor="class_id">Class *</Label>
           <Select
             value={formData.class_id || ""}
             onValueChange={(value) => handleInputChange('class_id', value)}
@@ -101,7 +102,6 @@ export function BasicInformationSection({ formData, setFormData, classes }: Basi
               <SelectValue placeholder="Select class" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="">No Class Assigned</SelectItem>
               {classes.map((cls) => (
                 <SelectItem key={cls.id} value={cls.id}>
                   {cls.name} {cls.section && `- Section ${cls.section}`}
