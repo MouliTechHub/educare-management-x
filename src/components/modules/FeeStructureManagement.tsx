@@ -7,9 +7,29 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import { Plus, Search } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import { FeeStructure, Class, AcademicYear } from "@/types/database";
+import { Class, AcademicYear } from "@/types/database";
 import { FeeStructureForm } from "./fee-structure-management/FeeStructureForm";
 import { FeeStructureTable } from "./fee-structure-management/FeeStructureTable";
+
+interface FeeStructure {
+  id: string;
+  class_id: string;
+  academic_year_id: string;
+  fee_type: string;
+  amount: number;
+  frequency: string;
+  description: string | null;
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
+  classes?: {
+    name: string;
+    section: string | null;
+  };
+  academic_years?: {
+    year_name: string;
+  };
+}
 
 export function FeeStructureManagement() {
   const [feeStructures, setFeeStructures] = useState<FeeStructure[]>([]);
@@ -47,13 +67,15 @@ export function FeeStructureManagement() {
         id: structure.id,
         class_id: structure.class_id,
         academic_year_id: structure.academic_year_id,
-        fee_type: structure.fee_type as FeeStructure['fee_type'],
+        fee_type: structure.fee_type,
         amount: structure.amount,
-        frequency: structure.frequency as FeeStructure['frequency'],
+        frequency: structure.frequency,
         description: structure.description,
         is_active: structure.is_active,
         created_at: structure.created_at,
-        updated_at: structure.updated_at
+        updated_at: structure.updated_at,
+        classes: structure.classes,
+        academic_years: structure.academic_years
       }));
 
       // Fetch classes
@@ -132,7 +154,20 @@ export function FeeStructureManagement() {
   };
 
   const handleEdit = (structure: FeeStructure) => {
-    setSelectedStructure(structure);
+    // Convert the structure back to the expected format for the form
+    const formStructure = {
+      id: structure.id,
+      class_id: structure.class_id,
+      academic_year_id: structure.academic_year_id,
+      fee_type: structure.fee_type,
+      amount: structure.amount,
+      frequency: structure.frequency,
+      description: structure.description,
+      is_active: structure.is_active,
+      created_at: structure.created_at,
+      updated_at: structure.updated_at
+    };
+    setSelectedStructure(formStructure as any);
     setDialogOpen(true);
   };
 
@@ -164,7 +199,9 @@ export function FeeStructureManagement() {
 
   const filteredStructures = feeStructures.filter((structure) =>
     structure.fee_type.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    structure.description?.toLowerCase().includes(searchTerm.toLowerCase())
+    structure.description?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    structure.classes?.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    structure.academic_years?.year_name.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   if (loading) {

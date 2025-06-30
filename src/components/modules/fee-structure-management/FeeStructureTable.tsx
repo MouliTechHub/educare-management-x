@@ -3,7 +3,26 @@ import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Edit, Trash2, DollarSign, Calendar } from "lucide-react";
-import { FeeStructure } from "@/types/database";
+
+interface FeeStructure {
+  id: string;
+  class_id: string;
+  academic_year_id: string;
+  fee_type: string;
+  amount: number;
+  frequency: string;
+  description: string | null;
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
+  classes?: {
+    name: string;
+    section: string | null;
+  };
+  academic_years?: {
+    year_name: string;
+  };
+}
 
 interface FeeStructureTableProps {
   feeStructures: FeeStructure[];
@@ -58,12 +77,14 @@ export function FeeStructureTable({ feeStructures, onEdit, onDelete }: FeeStruct
           {feeStructures.map((structure) => (
             <TableRow key={structure.id}>
               <TableCell className="font-medium">
-                {/* We'll need to add class name from joined data */}
-                Class Information
+                {structure.classes ? (
+                  `${structure.classes.name}${structure.classes.section ? ` - ${structure.classes.section}` : ''}`
+                ) : (
+                  'Unknown Class'
+                )}
               </TableCell>
               <TableCell>
-                {/* We'll need to add academic year from joined data */}
-                Academic Year
+                {structure.academic_years?.year_name || 'Unknown Year'}
               </TableCell>
               <TableCell>
                 <Badge className={getFeeTypeColor(structure.fee_type)}>
