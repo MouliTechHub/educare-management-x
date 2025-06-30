@@ -50,7 +50,7 @@ export function FeeTableRow({
   onDiscountClick, 
   onHistoryClick, 
   onChangeHistoryClick,
-  showPaymentActions = false // Changed default to false
+  showPaymentActions = false
 }: FeeTableRowProps) {
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -110,9 +110,11 @@ export function FeeTableRow({
             variant="outline"
             size="sm"
             onClick={() => onHistoryClick(fee.student)}
-            title="View detailed payment history"
+            title="View detailed payment history with timestamps"
+            className="bg-blue-50 hover:bg-blue-100 border-blue-200"
           >
-            <History className="w-4 h-4" />
+            <History className="w-4 h-4 mr-1" />
+            Payment History
           </Button>
           <Button
             variant="outline"

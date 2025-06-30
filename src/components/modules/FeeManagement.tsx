@@ -98,8 +98,8 @@ export function FeeManagement() {
         onFiltersChange={setFilters}
         classes={classes}
         filteredFees={filteredFees}
-        onPaymentClick={() => {}} // Empty function since we're removing payment functionality
-        onDiscountClick={() => {}} // Empty function since we're removing discount functionality
+        onPaymentClick={() => {}} // Removed payment functionality
+        onDiscountClick={() => {}} // Removed discount functionality
         onHistoryClick={handleHistoryClick}
       />
 
