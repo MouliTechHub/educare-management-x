@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Plus, Search, Edit, Trash2 } from "lucide-react";
+import { Plus, Search } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { FeeStructure, Class, AcademicYear } from "@/types/database";
@@ -157,7 +157,7 @@ export function FeeStructureManagement() {
     }
   };
 
-  const handleAddNew = () => {
+  const handleAddFeeStructure = () => {
     setSelectedStructure(null);
     setDialogOpen(true);
   };
@@ -184,7 +184,7 @@ export function FeeStructureManagement() {
         </div>
         <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
           <DialogTrigger asChild>
-            <Button onClick={handleAddNew}>
+            <Button onClick={handleAddFeeStructure}>
               <Plus className="w-4 h-4 mr-2" />
               Add Fee Structure
             </Button>
@@ -192,7 +192,7 @@ export function FeeStructureManagement() {
           <DialogContent className="max-w-2xl">
             <DialogHeader>
               <DialogTitle>
-                {selectedStructure ? "Edit Fee Structure" : "Add New Fee Structure"}
+                {selectedStructure ? "Edit Fee Structure" : "Add Fee Structure"}
               </DialogTitle>
               <DialogDescription>
                 {selectedStructure ? "Update fee structure details" : "Create a new fee structure for a class and academic year"}

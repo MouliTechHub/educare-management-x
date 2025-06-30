@@ -1,11 +1,7 @@
 
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { FeeFormDialog } from "./FeeFormDialog";
-import { FeeStructureDialog } from "./FeeStructureDialog";
-import { DiscountReportsDialog } from "./DiscountReportsDialog";
-import { ExportButtons } from "./ExportButtons";
+import { Button } from "@/components/ui/button";
+import { Download } from "lucide-react";
 import { AcademicYearSelector } from "./AcademicYearSelector";
-import { useState } from "react";
 
 interface AcademicYear {
   id: string;
@@ -15,71 +11,89 @@ interface AcademicYear {
   is_current: boolean;
 }
 
+interface Fee {
+  id: string;
+  student_id: string;
+  amount: number;
+  actual_amount: number;
+  discount_amount: number;
+  total_paid: number;
+  fee_type: string;
+  due_date: string;
+  payment_date: string | null;
+  status: 'Pending' | 'Paid' | 'Overdue';
+  receipt_number: string | null;
+  created_at: string;
+  updated_at: string;
+  discount_notes: string | null;
+  discount_updated_by: string | null;
+  discount_updated_at: string | null;
+  academic_year_id: string;
+  student?: {
+    id: string;
+    first_name: string;
+    last_name: string;
+    admission_number: string;
+    class_name?: string;
+    section?: string;
+    parent_phone?: string;
+    parent_email?: string;
+    class_id?: string;
+  };
+}
+
 interface FeeManagementHeaderProps {
   academicYears: AcademicYear[];
   selectedAcademicYear: string;
-  onYearChange: (yearId: string) => void;
+  onYearChange: (year: string) => void;
   onFeeCreated: () => void;
   onStructureCreated: () => void;
-  filteredFees: any[];
+  filteredFees: Fee[];
 }
 
-export function FeeManagementHeader({ 
-  academicYears, 
-  selectedAcademicYear, 
-  onYearChange, 
-  onFeeCreated,
-  onStructureCreated,
-  filteredFees 
+export function FeeManagementHeader({
+  academicYears,
+  selectedAcademicYear,
+  onYearChange,
+  filteredFees
 }: FeeManagementHeaderProps) {
-  const [reportsDialogOpen, setReportsDialogOpen] = useState(false);
-  
-  const currentYear = academicYears.find(year => year.id === selectedAcademicYear);
-  
   const handleExport = (format: 'excel' | 'pdf') => {
-    // This will be handled by the parent component
-    console.log('Export requested:', format);
+    const currentYear = academicYears.find(year => year.id === selectedAcademicYear);
+    const yearName = currentYear?.year_name || 'Unknown';
+    
+    console.log(`Exporting ${format} for ${yearName}:`, filteredFees);
+    // Export functionality would be implemented here
   };
 
   return (
-    <>
-      <Card>
-        <CardHeader>
-          <div className="flex items-center justify-between">
-            <div>
-              <CardTitle>Fee Management</CardTitle>
-              <CardDescription>
-                Manage student fees, payments, and fee structures across academic years
-              </CardDescription>
-            </div>
-            <div className="flex items-center space-x-2">
-              <AcademicYearSelector
-                academicYears={academicYears}
-                selectedYear={selectedAcademicYear}
-                onYearChange={onYearChange}
-              />
-              <ExportButtons 
-                data={filteredFees} 
-                academicYear={currentYear?.year_name || 'Unknown'} 
-                onExport={handleExport} 
-              />
-              <button
-                onClick={() => setReportsDialogOpen(true)}
-                className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
-              >
-                Reports
-              </button>
-              <FeeStructureDialog onStructureCreated={onStructureCreated} />
-              <FeeFormDialog onFeeCreated={onFeeCreated} />
-            </div>
-          </div>
-        </CardHeader>
-      </Card>
-      
-      <DiscountReportsDialog
-        open={reportsDialogOpen}
-        onOpenChange={setReportsDialogOpen}
-      />
-    </>
+    <div className="flex justify-between items-center">
+      <div>
+        <h1 className="text-3xl font-bold text-gray-900">Fee Management</h1>
+        <p className="text-gray-600 mt-2">Manage student fees and payments by academic year</p>
+      </div>
+      <div className="flex items-center space-x-4">
+        <AcademicYearSelector
+          academicYears={academicYears}
+          selectedYear={selectedAcademicYear}
+          onYearChange={onYearChange}
+        />
+        <Button
+          variant="outline"
+          onClick={() => handleExport('excel')}
+          className="flex items-center space-x-2"
+        >
+          <Download className="w-4 h-4" />
+          <span>Export Excel</span>
+        </Button>
+        <Button
+          variant="outline"
+          onClick={() => handleExport('pdf')}
+          className="flex items-center space-x-2"
+        >
+          <Download className="w-4 h-4" />
+          <span>Export PDF</span>
+        </Button>
+      </div>
+    </div>
   );
 }

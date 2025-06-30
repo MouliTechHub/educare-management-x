@@ -58,7 +58,7 @@ export function PaymentsManagement() {
 
       if (yearsError) throw yearsError;
 
-      // Fetch students - Fix the missing class id issue
+      // Fetch students
       const { data: studentsData, error: studentsError } = await supabase
         .from("students")
         .select("*, classes:class_id(id, name, section)")
@@ -151,7 +151,7 @@ export function PaymentsManagement() {
     }
   };
 
-  const handleAddPayment = () => {
+  const handleRecordPayment = () => {
     setDialogOpen(true);
   };
 
@@ -180,7 +180,7 @@ export function PaymentsManagement() {
         </div>
         <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
           <DialogTrigger asChild>
-            <Button onClick={handleAddPayment}>
+            <Button onClick={handleRecordPayment}>
               <Plus className="w-4 h-4 mr-2" />
               Record Payment
             </Button>

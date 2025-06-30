@@ -185,14 +185,12 @@ export function FeeManagement() {
 
   return (
     <div className="space-y-6">
-      <FeeManagementHeader
-        academicYears={academicYears}
-        selectedAcademicYear={selectedAcademicYear}
-        onYearChange={setSelectedAcademicYear}
-        onFeeCreated={refetchFees}
-        onStructureCreated={refetchFees}
-        filteredFees={filteredFees}
-      />
+      <div className="flex justify-between items-center">
+        <div>
+          <h1 className="text-3xl font-bold text-gray-900">Fee Management</h1>
+          <p className="text-gray-600 mt-2">Manage student fees and payments by academic year</p>
+        </div>
+      </div>
 
       <div className="flex items-center justify-between">
         <AcademicYearSelector

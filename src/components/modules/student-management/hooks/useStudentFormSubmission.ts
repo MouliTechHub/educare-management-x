@@ -3,7 +3,6 @@ import { useState } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { Student } from "@/types/database";
 import { useStudentValidation } from "./useStudentValidation";
-import { useFeeCreation } from "./useFeeCreation";
 import { useStudentDatabase } from "./useStudentDatabase";
 
 interface FormData {
@@ -64,7 +63,6 @@ export function useStudentFormSubmission({
   const [loading, setLoading] = useState(false);
   const { toast } = useToast();
   const { validateFormData } = useStudentValidation();
-  const { createDefaultFeeRecords } = useFeeCreation();
   const { saveStudentData, saveParentData } = useStudentDatabase();
 
   const getErrorMessage = (error: any): string => {
@@ -76,8 +74,6 @@ export function useStudentFormSubmission({
       return 'Invalid PIN code. Please enter exactly 6 digits.';
     } else if (error.message?.includes('aadhaar_number_check')) {
       return 'Invalid Aadhaar number. Please enter exactly 12 digits.';
-    } else if (error.message?.includes('fees_fee_type_check')) {
-      return 'Invalid fee type detected. Please contact the administrator.';
     } else if (error.message?.includes('students_admission_number_key')) {
       return 'This admission number is already in use. Please use a different one.';
     } else if (error.message?.includes('gender_check')) {
@@ -101,11 +97,6 @@ export function useStudentFormSubmission({
 
       // Save student data
       const studentData = await saveStudentData(formData, selectedStudent);
-
-      // Create default fee records for new students
-      if (!selectedStudent && studentData?.id) {
-        await createDefaultFeeRecords(studentData.id);
-      }
 
       // Handle parents for new students only
       if (!selectedStudent && parents.length > 0) {

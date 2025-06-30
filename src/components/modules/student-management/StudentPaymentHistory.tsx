@@ -79,27 +79,31 @@ export function StudentPaymentHistory({
     try {
       const studentId = fees[0].student_id;
       
-      // Fetch payment history filtered by academic year
-      let query = supabase
+      // Get all payment history for the student
+      const { data: historyData, error: historyError } = await supabase
         .from('payment_history')
-        .select(`
-          *,
-          fees!inner(academic_year_id)
-        `)
+        .select('*')
         .eq('student_id', studentId)
-        .order('created_at', { ascending: false });
-
-      if (currentAcademicYear) {
-        query = query.eq('fees.academic_year_id', currentAcademicYear);
-      }
-
-      const { data: historyData, error: historyError } = await query;
+        .order('payment_date', { ascending: false });
 
       if (historyError) {
         console.error('Payment history fetch error:', historyError);
         setPaymentHistory([]);
       } else {
-        setPaymentHistory((historyData || []) as PaymentHistory[]);
+        // Filter by academic year if selected
+        let filteredHistory = historyData || [];
+        if (currentAcademicYear) {
+          // Get fee IDs for the selected academic year
+          const yearFeeIds = fees
+            .filter(fee => fee.academic_year_id === currentAcademicYear)
+            .map(fee => fee.id);
+          
+          filteredHistory = filteredHistory.filter(payment => 
+            yearFeeIds.includes(payment.fee_id)
+          );
+        }
+        
+        setPaymentHistory(filteredHistory as PaymentHistory[]);
       }
 
       // Fetch payment reversals
@@ -185,15 +189,11 @@ export function StudentPaymentHistory({
               onYearChange={setCurrentAcademicYear}
             />
 
-            <Tabs defaultValue="fees" className="w-full">
+            <Tabs defaultValue="payments" className="w-full">
               <TabsList className="grid w-full grid-cols-2">
-                <TabsTrigger value="fees">Fee Records</TabsTrigger>
                 <TabsTrigger value="payments">Payment History</TabsTrigger>
+                <TabsTrigger value="fees">Fee Records</TabsTrigger>
               </TabsList>
-              
-              <TabsContent value="fees" className="space-y-4">
-                <FeeRecordsTab fees={filteredFees} />
-              </TabsContent>
               
               <TabsContent value="payments" className="space-y-4">
                 <PaymentHistoryTab
@@ -202,6 +202,10 @@ export function StudentPaymentHistory({
                   loading={loading}
                   onReversalClick={openReversalDialog}
                 />
+              </TabsContent>
+              
+              <TabsContent value="fees" className="space-y-4">
+                <FeeRecordsTab fees={filteredFees} />
               </TabsContent>
             </Tabs>
 
