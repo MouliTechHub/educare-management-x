@@ -10,6 +10,8 @@ import { TeacherManagement } from "@/components/modules/TeacherManagement";
 import { ClassManagement } from "@/components/modules/ClassManagement";
 import { AttendanceTracking } from "@/components/modules/AttendanceTracking";
 import { FeeManagement } from "@/components/modules/FeeManagement";
+import { FeeStructureManagement } from "@/components/modules/FeeStructureManagement";
+import { PaymentsManagement } from "@/components/modules/PaymentsManagement";
 import { ExamGrading } from "@/components/modules/ExamGrading";
 import { TimetableScheduling } from "@/components/modules/TimetableScheduling";
 import { Reports } from "@/components/modules/Reports";
@@ -116,6 +118,10 @@ const Index = () => {
         return <AttendanceTracking />;
       case "fees":
         return <FeeManagement />;
+      case "fee-structure":
+        return <FeeStructureManagement />;
+      case "payments":
+        return <PaymentsManagement />;
       case "exams":
         return <ExamGrading />;
       case "timetable":

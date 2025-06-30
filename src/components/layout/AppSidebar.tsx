@@ -23,6 +23,8 @@ import {
   Clock,
   BarChart3,
   Settings,
+  CreditCard,
+  Receipt,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 
@@ -45,6 +47,8 @@ export function AppSidebar({ userRole, activeModule, onModuleChange }: AppSideba
       { id: "classes", title: "Classes", icon: BookOpen, badge: null },
       { id: "attendance", title: "Attendance", icon: Calendar, badge: null },
       { id: "fees", title: "Fee Management", icon: DollarSign, badge: "3" },
+      { id: "fee-structure", title: "Fee Structure", icon: Receipt, badge: null },
+      { id: "payments", title: "Payments", icon: CreditCard, badge: null },
       { id: "exams", title: "Exams & Grades", icon: FileText, badge: null },
       { id: "timetable", title: "Timetable", icon: Clock, badge: null },
       { id: "reports", title: "Reports", icon: BarChart3, badge: null },
@@ -65,6 +69,8 @@ export function AppSidebar({ userRole, activeModule, onModuleChange }: AppSideba
 
     const accountantItems = [
       { id: "fees", title: "Fee Management", icon: DollarSign, badge: "3" },
+      { id: "fee-structure", title: "Fee Structure", icon: Receipt, badge: null },
+      { id: "payments", title: "Payments", icon: CreditCard, badge: null },
       { id: "reports", title: "Financial Reports", icon: BarChart3, badge: null },
     ];
 
