@@ -124,7 +124,7 @@ export function FeeTable({ fees, onPaymentClick, onDiscountClick, onHistoryClick
               onDiscountClick={onDiscountClick}
               onHistoryClick={onHistoryClick}
               onChangeHistoryClick={openChangeHistory}
-              showPaymentActions={false} // Explicitly set to false to hide payment actions
+              showPaymentActions={true}
             />
           ))}
         </TableBody>

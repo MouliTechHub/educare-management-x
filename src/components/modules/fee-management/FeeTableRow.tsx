@@ -2,7 +2,7 @@
 import { TableCell, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { History, FileText } from "lucide-react";
+import { CreditCard, Percent, History, FileText } from "lucide-react";
 
 interface Fee {
   id: string;
@@ -50,7 +50,7 @@ export function FeeTableRow({
   onDiscountClick, 
   onHistoryClick, 
   onChangeHistoryClick,
-  showPaymentActions = false
+  showPaymentActions = true
 }: FeeTableRowProps) {
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -106,6 +106,28 @@ export function FeeTableRow({
       </TableCell>
       <TableCell>
         <div className="flex space-x-2">
+          {showPaymentActions && balance > 0 && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => onPaymentClick(fee)}
+              className="bg-green-50 hover:bg-green-100 border-green-200"
+            >
+              <CreditCard className="w-4 h-4 mr-1" />
+              Pay
+            </Button>
+          )}
+          {showPaymentActions && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => onDiscountClick(fee)}
+              className="bg-orange-50 hover:bg-orange-100 border-orange-200"
+            >
+              <Percent className="w-4 h-4 mr-1" />
+              Discount
+            </Button>
+          )}
           <Button
             variant="outline"
             size="sm"
@@ -114,7 +136,7 @@ export function FeeTableRow({
             className="bg-blue-50 hover:bg-blue-100 border-blue-200"
           >
             <History className="w-4 h-4 mr-1" />
-            Payment History
+            History
           </Button>
           <Button
             variant="outline"

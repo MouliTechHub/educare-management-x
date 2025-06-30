@@ -69,6 +69,16 @@ export function FeeManagement() {
     openHistoryDialog(student, fees);
   };
 
+  const handlePaymentClick = (fee: Fee) => {
+    // TODO: Implement payment dialog
+    console.log('Payment clicked for fee:', fee);
+  };
+
+  const handleDiscountClick = (fee: Fee) => {
+    // TODO: Implement discount dialog
+    console.log('Discount clicked for fee:', fee);
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
@@ -98,8 +108,8 @@ export function FeeManagement() {
         onFiltersChange={setFilters}
         classes={classes}
         filteredFees={filteredFees}
-        onPaymentClick={() => {}} // Removed payment functionality
-        onDiscountClick={() => {}} // Removed discount functionality
+        onPaymentClick={handlePaymentClick}
+        onDiscountClick={handleDiscountClick}
         onHistoryClick={handleHistoryClick}
       />
 
