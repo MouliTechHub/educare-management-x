@@ -1,16 +1,12 @@
 
 import React, { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { PaymentDialog } from "./fee-management/PaymentDialog";
 import { StudentPaymentHistory } from "./student-management/StudentPaymentHistory";
-import { DiscountDialog } from "./fee-management/DiscountDialog";
-import { DiscountReportsDialog } from "./fee-management/DiscountReportsDialog";
 import { AcademicYearSelector } from "./fee-management/AcademicYearSelector";
 import { YearWiseSummaryCards } from "./fee-management/YearWiseSummaryCards";
 import { useFeeData } from "./fee-management/useFeeData";
 import { useYearWiseSummary } from "./fee-management/useYearWiseSummary";
 import { useExportData } from "./fee-management/useExportData";
-import { FeeManagementHeader } from "./fee-management/FeeManagementHeader";
 import { FeeManagementContent } from "./fee-management/FeeManagementContent";
 
 interface Class {
@@ -80,11 +76,7 @@ export function FeeManagement() {
     due_date_from: "",
     due_date_to: "",
   });
-  const [paymentDialogOpen, setPaymentDialogOpen] = useState(false);
   const [historyDialogOpen, setHistoryDialogOpen] = useState(false);
-  const [discountDialogOpen, setDiscountDialogOpen] = useState(false);
-  const [reportsDialogOpen, setReportsDialogOpen] = useState(false);
-  const [selectedFee, setSelectedFee] = useState<Fee | null>(null);
   const [selectedStudentFees, setSelectedStudentFees] = useState<Fee[]>([]);
   const [selectedStudentName, setSelectedStudentName] = useState("");
 
@@ -108,16 +100,6 @@ export function FeeManagement() {
     } catch (error: any) {
       console.error("Error fetching classes:", error);
     }
-  };
-
-  const openPaymentDialog = (fee: Fee) => {
-    setSelectedFee(fee);
-    setPaymentDialogOpen(true);
-  };
-
-  const openDiscountDialog = (fee: Fee) => {
-    setSelectedFee(fee);
-    setDiscountDialogOpen(true);
   };
 
   const openHistoryDialog = (student: Fee['student']) => {
@@ -188,7 +170,7 @@ export function FeeManagement() {
       <div className="flex justify-between items-center">
         <div>
           <h1 className="text-3xl font-bold text-gray-900">Fee Management</h1>
-          <p className="text-gray-600 mt-2">Manage student fees and payments by academic year</p>
+          <p className="text-gray-600 mt-2">View detailed payment history and fee records by academic year</p>
         </div>
       </div>
 
@@ -210,29 +192,9 @@ export function FeeManagement() {
         onFiltersChange={setFilters}
         classes={classes}
         filteredFees={filteredFees}
-        onPaymentClick={openPaymentDialog}
-        onDiscountClick={openDiscountDialog}
+        onPaymentClick={() => {}} // Empty function since we're removing payment functionality
+        onDiscountClick={() => {}} // Empty function since we're removing discount functionality
         onHistoryClick={openHistoryDialog}
-      />
-
-      <PaymentDialog
-        open={paymentDialogOpen}
-        onOpenChange={setPaymentDialogOpen}
-        fee={selectedFee}
-        onPaymentRecorded={refetchFees}
-        academicYearName={currentYear?.year_name}
-      />
-
-      <DiscountDialog
-        open={discountDialogOpen}
-        onOpenChange={setDiscountDialogOpen}
-        fee={selectedFee}
-        onDiscountApplied={refetchFees}
-      />
-
-      <DiscountReportsDialog
-        open={reportsDialogOpen}
-        onOpenChange={setReportsDialogOpen}
       />
 
       <StudentPaymentHistory

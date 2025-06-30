@@ -10,6 +10,7 @@ interface PaymentHistory {
   student_id: string;
   amount_paid: number;
   payment_date: string;
+  payment_time?: string; // Added payment_time field
   receipt_number: string;
   payment_receiver: string;
   payment_method: string;
@@ -53,6 +54,17 @@ export function PaymentHistoryTab({
     return payment.amount_paid - totalReversed;
   };
 
+  const formatDateTime = (date: string, time?: string) => {
+    const dateObj = new Date(date);
+    const dateStr = dateObj.toLocaleDateString();
+    
+    if (time) {
+      return `${dateStr} at ${time}`;
+    }
+    
+    return dateStr;
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center py-8">
@@ -65,7 +77,7 @@ export function PaymentHistoryTab({
     <Table>
       <TableHeader>
         <TableRow>
-          <TableHead>Date</TableHead>
+          <TableHead>Date & Time</TableHead>
           <TableHead>Fee Type</TableHead>
           <TableHead>Amount Paid</TableHead>
           <TableHead>Net Amount</TableHead>
@@ -85,7 +97,16 @@ export function PaymentHistoryTab({
             
             return (
               <TableRow key={payment.id}>
-                <TableCell>{new Date(payment.payment_date).toLocaleDateString()}</TableCell>
+                <TableCell>
+                  <div className="font-medium">
+                    {formatDateTime(payment.payment_date, payment.payment_time)}
+                  </div>
+                  {payment.payment_time && (
+                    <div className="text-xs text-gray-500">
+                      Exact time: {payment.payment_time}
+                    </div>
+                  )}
+                </TableCell>
                 <TableCell className="font-medium">{payment.fee_type}</TableCell>
                 <TableCell className="font-medium text-green-600">
                   ₹{Number(payment.amount_paid).toLocaleString()}

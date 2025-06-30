@@ -18,6 +18,7 @@ interface PaymentHistory {
   student_id: string;
   amount_paid: number;
   payment_date: string;
+  payment_time?: string; // Added payment_time field
   receipt_number: string;
   payment_receiver: string;
   payment_method: string;
@@ -79,12 +80,13 @@ export function StudentPaymentHistory({
     try {
       const studentId = fees[0].student_id;
       
-      // Get all payment history for the student
+      // Get all payment history for the student with payment_time
       const { data: historyData, error: historyError } = await supabase
         .from('payment_history')
-        .select('*')
+        .select('*, payment_time')
         .eq('student_id', studentId)
-        .order('payment_date', { ascending: false });
+        .order('payment_date', { ascending: false })
+        .order('payment_time', { ascending: false });
 
       if (historyError) {
         console.error('Payment history fetch error:', historyError);
@@ -169,7 +171,7 @@ export function StudentPaymentHistory({
             <DialogTitle className="flex items-center justify-between">
               <div className="flex items-center space-x-2">
                 <Receipt className="w-5 h-5" />
-                <span>Payment Records - {studentName}</span>
+                <span>Detailed Payment History - {studentName}</span>
               </div>
               {currentYear && (
                 <Badge variant="outline" className="text-sm">
@@ -191,11 +193,18 @@ export function StudentPaymentHistory({
 
             <Tabs defaultValue="payments" className="w-full">
               <TabsList className="grid w-full grid-cols-2">
-                <TabsTrigger value="payments">Payment History</TabsTrigger>
+                <TabsTrigger value="payments">Detailed Payment History</TabsTrigger>
                 <TabsTrigger value="fees">Fee Records</TabsTrigger>
               </TabsList>
               
               <TabsContent value="payments" className="space-y-4">
+                <div className="bg-blue-50 p-4 rounded-lg">
+                  <h3 className="font-medium text-blue-900 mb-2">Payment History with Time Details</h3>
+                  <p className="text-sm text-blue-700">
+                    This shows all payments made by the student with exact date and time information. 
+                    Multiple payments on the same day will show different times.
+                  </p>
+                </div>
                 <PaymentHistoryTab
                   paymentHistory={filteredPaymentHistory}
                   paymentReversals={paymentReversals}

@@ -550,6 +550,7 @@ export type Database = {
           payment_date: string
           payment_method: string
           payment_receiver: string
+          payment_time: string
           receipt_number: string
           student_id: string
           updated_at: string
@@ -564,6 +565,7 @@ export type Database = {
           payment_date: string
           payment_method?: string
           payment_receiver: string
+          payment_time?: string
           receipt_number: string
           student_id: string
           updated_at?: string
@@ -578,6 +580,7 @@ export type Database = {
           payment_date?: string
           payment_method?: string
           payment_receiver?: string
+          payment_time?: string
           receipt_number?: string
           student_id?: string
           updated_at?: string

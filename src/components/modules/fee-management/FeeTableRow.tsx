@@ -1,8 +1,8 @@
 
 import { TableCell, TableRow } from "@/components/ui/table";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { CheckCircle, DollarSign, AlertTriangle, Receipt, Percent, Eye, History } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { History, FileText } from "lucide-react";
 
 interface Fee {
   id: string;
@@ -41,6 +41,7 @@ interface FeeTableRowProps {
   onDiscountClick: (fee: Fee) => void;
   onHistoryClick: (student: Fee['student']) => void;
   onChangeHistoryClick: (fee: Fee) => void;
+  showPaymentActions?: boolean;
 }
 
 export function FeeTableRow({ 
@@ -48,64 +49,43 @@ export function FeeTableRow({
   onPaymentClick, 
   onDiscountClick, 
   onHistoryClick, 
-  onChangeHistoryClick 
+  onChangeHistoryClick,
+  showPaymentActions = true 
 }: FeeTableRowProps) {
-  const getStatusIcon = (status: string) => {
+  const getStatusColor = (status: string) => {
     switch (status) {
-      case "Paid":
-        return <CheckCircle className="w-4 h-4 text-green-600" />;
-      case "Pending":
-        return <DollarSign className="w-4 h-4 text-yellow-600" />;
-      case "Overdue":
-        return <AlertTriangle className="w-4 h-4 text-red-600" />;
+      case 'Paid':
+        return 'bg-green-100 text-green-800';
+      case 'Pending':
+        return 'bg-yellow-100 text-yellow-800';
+      case 'Overdue':
+        return 'bg-red-100 text-red-800';
       default:
-        return <DollarSign className="w-4 h-4 text-gray-600" />;
+        return 'bg-gray-100 text-gray-800';
     }
   };
 
-  const getStatusVariant = (status: string, dueDate: string) => {
-    if (status === "Paid") return "default";
-    if (status === "Pending" && new Date(dueDate) < new Date()) return "destructive";
-    return "secondary";
-  };
-
-  const getDisplayStatus = (status: string, dueDate: string) => {
-    if (status === "Paid") return "Paid";
-    if (status === "Pending" && new Date(dueDate) < new Date()) return "Overdue";
-    return status;
-  };
-
-  const calculateFees = (fee: Fee) => {
-    const actualFee = fee.actual_amount;
-    const finalFee = actualFee - fee.discount_amount;
-    const balanceFee = finalFee - fee.total_paid;
-    return { actualFee, finalFee, balanceFee };
-  };
-
-  const { actualFee, finalFee, balanceFee } = calculateFees(fee);
+  const finalAmount = fee.actual_amount - fee.discount_amount;
+  const balance = finalAmount - fee.total_paid;
 
   return (
     <TableRow>
       <TableCell>
         <div>
           <div className="font-medium">
-            {fee.student ? `${fee.student.first_name} ${fee.student.last_name}` : "Unknown"}
+            {fee.student ? `${fee.student.first_name} ${fee.student.last_name}` : 'Unknown Student'}
           </div>
           <div className="text-sm text-gray-500">
-            {fee.student?.admission_number}
+            {fee.student?.admission_number || 'N/A'}
           </div>
         </div>
       </TableCell>
       <TableCell>
-        <div className="text-sm">
-          <div>{fee.student?.class_name || "N/A"}</div>
-          {fee.student?.section && (
-            <div className="text-gray-500">Section {fee.student.section}</div>
-          )}
-        </div>
+        {fee.student?.class_name || 'Unknown Class'}
+        {fee.student?.section && ` - ${fee.student.section}`}
       </TableCell>
-      <TableCell>{fee.fee_type}</TableCell>
-      <TableCell className="font-medium">₹{actualFee.toLocaleString()}</TableCell>
+      <TableCell className="font-medium">{fee.fee_type}</TableCell>
+      <TableCell>₹{fee.actual_amount.toLocaleString()}</TableCell>
       <TableCell>
         {fee.discount_amount > 0 ? (
           <span className="text-green-600 font-medium">₹{fee.discount_amount.toLocaleString()}</span>
@@ -113,62 +93,35 @@ export function FeeTableRow({
           <span className="text-gray-400">₹0</span>
         )}
       </TableCell>
-      <TableCell className="font-medium">₹{finalFee.toLocaleString()}</TableCell>
+      <TableCell className="font-medium">₹{finalAmount.toLocaleString()}</TableCell>
       <TableCell className="font-medium text-blue-600">₹{fee.total_paid.toLocaleString()}</TableCell>
-      <TableCell className={`font-medium ${balanceFee > 0 ? 'text-red-600' : 'text-green-600'}`}>
-        ₹{balanceFee.toLocaleString()}
+      <TableCell className={`font-medium ${balance > 0 ? 'text-red-600' : 'text-green-600'}`}>
+        ₹{balance.toLocaleString()}
       </TableCell>
       <TableCell>{new Date(fee.due_date).toLocaleDateString()}</TableCell>
       <TableCell>
-        <Badge variant={getStatusVariant(fee.status, fee.due_date)}>
-          <div className="flex items-center space-x-1">
-            {getStatusIcon(getDisplayStatus(fee.status, fee.due_date))}
-            <span>{getDisplayStatus(fee.status, fee.due_date)}</span>
-          </div>
+        <Badge className={getStatusColor(fee.status)}>
+          {fee.status}
         </Badge>
       </TableCell>
       <TableCell>
-        <div className="flex items-center space-x-2">
-          {balanceFee > 0 && (
-            <>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => onPaymentClick(fee)}
-              >
-                <Receipt className="w-4 h-4 mr-1" />
-                Pay
-              </Button>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => onDiscountClick(fee)}
-              >
-                <Percent className="w-4 h-4 mr-1" />
-                Discount
-              </Button>
-            </>
-          )}
+        <div className="flex space-x-2">
           <Button
-            variant="ghost"
+            variant="outline"
             size="sm"
-            onClick={() => onChangeHistoryClick(fee)}
-            title="View Change History"
+            onClick={() => onHistoryClick(fee.student)}
+            title="View detailed payment history"
           >
             <History className="w-4 h-4" />
           </Button>
           <Button
-            variant="ghost"
+            variant="outline"
             size="sm"
-            onClick={() => onHistoryClick(fee.student)}
+            onClick={() => onChangeHistoryClick(fee)}
+            title="View change history"
           >
-            <Eye className="w-4 h-4" />
+            <FileText className="w-4 h-4" />
           </Button>
-          {fee.status === "Paid" && fee.receipt_number && (
-            <span className="text-sm text-gray-500">
-              Receipt: {fee.receipt_number}
-            </span>
-          )}
         </div>
       </TableCell>
     </TableRow>
