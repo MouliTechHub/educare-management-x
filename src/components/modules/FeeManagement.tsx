@@ -186,11 +186,12 @@ export function FeeManagement() {
   return (
     <div className="space-y-6">
       <FeeManagementHeader
-        filteredFees={filteredFees}
-        academicYear={yearWiseSummary.academicYear}
-        onExport={handleExport}
-        onReportsClick={() => setReportsDialogOpen(true)}
+        academicYears={academicYears}
+        selectedAcademicYear={selectedAcademicYear}
+        onYearChange={setSelectedAcademicYear}
         onFeeCreated={refetchFees}
+        onStructureCreated={refetchFees}
+        filteredFees={filteredFees}
       />
 
       <div className="flex items-center justify-between">
