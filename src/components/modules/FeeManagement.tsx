@@ -1,28 +1,12 @@
 
-import React, { useState } from "react";
-import { supabase } from "@/integrations/supabase/client";
+import React from "react";
 import { StudentPaymentHistory } from "./student-management/StudentPaymentHistory";
-import { AcademicYearSelector } from "./fee-management/AcademicYearSelector";
 import { YearWiseSummaryCards } from "./fee-management/YearWiseSummaryCards";
+import { FeeManagementHeader } from "./fee-management/FeeManagementHeader";
+import { FeeManagementContent } from "./fee-management/FeeManagementContent";
 import { useFeeData } from "./fee-management/useFeeData";
 import { useYearWiseSummary } from "./fee-management/useYearWiseSummary";
-import { useExportData } from "./fee-management/useExportData";
-import { FeeManagementContent } from "./fee-management/FeeManagementContent";
-
-interface Class {
-  id: string;
-  name: string;
-  section: string | null;
-}
-
-interface FilterState {
-  class_id: string;
-  section: string;
-  status: string;
-  fee_type: string;
-  due_date_from: string;
-  due_date_to: string;
-}
+import { useFeeManagement } from "./fee-management/useFeeManagement";
 
 interface Fee {
   id: string;
@@ -59,100 +43,30 @@ export function FeeManagement() {
   const { 
     fees, 
     academicYears, 
-    currentAcademicYear, 
     selectedAcademicYear, 
     setSelectedAcademicYear, 
-    loading, 
-    refetchFees 
+    loading 
   } = useFeeData();
   
-  const [classes, setClasses] = useState<Class[]>([]);
-  const [searchTerm, setSearchTerm] = useState("");
-  const [filters, setFilters] = useState<FilterState>({
-    class_id: "all",
-    section: "all",
-    status: "all",
-    fee_type: "all",
-    due_date_from: "",
-    due_date_to: "",
-  });
-  const [historyDialogOpen, setHistoryDialogOpen] = useState(false);
-  const [selectedStudentFees, setSelectedStudentFees] = useState<Fee[]>([]);
-  const [selectedStudentName, setSelectedStudentName] = useState("");
+  const {
+    classes,
+    searchTerm,
+    setSearchTerm,
+    filters,
+    setFilters,
+    historyDialogOpen,
+    setHistoryDialogOpen,
+    selectedStudentFees,
+    selectedStudentName,
+    openHistoryDialog,
+    applyFilters
+  } = useFeeManagement();
 
   // Get year-wise summary
   const yearWiseSummary = useYearWiseSummary(fees, academicYears, selectedAcademicYear);
-  const { exportToExcel, exportToPDF } = useExportData();
 
-  React.useEffect(() => {
-    fetchClasses();
-  }, []);
-
-  const fetchClasses = async () => {
-    try {
-      const { data, error } = await supabase
-        .from("classes")
-        .select("id, name, section")
-        .order("name");
-
-      if (error) throw error;
-      setClasses(data || []);
-    } catch (error: any) {
-      console.error("Error fetching classes:", error);
-    }
-  };
-
-  const openHistoryDialog = (student: Fee['student']) => {
-    if (!student) return;
-    
-    const studentFees = fees.filter(fee => fee.student_id === student.id);
-    setSelectedStudentFees(studentFees);
-    setSelectedStudentName(`${student.first_name} ${student.last_name}`);
-    setHistoryDialogOpen(true);
-  };
-
-  const applyFilters = (fees: Fee[]) => {
-    return fees.filter((fee) => {
-      const matchesSearch = fee.student && 
-        (`${fee.student.first_name} ${fee.student.last_name}`.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        fee.student.admission_number.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        fee.fee_type.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        (fee.student.class_name && fee.student.class_name.toLowerCase().includes(searchTerm.toLowerCase())));
-      
-      const matchesClass = filters.class_id === "all" || 
-        (fee.student?.class_id === filters.class_id);
-      
-      const matchesSection = filters.section === "all" || 
-        (fee.student?.section === filters.section);
-      
-      const matchesStatus = filters.status === "all" || 
-        fee.status.toLowerCase() === filters.status.toLowerCase();
-      
-      const matchesFeeType = filters.fee_type === "all" || 
-        fee.fee_type === filters.fee_type;
-      
-      const matchesDueDateFrom = !filters.due_date_from || 
-        new Date(fee.due_date) >= new Date(filters.due_date_from);
-      
-      const matchesDueDateTo = !filters.due_date_to || 
-        new Date(fee.due_date) <= new Date(filters.due_date_to);
-      
-      return matchesSearch && matchesClass && matchesSection && 
-             matchesStatus && matchesFeeType && matchesDueDateFrom && matchesDueDateTo;
-    });
-  };
-
-  const filteredFees = applyFilters(fees);
-
-  const handleExport = (format: 'excel' | 'pdf') => {
-    const currentYear = academicYears.find(year => year.id === selectedAcademicYear);
-    const yearName = currentYear?.year_name || 'Unknown';
-    
-    if (format === 'excel') {
-      exportToExcel(filteredFees, yearName);
-    } else {
-      exportToPDF(filteredFees, yearName);
-    }
+  const handleHistoryClick = (student: Fee['student']) => {
+    openHistoryDialog(student, fees);
   };
 
   if (loading) {
@@ -164,23 +78,15 @@ export function FeeManagement() {
   }
 
   const currentYear = academicYears.find(year => year.id === selectedAcademicYear);
+  const filteredFees = applyFilters(fees);
 
   return (
     <div className="space-y-6">
-      <div className="flex justify-between items-center">
-        <div>
-          <h1 className="text-3xl font-bold text-gray-900">Fee Management</h1>
-          <p className="text-gray-600 mt-2">View detailed payment history and fee records by academic year</p>
-        </div>
-      </div>
-
-      <div className="flex items-center justify-between">
-        <AcademicYearSelector
-          academicYears={academicYears}
-          selectedYear={selectedAcademicYear}
-          onYearChange={setSelectedAcademicYear}
-        />
-      </div>
+      <FeeManagementHeader
+        academicYears={academicYears}
+        selectedAcademicYear={selectedAcademicYear}
+        onYearChange={setSelectedAcademicYear}
+      />
 
       <YearWiseSummaryCards summary={yearWiseSummary} />
 
@@ -194,7 +100,7 @@ export function FeeManagement() {
         filteredFees={filteredFees}
         onPaymentClick={() => {}} // Empty function since we're removing payment functionality
         onDiscountClick={() => {}} // Empty function since we're removing discount functionality
-        onHistoryClick={openHistoryDialog}
+        onHistoryClick={handleHistoryClick}
       />
 
       <StudentPaymentHistory
