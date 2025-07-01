@@ -1,240 +1,122 @@
-import { useState, useEffect } from "react";
+
+import React from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Users, GraduationCap, DollarSign, BookOpen, TrendingUp, AlertCircle, Calendar, UserCheck } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
-import { Badge } from "@/components/ui/badge";
+import { Users, UserCheck, Building, CreditCard, TrendingUp, Calendar, BookOpen, AlertTriangle } from "lucide-react";
 
-interface DashboardProps {
-  userRole?: "Admin" | "Teacher" | "Parent" | "Accountant";
-}
-
-interface DashboardStats {
-  totalStudents: number;
-  totalTeachers: number;
-  totalRevenue: number;
-  pendingFees: number;
-  totalClasses: number;
-  presentToday: number;
-  overduePayments: number;
-  upcomingExams: number;
-}
-
-export function Dashboard({ userRole = "Admin" }: DashboardProps) {
-  const [stats, setStats] = useState<DashboardStats>({
-    totalStudents: 0,
-    totalTeachers: 0,
-    totalRevenue: 0,
-    pendingFees: 0,
-    totalClasses: 0,
-    presentToday: 0,
-    overduePayments: 0,
-    upcomingExams: 0,
-  });
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    fetchStats();
-  }, []);
-
-  const fetchStats = async () => {
-    try {
-      const [
-        studentsResult,
-        teachersResult,
-        classesResult,
-        feesResult,
-        attendanceResult,
-        examsResult
-      ] = await Promise.all([
-        supabase.from("students").select("id", { count: "exact" }).eq("status", "Active"),
-        supabase.from("teachers").select("id", { count: "exact" }).eq("status", "Active"),
-        supabase.from("classes").select("id", { count: "exact" }),
-        supabase.from("fees").select("amount, status, due_date"),
-        supabase.from("attendance").select("status").eq("date", new Date().toISOString().split('T')[0]),
-        supabase.from("exams").select("id", { count: "exact" }).gte("exam_date", new Date().toISOString().split('T')[0])
-      ]);
-
-      const fees = feesResult.data || [];
-      const totalRevenue = fees
-        .filter(fee => fee.status === "Paid")
-        .reduce((sum, fee) => sum + (fee.amount || 0), 0);
-      
-      const pendingFees = fees
-        .filter(fee => fee.status === "Pending")
-        .reduce((sum, fee) => sum + (fee.amount || 0), 0);
-      
-      const overduePayments = fees
-        .filter(fee => fee.status === "Pending" && new Date(fee.due_date) < new Date())
-        .length;
-
-      const attendance = attendanceResult.data || [];
-      const presentToday = attendance.filter(record => record.status === "Present").length;
-
-      setStats({
-        totalStudents: studentsResult.count || 0,
-        totalTeachers: teachersResult.count || 0,
-        totalRevenue,
-        pendingFees,
-        totalClasses: classesResult.count || 0,
-        presentToday,
-        overduePayments,
-        upcomingExams: examsResult.count || 0,
-      });
-    } catch (error) {
-      console.error("Error fetching dashboard stats:", error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const statCards = [
-    {
-      title: "Total Students",
-      value: stats.totalStudents,
-      icon: Users,
-      description: "Active enrolled students",
-      color: "text-blue-600",
-      bgColor: "bg-blue-50",
-    },
-    {
-      title: "Total Teachers",
-      value: stats.totalTeachers,
-      icon: GraduationCap,
-      description: "Active teaching staff",
-      color: "text-green-600",
-      bgColor: "bg-green-50",
-    },
-    {
-      title: "Total Classes",
-      value: stats.totalClasses,
-      icon: BookOpen,
-      description: "Active class sections",
-      color: "text-purple-600",
-      bgColor: "bg-purple-50",
-    },
-    {
-      title: "Present Today",
-      value: stats.presentToday,
-      icon: UserCheck,
-      description: "Students present today",
-      color: "text-emerald-600",
-      bgColor: "bg-emerald-50",
-    },
-    {
-      title: "Total Revenue",
-      value: `₹${stats.totalRevenue.toLocaleString()}`,
-      icon: DollarSign,
-      description: "Total fees collected",
-      color: "text-green-600",
-      bgColor: "bg-green-50",
-    },
-    {
-      title: "Pending Fees",
-      value: `₹${stats.pendingFees.toLocaleString()}`,
-      icon: TrendingUp,
-      description: "Outstanding payments",
-      color: "text-orange-600",
-      bgColor: "bg-orange-50",
-    },
-    {
-      title: "Overdue Payments",
-      value: stats.overduePayments,
-      icon: AlertCircle,
-      description: "Past due date",
-      color: "text-red-600",
-      bgColor: "bg-red-50",
-    },
-    {
-      title: "Upcoming Exams",
-      value: stats.upcomingExams,
-      icon: Calendar,
-      description: "Scheduled examinations",
-      color: "text-indigo-600",
-      bgColor: "bg-indigo-50",
-    },
-  ];
-
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center min-h-[400px]">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-      </div>
-    );
-  }
-
+export function Dashboard() {
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold text-gray-900">Dashboard</h1>
-          <p className="text-gray-600 mt-2">Indian School Management System Overview</p>
-        </div>
-        <Badge variant="outline" className="text-orange-600 border-orange-200">
-          🇮🇳 Indian Education Standard
-        </Badge>
+      <div>
+        <h1 className="text-3xl font-bold text-gray-900">Dashboard</h1>
+        <p className="text-gray-600 mt-2">Welcome to your school management system</p>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        {statCards.map((card, index) => {
-          const Icon = card.icon;
-          return (
-            <Card key={index} className="hover:shadow-lg transition-shadow">
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium text-gray-600">
-                  {card.title}
-                </CardTitle>
-                <div className={`p-2 rounded-full ${card.bgColor}`}>
-                  <Icon className={`h-4 w-4 ${card.color}`} />
-                </div>
-              </CardHeader>
-              <CardContent>
-                <div className={`text-2xl font-bold ${card.color}`}>
-                  {card.value}
-                </div>
-                <p className="text-xs text-gray-500 mt-1">
-                  {card.description}
-                </p>
-              </CardContent>
-            </Card>
-          );
-        })}
+      {/* Stats Cards */}
+      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Total Students</CardTitle>
+            <Users className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">1,234</div>
+            <p className="text-xs text-muted-foreground">
+              +5% from last month
+            </p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Total Teachers</CardTitle>
+            <UserCheck className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">89</div>
+            <p className="text-xs text-muted-foreground">
+              +2 new this month
+            </p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Total Classes</CardTitle>
+            <Building className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">24</div>
+            <p className="text-xs text-muted-foreground">
+              Across all grades
+            </p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Fee Collection</CardTitle>
+            <CreditCard className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">₹12.4L</div>
+            <p className="text-xs text-muted-foreground">
+              85% collection rate
+            </p>
+          </CardContent>
+        </Card>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      {/* Quick Actions */}
+      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
-              <AlertCircle className="h-5 w-5 text-orange-500" />
-              Quick Actions Needed
+              <Calendar className="h-5 w-5" />
+              Today's Schedule
             </CardTitle>
-            <CardDescription>
-              Important tasks requiring immediate attention
-            </CardDescription>
+            <CardDescription>Quick overview of today's activities</CardDescription>
           </CardHeader>
-          <CardContent className="space-y-3">
-            {stats.overduePayments > 0 && (
-              <div className="flex items-center justify-between p-3 bg-red-50 rounded-lg">
-                <div className="flex items-center gap-2">
-                  <AlertCircle className="h-4 w-4 text-red-500" />
-                  <span className="text-sm font-medium">Overdue Payments</span>
-                </div>
-                <Badge variant="destructive">{stats.overduePayments}</Badge>
+          <CardContent>
+            <div className="space-y-2">
+              <div className="flex justify-between items-center">
+                <span className="text-sm">Morning Assembly</span>
+                <span className="text-xs text-muted-foreground">8:00 AM</span>
               </div>
-            )}
-            {stats.upcomingExams > 0 && (
-              <div className="flex items-center justify-between p-3 bg-blue-50 rounded-lg">
-                <div className="flex items-center gap-2">
-                  <Calendar className="h-4 w-4 text-blue-500" />
-                  <span className="text-sm font-medium">Upcoming Exams</span>
-                </div>
-                <Badge variant="secondary">{stats.upcomingExams}</Badge>
+              <div className="flex justify-between items-center">
+                <span className="text-sm">Class 10 - Math</span>
+                <span className="text-xs text-muted-foreground">9:00 AM</span>
               </div>
-            )}
-            {stats.overduePayments === 0 && stats.upcomingExams === 0 && (
-              <p className="text-sm text-gray-500 text-center py-4">
-                No urgent actions required at this time
-              </p>
-            )}
+              <div className="flex justify-between items-center">
+                <span className="text-sm">Staff Meeting</span>
+                <span className="text-xs text-muted-foreground">2:00 PM</span>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <AlertTriangle className="h-5 w-5 text-orange-500" />
+              Pending Actions
+            </CardTitle>
+            <CardDescription>Items requiring attention</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-2">
+              <div className="flex justify-between items-center">
+                <span className="text-sm">Fee Reminders</span>
+                <span className="text-xs bg-red-100 text-red-800 px-2 py-1 rounded">12</span>
+              </div>
+              <div className="flex justify-between items-center">
+                <span className="text-sm">Attendance Review</span>
+                <span className="text-xs bg-yellow-100 text-yellow-800 px-2 py-1 rounded">5</span>
+              </div>
+              <div className="flex justify-between items-center">
+                <span className="text-sm">Exam Results</span>
+                <span className="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded">3</span>
+              </div>
+            </div>
           </CardContent>
         </Card>
 
@@ -242,28 +124,24 @@ export function Dashboard({ userRole = "Admin" }: DashboardProps) {
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <TrendingUp className="h-5 w-5 text-green-500" />
-              Financial Overview
+              Quick Stats
             </CardTitle>
-            <CardDescription>
-              Fee collection and revenue insights
-            </CardDescription>
+            <CardDescription>Key performance indicators</CardDescription>
           </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="flex justify-between items-center">
-              <span className="text-sm text-gray-600">Total Collected</span>
-              <span className="font-semibold text-green-600">₹{stats.totalRevenue.toLocaleString()}</span>
-            </div>
-            <div className="flex justify-between items-center">
-              <span className="text-sm text-gray-600">Pending Collection</span>
-              <span className="font-semibold text-orange-600">₹{stats.pendingFees.toLocaleString()}</span>
-            </div>
-            <div className="flex justify-between items-center pt-2 border-t">
-              <span className="text-sm font-medium">Collection Rate</span>
-              <span className="font-semibold text-blue-600">
-                {stats.totalRevenue + stats.pendingFees > 0 
-                  ? Math.round((stats.totalRevenue / (stats.totalRevenue + stats.pendingFees)) * 100)
-                  : 0}%
-              </span>
+          <CardContent>
+            <div className="space-y-2">
+              <div className="flex justify-between items-center">
+                <span className="text-sm">Attendance Rate</span>
+                <span className="text-sm font-medium text-green-600">94%</span>
+              </div>
+              <div className="flex justify-between items-center">
+                <span className="text-sm">Fee Collection</span>
+                <span className="text-sm font-medium text-blue-600">85%</span>
+              </div>
+              <div className="flex justify-between items-center">
+                <span className="text-sm">Active Students</span>
+                <span className="text-sm font-medium">1,234</span>
+              </div>
             </div>
           </CardContent>
         </Card>
