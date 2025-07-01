@@ -37,8 +37,13 @@ export function PaymentForm({ classes, students, feeStructures, onSubmit, onCanc
 
   const [filteredStudents, setFilteredStudents] = useState<Student[]>([]);
   const [filteredFeeStructures, setFilteredFeeStructures] = useState<FeeStructure[]>([]);
-  const [balanceAmount, setBalanceAmount] = useState<number>(0);
-  const [totalFeeAmount, setTotalFeeAmount] = useState<number>(0);
+  const [feeDetails, setFeeDetails] = useState<{
+    actualAmount: number;
+    discountAmount: number;
+    finalAmount: number;
+    paidAmount: number;
+    balanceAmount: number;
+  } | null>(null);
 
   // Filter students based on selected class
   useEffect(() => {
@@ -48,7 +53,7 @@ export function PaymentForm({ classes, students, feeStructures, onSubmit, onCanc
       
       // Filter fee structures for the selected class
       const structuresForClass = feeStructures.filter(fs => fs.class_id === formData.class_id);
-      setFilteredFeeStructures(structuresForClass);
+      setFiltereredFeeStructures(structuresForClass);
     } else {
       setFilteredStudents([]);
       setFilteredFeeStructures([]);
@@ -56,38 +61,91 @@ export function PaymentForm({ classes, students, feeStructures, onSubmit, onCanc
     
     // Reset dependent fields
     setFormData(prev => ({ ...prev, student_id: '', fee_structure_id: '' }));
+    setFeeDetails(null);
   }, [formData.class_id, students, feeStructures]);
 
-  // Calculate balance when student and fee structure are selected
+  // Get fee details from fee management system
   useEffect(() => {
     if (formData.student_id && formData.fee_structure_id) {
-      calculateBalance();
+      fetchFeeDetails();
     }
   }, [formData.student_id, formData.fee_structure_id]);
 
-  const calculateBalance = async () => {
+  const fetchFeeDetails = async () => {
     try {
-      // Get fee structure amount
+      // Get current academic year
+      const { data: currentYear, error: yearError } = await supabase
+        .from("academic_years")
+        .select("id")
+        .eq("is_current", true)
+        .single();
+
+      if (yearError || !currentYear) {
+        console.error("No current academic year found");
+        return;
+      }
+
+      // Get fee structure details
       const selectedStructure = feeStructures.find(fs => fs.id === formData.fee_structure_id);
       if (!selectedStructure) return;
 
-      // Get existing payments for this student and fee structure
-      const { data: existingPayments, error } = await supabase
-        .from("student_payments")
-        .select("amount_paid")
+      // Check if fee record exists in fee management system
+      const { data: feeRecord, error: feeError } = await supabase
+        .from("fees")
+        .select("*")
         .eq("student_id", formData.student_id)
-        .eq("fee_structure_id", formData.fee_structure_id);
+        .eq("academic_year_id", currentYear.id)
+        .eq("fee_type", selectedStructure.fee_type)
+        .single();
 
-      if (error) throw error;
+      if (feeError && feeError.code !== 'PGRST116') {
+        console.error("Error fetching fee record:", feeError);
+        return;
+      }
 
-      const totalPaid = existingPayments?.reduce((sum, payment) => sum + payment.amount_paid, 0) || 0;
-      const balance = selectedStructure.amount - totalPaid;
-      
-      setTotalFeeAmount(selectedStructure.amount);
-      setBalanceAmount(Math.max(0, balance));
-      setFormData(prev => ({ ...prev, amount_paid: balance.toString() }));
+      if (feeRecord) {
+        // Use data from fee management system
+        const actualAmount = feeRecord.actual_amount;
+        const discountAmount = feeRecord.discount_amount;
+        const finalAmount = actualAmount - discountAmount;
+        const paidAmount = feeRecord.total_paid;
+        const balanceAmount = finalAmount - paidAmount;
+
+        setFeeDetails({
+          actualAmount,
+          discountAmount,
+          finalAmount,
+          paidAmount,
+          balanceAmount
+        });
+
+        setFormData(prev => ({ 
+          ...prev, 
+          amount_paid: Math.max(0, balanceAmount).toString() 
+        }));
+      } else {
+        // Fallback to fee structure amount if no fee record exists
+        const actualAmount = selectedStructure.amount;
+        const discountAmount = 0;
+        const finalAmount = actualAmount;
+        const paidAmount = 0;
+        const balanceAmount = finalAmount;
+
+        setFeeDetails({
+          actualAmount,
+          discountAmount,
+          finalAmount,
+          paidAmount,
+          balanceAmount
+        });
+
+        setFormData(prev => ({ 
+          ...prev, 
+          amount_paid: balanceAmount.toString() 
+        }));
+      }
     } catch (error) {
-      console.error("Error calculating balance:", error);
+      console.error("Error fetching fee details:", error);
     }
   };
 
@@ -105,8 +163,8 @@ export function PaymentForm({ classes, students, feeStructures, onSubmit, onCanc
       return;
     }
 
-    if (amountPaid > balanceAmount) {
-      alert(`Amount paid cannot exceed balance amount of ₹${balanceAmount.toLocaleString()}`);
+    if (feeDetails && amountPaid > feeDetails.balanceAmount) {
+      alert(`Amount paid cannot exceed balance amount of ₹${feeDetails.balanceAmount.toLocaleString()}`);
       return;
     }
 
@@ -185,23 +243,39 @@ export function PaymentForm({ classes, students, feeStructures, onSubmit, onCanc
             </Select>
           </div>
 
-          {/* Balance Information */}
-          {balanceAmount > 0 && (
-            <div className="md:col-span-2 p-4 bg-blue-50 rounded-lg">
-              <div className="grid grid-cols-3 gap-4 text-sm">
+          {/* Enhanced Fee Information Display */}
+          {feeDetails && (
+            <div className="md:col-span-2 p-4 bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-lg">
+              <h4 className="font-semibold text-blue-900 mb-3">Fee Details from Management System</h4>
+              <div className="grid grid-cols-2 md:grid-cols-5 gap-4 text-sm">
                 <div>
-                  <span className="font-medium">Total Fee:</span>
-                  <div className="text-lg">₹{totalFeeAmount.toLocaleString()}</div>
+                  <span className="font-medium text-gray-600">Actual Fee:</span>
+                  <div className="text-lg font-semibold">₹{feeDetails.actualAmount.toLocaleString()}</div>
+                </div>
+                {feeDetails.discountAmount > 0 && (
+                  <div>
+                    <span className="font-medium text-green-600">Discount:</span>
+                    <div className="text-lg font-semibold text-green-600">-₹{feeDetails.discountAmount.toLocaleString()}</div>
+                  </div>
+                )}
+                <div>
+                  <span className="font-medium text-blue-600">Final Fee:</span>
+                  <div className="text-lg font-semibold text-blue-600">₹{feeDetails.finalAmount.toLocaleString()}</div>
                 </div>
                 <div>
-                  <span className="font-medium">Paid:</span>
-                  <div className="text-lg">₹{(totalFeeAmount - balanceAmount).toLocaleString()}</div>
+                  <span className="font-medium text-gray-600">Paid:</span>
+                  <div className="text-lg font-semibold">₹{feeDetails.paidAmount.toLocaleString()}</div>
                 </div>
                 <div>
                   <span className="font-medium text-red-600">Balance:</span>
-                  <div className="text-lg font-bold text-red-600">₹{balanceAmount.toLocaleString()}</div>
+                  <div className="text-lg font-bold text-red-600">₹{feeDetails.balanceAmount.toLocaleString()}</div>
                 </div>
               </div>
+              {feeDetails.discountAmount > 0 && (
+                <div className="mt-2 text-xs text-green-700 bg-green-100 p-2 rounded">
+                  ✓ Discount applied from Fee Management System
+                </div>
+              )}
             </div>
           )}
         </CardContent>
@@ -221,7 +295,7 @@ export function PaymentForm({ classes, students, feeStructures, onSubmit, onCanc
               type="number"
               step="0.01"
               min="0"
-              max={balanceAmount}
+              max={feeDetails?.balanceAmount || undefined}
               value={formData.amount_paid}
               onChange={(e) => handleInputChange('amount_paid', e.target.value)}
               placeholder="Enter amount paid"
@@ -236,7 +310,7 @@ export function PaymentForm({ classes, students, feeStructures, onSubmit, onCanc
               type="date"
               value={formData.payment_date}
               onChange={(e) => handleInputChange('payment_date', e.target.value)}
-              min={new Date().toISOString().split('T')[0]}
+              max={new Date().toISOString().split('T')[0]}
               required
             />
           </div>
