@@ -29,6 +29,7 @@ export function useEnhancedFeeData() {
 
       if (error) throw error;
 
+      console.log('Academic years fetched:', data);
       setAcademicYears(data || []);
       const current = data?.find(year => year.is_current);
       if (current) {
@@ -38,6 +39,7 @@ export function useEnhancedFeeData() {
         }
       }
     } catch (error: any) {
+      console.error('Error fetching academic years:', error);
       toast({
         title: "Error fetching academic years",
         description: error.message,
@@ -50,6 +52,18 @@ export function useEnhancedFeeData() {
     try {
       console.log('Fetching enhanced fee records for academic year:', academicYearId);
       
+      // First, let's check if we have any student_fee_records at all
+      const { data: allRecords, error: allRecordsError } = await supabase
+        .from("student_fee_records")
+        .select("*");
+
+      console.log('All student fee records in database:', allRecords);
+      
+      if (allRecordsError) {
+        console.error('Error fetching all records:', allRecordsError);
+      }
+
+      // Now let's try the enhanced query
       let query = supabase
         .from("student_fee_records")
         .select(`
@@ -71,7 +85,72 @@ export function useEnhancedFeeData() {
       const { data, error } = await query;
 
       if (error) {
-        console.error('Error fetching fee records:', error);
+        console.error('Error fetching enhanced fee records:', error);
+        
+        // Fallback: try a simpler query without joins
+        console.log('Trying fallback query without joins...');
+        const { data: fallbackData, error: fallbackError } = await supabase
+          .from("student_fee_records")
+          .select("*")
+          .eq('academic_year_id', academicYearId || '');
+
+        if (fallbackError) {
+          console.error('Fallback query also failed:', fallbackError);
+          throw error; // throw original error
+        }
+
+        console.log('Fallback data:', fallbackData);
+        
+        // If we have fallback data, we need to fetch student details separately
+        if (fallbackData && fallbackData.length > 0) {
+          const studentIds = fallbackData.map(record => record.student_id);
+          const { data: studentsData, error: studentsError } = await supabase
+            .from("students")
+            .select(`
+              id, 
+              first_name, 
+              last_name, 
+              admission_number,
+              class_id,
+              classes(name, section)
+            `)
+            .in('id', studentIds);
+
+          if (studentsError) {
+            console.error('Error fetching students:', studentsError);
+          } else {
+            console.log('Students data:', studentsData);
+            
+            // Combine the data
+            const enhancedRecords: StudentFeeRecord[] = fallbackData.map(record => {
+              const student = studentsData?.find(s => s.id === record.student_id);
+              return {
+                ...record,
+                status: record.status as 'Pending' | 'Paid' | 'Overdue' | 'Partial',
+                student: student ? {
+                  id: student.id,
+                  first_name: student.first_name,
+                  last_name: student.last_name,
+                  admission_number: student.admission_number,
+                  class_name: student.classes?.name || 'Unknown Class',
+                  section: student.classes?.section || '',
+                } : {
+                  id: record.student_id,
+                  first_name: 'Unknown',
+                  last_name: 'Student',
+                  admission_number: 'N/A',
+                  class_name: 'Unknown Class',
+                  section: '',
+                }
+              };
+            });
+
+            console.log('Enhanced records from fallback:', enhancedRecords);
+            setFeeRecords(enhancedRecords);
+            return;
+          }
+        }
+        
         throw error;
       }
 

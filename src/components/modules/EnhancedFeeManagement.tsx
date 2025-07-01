@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -13,6 +12,7 @@ import { DiscountDialog } from "./fee-management/DiscountDialog";
 import { EnhancedPaymentDialog } from "./fee-management/EnhancedPaymentDialog";
 import { FeeHistoryDialog } from "./fee-management/FeeHistoryDialog";
 import { ExportDialog } from "./fee-management/ExportDialog";
+import { CreateFeeRecordsButton } from "./fee-management/CreateFeeRecordsButton";
 import { StudentFeeRecord } from "@/types/enhanced-fee-types";
 
 export function EnhancedFeeManagement() {
@@ -127,7 +127,23 @@ export function EnhancedFeeManagement() {
           <p>✅ Export capabilities and detailed reporting</p>
           <p>📊 Total Fee Records: {feeRecords.length} | Filtered: {filteredFeeRecords.length}</p>
           {feeRecords.length === 0 && (
-            <p className="text-orange-700 font-medium">⚠️ No fee records found. If you just added a student, try refreshing or check if fee structures are set up.</p>
+            <div className="bg-orange-100 border border-orange-300 rounded p-3 mt-3">
+              <p className="text-orange-800 font-medium">⚠️ No fee records found!</p>
+              <p className="text-orange-700 text-sm mt-1">
+                This could mean:
+                <br />• No students have been added yet
+                <br />• Fee structures haven't been set up for this academic year
+                <br />• Fee records haven't been created for existing students
+              </p>
+              {selectedAcademicYear && (
+                <div className="mt-3">
+                  <CreateFeeRecordsButton 
+                    academicYearId={selectedAcademicYear} 
+                    onRecordsCreated={refetchFeeRecords}
+                  />
+                </div>
+              )}
+            </div>
           )}
         </div>
       </div>
@@ -170,6 +186,12 @@ export function EnhancedFeeManagement() {
                 onChange={(e) => setSearchTerm(e.target.value)}
                 className="w-64"
               />
+              {selectedAcademicYear && feeRecords.length === 0 && (
+                <CreateFeeRecordsButton 
+                  academicYearId={selectedAcademicYear} 
+                  onRecordsCreated={refetchFeeRecords}
+                />
+              )}
               <Button
                 variant="outline"
                 onClick={handleRefreshClick}
