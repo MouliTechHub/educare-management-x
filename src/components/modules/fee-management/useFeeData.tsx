@@ -51,6 +51,7 @@ export function useFeeData() {
 
   const fetchAcademicYears = async () => {
     try {
+      console.log('Fetching academic years...');
       const { data, error } = await supabase
         .from("academic_years")
         .select("*")
@@ -58,13 +59,16 @@ export function useFeeData() {
 
       if (error) throw error;
 
+      console.log('Academic years fetched:', data?.length || 0);
       setAcademicYears(data || []);
       
       // Set current year as default
       const currentYear = data?.find(year => year.is_current);
       if (currentYear) {
+        console.log('Setting current academic year:', currentYear.year_name);
         setCurrentAcademicYear(currentYear.id);
       } else if (data && data.length > 0) {
+        console.log('No current year found, using first year:', data[0].year_name);
         setCurrentAcademicYear(data[0].id);
       }
     } catch (error: any) {
@@ -78,10 +82,14 @@ export function useFeeData() {
   };
 
   const fetchFees = async () => {
-    if (!currentAcademicYear) return;
+    if (!currentAcademicYear) {
+      console.log('No academic year selected, skipping fee fetch');
+      return;
+    }
     
     try {
       setLoading(true);
+      console.log('Fetching fees for academic year:', currentAcademicYear);
       
       // First, get the payment totals for each fee
       const { data: paymentData, error: paymentError } = await supabase
@@ -89,7 +97,11 @@ export function useFeeData() {
         .select('fee_id, amount_paid')
         .order('created_at', { ascending: true });
 
-      if (paymentError) throw paymentError;
+      if (paymentError) {
+        console.error('Error fetching payment data:', paymentError);
+      } else {
+        console.log('Payment data fetched:', paymentData?.length || 0, 'records');
+      }
 
       // Calculate total paid per fee
       const paymentTotals = paymentData?.reduce((acc, payment) => {
@@ -97,12 +109,12 @@ export function useFeeData() {
         return acc;
       }, {} as Record<string, number>) || {};
 
-      // Now fetch fees with student data
+      // Now fetch fees with student data - using left join instead of inner join
       const { data, error } = await supabase
         .from("fees")
         .select(`
           *,
-          students!inner (
+          students (
             id,
             first_name,
             last_name,
@@ -117,7 +129,13 @@ export function useFeeData() {
         .eq("academic_year_id", currentAcademicYear)
         .order("created_at", { ascending: false });
 
-      if (error) throw error;
+      if (error) {
+        console.error('Error fetching fees:', error);
+        throw error;
+      }
+
+      console.log('Raw fee data fetched:', data?.length || 0, 'records');
+      console.log('Sample fee record:', data?.[0]);
 
       // Transform and enrich the data
       const transformedFees: Fee[] = (data || []).map((fee: any) => {
@@ -153,6 +171,7 @@ export function useFeeData() {
         };
       });
 
+      console.log('Transformed fees:', transformedFees.length, 'records');
       setFees(transformedFees);
     } catch (error: any) {
       console.error("Error fetching fees:", error);
