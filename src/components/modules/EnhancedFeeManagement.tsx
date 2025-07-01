@@ -5,7 +5,6 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Download, FileText, BarChart3, Search } from "lucide-react";
 import { useEnhancedFeeData } from "./fee-management/useEnhancedFeeData";
-import { useFeeManagement } from "./fee-management/useFeeManagement";
 import { EnhancedFeeTable } from "./fee-management/EnhancedFeeTable";
 import { FeeManagementHeader } from "./fee-management/FeeManagementHeader";
 import { YearWiseSummaryCards } from "./fee-management/YearWiseSummaryCards";
@@ -31,14 +30,13 @@ export function EnhancedFeeManagement() {
     getPaymentHistory
   } = useEnhancedFeeData();
   
-  const {
-    classes,
-    searchTerm,
-    setSearchTerm,
-    filters,
-    setFilters,
-    applyFilters
-  } = useFeeManagement();
+  // Create a simple filter system for the enhanced fee records
+  const [searchTerm, setSearchTerm] = useState('');
+  const [filters, setFilters] = useState({
+    status: '',
+    feeType: '',
+    class: ''
+  });
 
   const [discountDialogOpen, setDiscountDialogOpen] = useState(false);
   const [paymentDialogOpen, setPaymentDialogOpen] = useState(false);
@@ -90,7 +88,20 @@ export function EnhancedFeeManagement() {
   }
 
   const currentYear = academicYears.find(year => year.id === selectedAcademicYear);
-  const filteredFeeRecords = applyFilters(feeRecords);
+  
+  // Apply simple filters to fee records
+  const filteredFeeRecords = feeRecords.filter(record => {
+    const matchesSearch = searchTerm === '' || 
+      (record.student?.first_name + ' ' + record.student?.last_name).toLowerCase().includes(searchTerm.toLowerCase()) ||
+      record.fee_type.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      record.student?.class_name?.toLowerCase().includes(searchTerm.toLowerCase());
+    
+    const matchesStatus = filters.status === '' || record.status === filters.status;
+    const matchesFeeType = filters.feeType === '' || record.fee_type === filters.feeType;
+    const matchesClass = filters.class === '' || record.student?.class_name === filters.class;
+    
+    return matchesSearch && matchesStatus && matchesFeeType && matchesClass;
+  });
   
   console.log('Rendering Enhanced Fee Management with:', {
     currentYear: currentYear?.year_name,
@@ -168,13 +179,30 @@ export function EnhancedFeeManagement() {
           </div>
         </CardHeader>
         <CardContent className="space-y-4">
-          <FeeManagementFilters
-            searchTerm={searchTerm}
-            onSearchChange={setSearchTerm}
-            filters={filters}
-            onFiltersChange={setFilters}
-            classes={classes}
-          />
+          <div className="flex space-x-4">
+            <select
+              value={filters.status}
+              onChange={(e) => setFilters(prev => ({ ...prev, status: e.target.value }))}
+              className="px-3 py-2 border rounded-md"
+            >
+              <option value="">All Status</option>
+              <option value="Pending">Pending</option>
+              <option value="Paid">Paid</option>
+              <option value="Overdue">Overdue</option>
+              <option value="Partial">Partial</option>
+            </select>
+            
+            <select
+              value={filters.feeType}
+              onChange={(e) => setFilters(prev => ({ ...prev, feeType: e.target.value }))}
+              className="px-3 py-2 border rounded-md"
+            >
+              <option value="">All Fee Types</option>
+              <option value="Tuition Fee">Tuition Fee</option>
+              <option value="Transport Fee">Transport Fee</option>
+              <option value="Exam Fee">Exam Fee</option>
+            </select>
+          </div>
 
           <EnhancedFeeTable
             feeRecords={filteredFeeRecords}
