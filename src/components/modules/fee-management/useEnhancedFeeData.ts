@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -49,6 +48,8 @@ export function useEnhancedFeeData() {
 
   const fetchFeeRecords = async (academicYearId?: string) => {
     try {
+      console.log('Fetching enhanced fee records for academic year:', academicYearId);
+      
       let query = supabase
         .from("student_fee_records")
         .select(`
@@ -69,20 +70,32 @@ export function useEnhancedFeeData() {
 
       const { data, error } = await query;
 
-      if (error) throw error;
+      if (error) {
+        console.error('Error fetching fee records:', error);
+        throw error;
+      }
 
-      const enhancedRecords: StudentFeeRecord[] = (data || []).map(record => ({
-        ...record,
-        status: record.status as 'Pending' | 'Paid' | 'Overdue' | 'Partial',
-        student: {
-          ...record.students,
-          class_name: record.students.classes?.name,
-          section: record.students.classes?.section,
-        }
-      }));
+      console.log('Raw fee records data:', data);
 
+      const enhancedRecords: StudentFeeRecord[] = (data || []).map(record => {
+        const student = record.students;
+        return {
+          ...record,
+          status: record.status as 'Pending' | 'Paid' | 'Overdue' | 'Partial',
+          student: {
+            id: student.id,
+            first_name: student.first_name,
+            last_name: student.last_name,
+            admission_number: student.admission_number,
+            class_name: student.classes?.name || 'Unknown Class',
+            section: student.classes?.section || '',
+          }
+        };
+      });
+
+      console.log('Enhanced fee records:', enhancedRecords);
       setFeeRecords(enhancedRecords);
-      console.log('Fetched fee records:', enhancedRecords.length);
+      
     } catch (error: any) {
       console.error('Error fetching fee records:', error);
       toast({
@@ -206,12 +219,14 @@ export function useEnhancedFeeData() {
 
   useEffect(() => {
     if (selectedAcademicYear) {
+      console.log('Selected academic year changed, fetching fee records:', selectedAcademicYear);
       fetchFeeRecords(selectedAcademicYear);
     }
   }, [selectedAcademicYear]);
 
   useEffect(() => {
     if (!selectedAcademicYear && currentAcademicYear) {
+      console.log('Setting selected academic year to current:', currentAcademicYear.id);
       setSelectedAcademicYear(currentAcademicYear.id);
     }
   }, [currentAcademicYear, selectedAcademicYear]);

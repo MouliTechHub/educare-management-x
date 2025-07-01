@@ -3,7 +3,7 @@ import React, { useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Download, FileText, BarChart3, Search } from "lucide-react";
+import { Download, FileText, BarChart3, Search, RefreshCw } from "lucide-react";
 import { useEnhancedFeeData } from "./fee-management/useEnhancedFeeData";
 import { EnhancedFeeTable } from "./fee-management/EnhancedFeeTable";
 import { FeeManagementHeader } from "./fee-management/FeeManagementHeader";
@@ -27,7 +27,8 @@ export function EnhancedFeeManagement() {
     updateDiscount,
     recordPayment,
     getChangeHistory,
-    getPaymentHistory
+    getPaymentHistory,
+    refetchFeeRecords
   } = useEnhancedFeeData();
   
   // Create a simple filter system for the enhanced fee records
@@ -47,7 +48,8 @@ export function EnhancedFeeManagement() {
   console.log('Enhanced Fee Management data:', { 
     feeRecords: feeRecords.length, 
     academicYears: academicYears.length, 
-    loading 
+    loading,
+    selectedAcademicYear 
   });
 
   const handleDiscountClick = (feeRecord: StudentFeeRecord) => {
@@ -75,6 +77,11 @@ export function EnhancedFeeManagement() {
   const handleReportsClick = () => {
     // Navigate to reports page (implement later)
     console.log('Navigate to detailed reports page');
+  };
+
+  const handleRefreshClick = () => {
+    console.log('Manual refresh triggered');
+    refetchFeeRecords();
   };
 
   if (loading) {
@@ -119,6 +126,9 @@ export function EnhancedFeeManagement() {
           <p>✅ Complete payment history and change tracking</p>
           <p>✅ Export capabilities and detailed reporting</p>
           <p>📊 Total Fee Records: {feeRecords.length} | Filtered: {filteredFeeRecords.length}</p>
+          {feeRecords.length === 0 && (
+            <p className="text-orange-700 font-medium">⚠️ No fee records found. If you just added a student, try refreshing or check if fee structures are set up.</p>
+          )}
         </div>
       </div>
 
@@ -160,6 +170,15 @@ export function EnhancedFeeManagement() {
                 onChange={(e) => setSearchTerm(e.target.value)}
                 className="w-64"
               />
+              <Button
+                variant="outline"
+                onClick={handleRefreshClick}
+                className="bg-gray-50 hover:bg-gray-100"
+                title="Refresh fee records"
+              >
+                <RefreshCw className="w-4 h-4 mr-2" />
+                Refresh
+              </Button>
               <Button
                 variant="outline"
                 onClick={handleExportClick}
