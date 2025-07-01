@@ -2,7 +2,6 @@
 import { Table, TableBody, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { useState } from "react";
 import { Users } from "lucide-react";
-import { ChangeHistoryDialog } from "./ChangeHistoryDialog";
 import { FeeTableRow } from "./FeeTableRow";
 
 interface Fee {
@@ -44,52 +43,7 @@ interface FeeTableProps {
 }
 
 export function FeeTable({ fees, onPaymentClick, onDiscountClick, onHistoryClick }: FeeTableProps) {
-  const [changeHistoryOpen, setChangeHistoryOpen] = useState(false);
-  const [selectedFeeForHistory, setSelectedFeeForHistory] = useState<Fee | null>(null);
-
   console.log('FeeTable rendering with fees:', fees.length);
-
-  const openChangeHistory = (fee: Fee) => {
-    console.log('Opening change history for fee:', fee);
-    setSelectedFeeForHistory(fee);
-    setChangeHistoryOpen(true);
-  };
-
-  // Mock change history data - in real implementation, this would be fetched from backend
-  const getMockChangeHistory = (fee: Fee) => {
-    const history = [];
-    
-    // Add payment history if any payments made
-    if (fee.total_paid > 0) {
-      history.push({
-        id: '1',
-        change_type: 'payment' as const,
-        amount: fee.total_paid,
-        previous_value: 0,
-        new_value: fee.total_paid,
-        changed_by: 'Admin User',
-        change_date: fee.payment_date || new Date().toISOString(),
-        receipt_number: fee.receipt_number,
-        notes: `Payment received for ${fee.fee_type}`
-      });
-    }
-
-    // Add discount history if any discount applied
-    if (fee.discount_amount > 0) {
-      history.push({
-        id: '2',
-        change_type: 'discount' as const,
-        amount: fee.discount_amount,
-        previous_value: fee.actual_amount,
-        new_value: fee.actual_amount - fee.discount_amount,
-        changed_by: fee.discount_updated_by || 'Admin User',
-        change_date: fee.discount_updated_at || new Date().toISOString(),
-        notes: fee.discount_notes || `Discount applied to ${fee.fee_type}`
-      });
-    }
-
-    return history.sort((a, b) => new Date(b.change_date).getTime() - new Date(a.change_date).getTime());
-  };
 
   if (fees.length === 0) {
     return (
@@ -138,25 +92,12 @@ export function FeeTable({ fees, onPaymentClick, onDiscountClick, onHistoryClick
               onPaymentClick={onPaymentClick}
               onDiscountClick={onDiscountClick}
               onHistoryClick={onHistoryClick}
-              onChangeHistoryClick={openChangeHistory}
+              onChangeHistoryClick={() => {}} // Empty function since ChangeHistoryDialog is removed
               showPaymentActions={true}
             />
           ))}
         </TableBody>
       </Table>
-
-      {selectedFeeForHistory && (
-        <ChangeHistoryDialog
-          open={changeHistoryOpen}
-          onOpenChange={setChangeHistoryOpen}
-          studentName={selectedFeeForHistory.student ? 
-            `${selectedFeeForHistory.student.first_name} ${selectedFeeForHistory.student.last_name}` : 
-            'Unknown Student'
-          }
-          feeType={selectedFeeForHistory.fee_type}
-          history={getMockChangeHistory(selectedFeeForHistory)}
-        />
-      )}
     </>
   );
 }
