@@ -1,63 +1,9 @@
-
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Search } from "lucide-react";
 import { FeeManagementFilters } from "./FeeManagementFilters";
 import { FeeTable } from "./FeeTable";
-
-interface Class {
-  id: string;
-  name: string;
-  section: string | null;
-}
-
-interface FilterState {
-  class_id: string;
-  section: string;
-  status: string;
-  fee_type: string;
-  due_date_from: string;
-  due_date_to: string;
-}
-
-interface Fee {
-  id: string;
-  student_id: string;
-  amount: number;
-  actual_amount: number;
-  discount_amount: number;
-  total_paid: number;
-  fee_type: string;
-  due_date: string;
-  payment_date: string | null;
-  status: 'Pending' | 'Paid' | 'Overdue';
-  receipt_number: string | null;
-  created_at: string;
-  updated_at: string;
-  discount_notes: string | null;
-  discount_updated_by: string | null;
-  discount_updated_at: string | null;
-  academic_year_id: string;
-  student?: {
-    id: string;
-    first_name: string;
-    last_name: string;
-    admission_number: string;
-    class_name?: string;
-    section?: string;
-    parent_phone?: string;
-    parent_email?: string;
-    class_id?: string;
-  };
-}
-
-interface AcademicYear {
-  id: string;
-  year_name: string;
-  start_date: string;
-  end_date: string;
-  is_current: boolean;
-}
+import { Class, FilterState, Fee, AcademicYear } from "./types/feeTypes";
 
 interface FeeManagementContentProps {
   currentYear: AcademicYear | undefined;

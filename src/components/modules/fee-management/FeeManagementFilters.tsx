@@ -1,22 +1,7 @@
-
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
-
-interface Class {
-  id: string;
-  name: string;
-  section: string | null;
-}
-
-interface FilterState {
-  class_id: string;
-  section: string;
-  status: string;
-  fee_type: string;
-  due_date_from: string;
-  due_date_to: string;
-}
+import { Class, FilterState } from "./types/feeTypes";
 
 interface FeeManagementFiltersProps {
   searchTerm: string;
