@@ -90,7 +90,7 @@ export function EnhancedFeeManagement() {
   }
 
   const currentYear = academicYears.find(year => year.id === selectedAcademicYear);
-  const filteredFeeRecords = applyFilters(feeRecords as any);
+  const filteredFeeRecords = applyFilters(feeRecords);
   
   console.log('Rendering Enhanced Fee Management with:', {
     currentYear: currentYear?.year_name,
@@ -118,7 +118,7 @@ export function EnhancedFeeManagement() {
       />
 
       <YearWiseSummaryCards summary={{
-        totalFees: feeRecords.reduce((sum, record) => sum + record.actual_fee, 0),
+        totalAmount: feeRecords.reduce((sum, record) => sum + record.actual_fee, 0),
         totalPaid: feeRecords.reduce((sum, record) => sum + record.paid_amount, 0),
         totalPending: feeRecords.reduce((sum, record) => sum + record.balance_fee, 0),
         totalDiscounts: feeRecords.reduce((sum, record) => sum + record.discount_amount, 0),

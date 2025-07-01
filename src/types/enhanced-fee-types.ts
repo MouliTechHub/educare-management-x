@@ -58,3 +58,14 @@ export interface FeeChangeHistory {
   payment_method?: string;
   receipt_number?: string;
 }
+
+export interface YearWiseSummary {
+  totalAmount: number;
+  totalPaid: number;
+  totalPending: number;
+  totalDiscounts: number;
+  pendingCount: number;
+  paidCount: number;
+  overdueCount: number;
+  partialCount: number;
+}

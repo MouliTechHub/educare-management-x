@@ -71,8 +71,9 @@ export function useEnhancedFeeData() {
 
       if (error) throw error;
 
-      const enhancedRecords = (data || []).map(record => ({
+      const enhancedRecords: StudentFeeRecord[] = (data || []).map(record => ({
         ...record,
+        status: record.status as 'Pending' | 'Paid' | 'Overdue' | 'Partial',
         student: {
           ...record.students,
           class_name: record.students.classes?.name,
@@ -170,7 +171,10 @@ export function useEnhancedFeeData() {
         .order("change_date", { ascending: false });
 
       if (error) throw error;
-      return data || [];
+      return (data || []).map(item => ({
+        ...item,
+        change_type: item.change_type as 'payment' | 'discount' | 'creation' | 'status_update'
+      }));
     } catch (error: any) {
       console.error('Error fetching change history:', error);
       return [];
@@ -186,7 +190,10 @@ export function useEnhancedFeeData() {
         .order("payment_date", { ascending: false });
 
       if (error) throw error;
-      return data || [];
+      return (data || []).map(item => ({
+        ...item,
+        payment_method: item.payment_method as 'Cash' | 'Card' | 'PhonePe' | 'GPay' | 'Online' | 'Cheque' | 'Bank Transfer'
+      }));
     } catch (error: any) {
       console.error('Error fetching payment history:', error);
       return [];
