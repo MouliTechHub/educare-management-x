@@ -1,9 +1,8 @@
 
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { RefreshCw, Wand2 } from "lucide-react";
+import { RefreshCw } from "lucide-react";
 import { AcademicYear } from "./types/feeTypes";
-import { useAutoFeeAssignment } from "./hooks/useAutoFeeAssignment";
 
 interface FeeManagementHeaderProps {
   academicYears: AcademicYear[];
@@ -18,15 +17,6 @@ export function FeeManagementHeader({
   onYearChange,
   onRefresh
 }: FeeManagementHeaderProps) {
-  const { assignFeesToStudents, loading: assigningFees } = useAutoFeeAssignment();
-
-  const handleAutoAssignFees = async () => {
-    const success = await assignFeesToStudents(currentAcademicYear);
-    if (success) {
-      onRefresh(); // Refresh the data after successful assignment
-    }
-  };
-
   return (
     <div className="flex items-center justify-between">
       <div>
@@ -52,16 +42,6 @@ export function FeeManagementHeader({
             </SelectContent>
           </Select>
         </div>
-
-        <Button
-          variant="outline"
-          onClick={handleAutoAssignFees}
-          disabled={assigningFees || !currentAcademicYear}
-          className="flex items-center space-x-2"
-        >
-          <Wand2 className={`w-4 h-4 ${assigningFees ? 'animate-spin' : ''}`} />
-          <span>{assigningFees ? 'Assigning...' : 'Auto Assign Fees'}</span>
-        </Button>
 
         <Button
           variant="outline"
