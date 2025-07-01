@@ -1,6 +1,6 @@
 
-import { AcademicYearSelector } from "./AcademicYearSelector";
 import { Button } from "@/components/ui/button";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Plus, Settings } from "lucide-react";
 
 interface AcademicYear {
@@ -72,11 +72,21 @@ export function FeeManagementHeader({
       </div>
 
       <div className="flex items-center justify-between">
-        <AcademicYearSelector
-          academicYears={academicYears}
-          selectedYear={selectedAcademicYear}
-          onYearChange={onYearChange}
-        />
+        <div className="flex items-center space-x-2">
+          <span className="text-sm font-medium">Academic Year:</span>
+          <Select value={selectedAcademicYear} onValueChange={onYearChange}>
+            <SelectTrigger className="w-48">
+              <SelectValue placeholder="Select academic year" />
+            </SelectTrigger>
+            <SelectContent>
+              {academicYears.map((year) => (
+                <SelectItem key={year.id} value={year.id}>
+                  {year.year_name} {year.is_current && "(Current)"}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
       </div>
     </div>
   );

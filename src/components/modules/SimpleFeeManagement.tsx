@@ -28,6 +28,7 @@ interface Student {
 interface FeeRecord {
   id: string;
   student_id: string;
+  class_id: string;
   fee_type: string;
   actual_fee: number;
   discount_amount: number;
@@ -147,7 +148,7 @@ export function SimpleFeeManagement() {
         .select(`
           *,
           students!inner(
-            id, first_name, last_name, admission_number,
+            id, first_name, last_name, admission_number, class_id,
             classes(name, section)
           )
         `)
@@ -159,6 +160,7 @@ export function SimpleFeeManagement() {
       const transformedRecords: FeeRecord[] = (records || []).map(record => ({
         id: record.id,
         student_id: record.student_id,
+        class_id: record.class_id,
         fee_type: record.fee_type,
         actual_fee: record.actual_fee,
         discount_amount: record.discount_amount,
@@ -172,7 +174,7 @@ export function SimpleFeeManagement() {
           first_name: record.students.first_name,
           last_name: record.students.last_name,
           admission_number: record.students.admission_number,
-          class_id: record.student_id, // This might need adjustment
+          class_id: record.students.class_id,
           classes: record.students.classes
         } : undefined
       }));
@@ -202,10 +204,22 @@ export function SimpleFeeManagement() {
         return;
       }
 
+      // Get the student's class_id
+      const selectedStudent = students.find(s => s.id === newFee.student_id);
+      if (!selectedStudent) {
+        toast({
+          title: "Student not found",
+          description: "Please select a valid student",
+          variant: "destructive",
+        });
+        return;
+      }
+
       const { error } = await supabase
         .from('student_fee_records')
         .insert({
           student_id: newFee.student_id,
+          class_id: selectedStudent.class_id,
           academic_year_id: selectedYear,
           fee_type: newFee.fee_type,
           actual_fee: newFee.amount,
