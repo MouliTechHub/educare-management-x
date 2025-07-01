@@ -1,8 +1,9 @@
+
 import React, { useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Download, FileText, BarChart3, Search, RefreshCw } from "lucide-react";
+import { Download, FileText, BarChart3, Search, RefreshCw, AlertCircle } from "lucide-react";
 import { useEnhancedFeeData } from "./fee-management/useEnhancedFeeData";
 import { EnhancedFeeTable } from "./fee-management/EnhancedFeeTable";
 import { FeeManagementHeader } from "./fee-management/FeeManagementHeader";
@@ -126,23 +127,34 @@ export function EnhancedFeeManagement() {
           <p>✅ Complete payment history and change tracking</p>
           <p>✅ Export capabilities and detailed reporting</p>
           <p>📊 Total Fee Records: {feeRecords.length} | Filtered: {filteredFeeRecords.length}</p>
-          {feeRecords.length === 0 && (
-            <div className="bg-orange-100 border border-orange-300 rounded p-3 mt-3">
-              <p className="text-orange-800 font-medium">⚠️ No fee records found!</p>
-              <p className="text-orange-700 text-sm mt-1">
-                This could mean:
-                <br />• No students have been added yet
-                <br />• Fee structures haven't been set up for this academic year
-                <br />• Fee records haven't been created for existing students
-              </p>
-              {selectedAcademicYear && (
-                <div className="mt-3">
-                  <CreateFeeRecordsButton 
-                    academicYearId={selectedAcademicYear} 
-                    onRecordsCreated={refetchFeeRecords}
-                  />
+          
+          {feeRecords.length === 0 && selectedAcademicYear && (
+            <div className="bg-orange-100 border border-orange-300 rounded p-4 mt-4">
+              <div className="flex items-start space-x-3">
+                <AlertCircle className="w-5 h-5 text-orange-600 mt-0.5 flex-shrink-0" />
+                <div className="flex-1">
+                  <p className="text-orange-800 font-medium mb-2">⚠️ No fee records found for your students!</p>
+                  <div className="text-orange-700 text-sm space-y-2">
+                    <p><strong>This could mean:</strong></p>
+                    <ul className="list-disc list-inside space-y-1 ml-2">
+                      <li>Students have been added but fee records haven't been created yet</li>
+                      <li>Fee structures haven't been set up for this academic year</li>
+                      <li>There's a mismatch between student classes and fee structure classes</li>
+                    </ul>
+                    <p><strong>To fix this:</strong></p>
+                    <ol className="list-decimal list-inside space-y-1 ml-2">
+                      <li>First, ensure fee structures are set up in <strong>Fee Structure Management</strong></li>
+                      <li>Then use the button below to create fee records for all students</li>
+                    </ol>
+                  </div>
+                  <div className="mt-4">
+                    <CreateFeeRecordsButton 
+                      academicYearId={selectedAcademicYear} 
+                      onRecordsCreated={refetchFeeRecords}
+                    />
+                  </div>
                 </div>
-              )}
+              </div>
             </div>
           )}
         </div>

@@ -49,22 +49,40 @@ export function useEnhancedFeeData() {
   };
 
   const fetchFeeRecords = async (academicYearId?: string) => {
+    if (!academicYearId) {
+      console.log('No academic year ID provided, skipping fee records fetch');
+      setFeeRecords([]);
+      setLoading(false);
+      return;
+    }
+
     try {
       console.log('Fetching enhanced fee records for academic year:', academicYearId);
       
-      // First, let's check if we have any student_fee_records at all
-      const { data: allRecords, error: allRecordsError } = await supabase
+      // First check what students we have in the database
+      const { data: allStudents, error: studentsError } = await supabase
+        .from("students")
+        .select("id, first_name, last_name, admission_number, class_id, classes(name, section)");
+
+      console.log('All students in database:', allStudents);
+      
+      if (studentsError) {
+        console.error('Error fetching all students:', studentsError);
+      }
+
+      // Check what fee records exist
+      const { data: allFeeRecords, error: allFeeRecordsError } = await supabase
         .from("student_fee_records")
         .select("*");
 
-      console.log('All student fee records in database:', allRecords);
+      console.log('All fee records in database:', allFeeRecords);
       
-      if (allRecordsError) {
-        console.error('Error fetching all records:', allRecordsError);
+      if (allFeeRecordsError) {
+        console.error('Error fetching all fee records:', allFeeRecordsError);
       }
 
-      // Now let's try the enhanced query
-      let query = supabase
+      // Now try the enhanced query with proper joins
+      const { data, error } = await supabase
         .from("student_fee_records")
         .select(`
           *,
@@ -76,34 +94,29 @@ export function useEnhancedFeeData() {
             classes(name, section)
           )
         `)
+        .eq('academic_year_id', academicYearId)
         .order("created_at", { ascending: false });
-
-      if (academicYearId) {
-        query = query.eq('academic_year_id', academicYearId);
-      }
-
-      const { data, error } = await query;
 
       if (error) {
         console.error('Error fetching enhanced fee records:', error);
         
-        // Fallback: try a simpler query without joins
-        console.log('Trying fallback query without joins...');
-        const { data: fallbackData, error: fallbackError } = await supabase
+        // Fallback: get fee records and students separately
+        console.log('Trying fallback approach...');
+        const { data: feeRecordsOnly, error: feeError } = await supabase
           .from("student_fee_records")
           .select("*")
-          .eq('academic_year_id', academicYearId || '');
+          .eq('academic_year_id', academicYearId)
+          .order("created_at", { ascending: false });
 
-        if (fallbackError) {
-          console.error('Fallback query also failed:', fallbackError);
+        if (feeError) {
+          console.error('Fallback query also failed:', feeError);
           throw error; // throw original error
         }
 
-        console.log('Fallback data:', fallbackData);
+        console.log('Fee records from fallback:', feeRecordsOnly);
         
-        // If we have fallback data, we need to fetch student details separately
-        if (fallbackData && fallbackData.length > 0) {
-          const studentIds = fallbackData.map(record => record.student_id);
+        if (feeRecordsOnly && feeRecordsOnly.length > 0) {
+          const studentIds = [...new Set(feeRecordsOnly.map(record => record.student_id))];
           const { data: studentsData, error: studentsError } = await supabase
             .from("students")
             .select(`
@@ -117,44 +130,47 @@ export function useEnhancedFeeData() {
             .in('id', studentIds);
 
           if (studentsError) {
-            console.error('Error fetching students:', studentsError);
-          } else {
-            console.log('Students data:', studentsData);
-            
-            // Combine the data
-            const enhancedRecords: StudentFeeRecord[] = fallbackData.map(record => {
-              const student = studentsData?.find(s => s.id === record.student_id);
-              return {
-                ...record,
-                status: record.status as 'Pending' | 'Paid' | 'Overdue' | 'Partial',
-                student: student ? {
-                  id: student.id,
-                  first_name: student.first_name,
-                  last_name: student.last_name,
-                  admission_number: student.admission_number,
-                  class_name: student.classes?.name || 'Unknown Class',
-                  section: student.classes?.section || '',
-                } : {
-                  id: record.student_id,
-                  first_name: 'Unknown',
-                  last_name: 'Student',
-                  admission_number: 'N/A',
-                  class_name: 'Unknown Class',
-                  section: '',
-                }
-              };
-            });
-
-            console.log('Enhanced records from fallback:', enhancedRecords);
-            setFeeRecords(enhancedRecords);
-            return;
+            console.error('Error fetching students for fallback:', studentsError);
+            throw studentsError;
           }
+
+          console.log('Students data from fallback:', studentsData);
+          
+          // Combine the data
+          const enhancedRecords: StudentFeeRecord[] = feeRecordsOnly.map(record => {
+            const student = studentsData?.find(s => s.id === record.student_id);
+            return {
+              ...record,
+              status: record.status as 'Pending' | 'Paid' | 'Overdue' | 'Partial',
+              student: student ? {
+                id: student.id,
+                first_name: student.first_name,
+                last_name: student.last_name,
+                admission_number: student.admission_number,
+                class_name: student.classes?.name || 'Unknown Class',
+                section: student.classes?.section || '',
+              } : {
+                id: record.student_id,
+                first_name: 'Unknown',
+                last_name: 'Student',
+                admission_number: 'N/A',
+                class_name: 'Unknown Class',
+                section: '',
+              }
+            };
+          });
+
+          console.log('Enhanced records from fallback:', enhancedRecords);
+          setFeeRecords(enhancedRecords);
+          return;
+        } else {
+          console.log('No fee records found in fallback query');
+          setFeeRecords([]);
+          return;
         }
-        
-        throw error;
       }
 
-      console.log('Raw fee records data:', data);
+      console.log('Enhanced fee records from main query:', data);
 
       const enhancedRecords: StudentFeeRecord[] = (data || []).map(record => {
         const student = record.students;
@@ -172,7 +188,7 @@ export function useEnhancedFeeData() {
         };
       });
 
-      console.log('Enhanced fee records:', enhancedRecords);
+      console.log('Final enhanced fee records:', enhancedRecords);
       setFeeRecords(enhancedRecords);
       
     } catch (error: any) {
@@ -182,6 +198,7 @@ export function useEnhancedFeeData() {
         description: error.message,
         variant: "destructive",
       });
+      setFeeRecords([]);
     } finally {
       setLoading(false);
     }
