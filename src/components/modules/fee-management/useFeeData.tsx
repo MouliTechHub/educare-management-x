@@ -84,6 +84,8 @@ export function useFeeData() {
             first_name,
             last_name,
             admission_number,
+            gender,
+            status,
             class_id,
             classes(name, section)
           )
