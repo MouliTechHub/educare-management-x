@@ -1,0 +1,264 @@
+
+import { useState, useEffect } from "react";
+import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/hooks/use-toast";
+import { StudentFeeRecord, FeePaymentRecord, FeeChangeHistory } from "@/types/enhanced-fee-types";
+
+interface AcademicYear {
+  id: string;
+  year_name: string;
+  start_date: string;
+  end_date: string;
+  is_current: boolean;
+}
+
+export function useEnhancedFeeData() {
+  const [feeRecords, setFeeRecords] = useState<StudentFeeRecord[]>([]);
+  const [academicYears, setAcademicYears] = useState<AcademicYear[]>([]);
+  const [currentAcademicYear, setCurrentAcademicYear] = useState<AcademicYear | null>(null);
+  const [selectedAcademicYear, setSelectedAcademicYear] = useState<string>('');
+  const [loading, setLoading] = useState(true);
+  const { toast } = useToast();
+
+  // Fetch academic years
+  const fetchAcademicYears = async () => {
+    try {
+      const { data, error } = await supabase
+        .from("academic_years")
+        .select("*")
+        .order("start_date", { ascending: false });
+
+      if (error) throw error;
+
+      setAcademicYears(data || []);
+      const current = data?.find(year => year.is_current);
+      if (current) {
+        setCurrentAcademicYear(current);
+        if (!selectedAcademicYear) {
+          setSelectedAcademicYear(current.id);
+        }
+      }
+    } catch (error: any) {
+      toast({
+        title: "Error fetching academic years",
+        description: error.message,
+        variant: "destructive",
+      });
+    }
+  };
+
+  const fetchFeeRecords = async (academicYearId?: string) => {
+    try {
+      let query = supabase
+        .from("student_fee_records")
+        .select(`
+          *,
+          students!inner(
+            id, 
+            first_name, 
+            last_name, 
+            admission_number,
+            classes(name, section)
+          )
+        `)
+        .order("created_at", { ascending: false });
+
+      if (academicYearId) {
+        query = query.eq('academic_year_id', academicYearId);
+      }
+
+      const { data, error } = await query;
+
+      if (error) throw error;
+
+      const enhancedRecords = (data || []).map(record => ({
+        ...record,
+        student: {
+          ...record.students,
+          class_name: record.students.classes?.name,
+          section: record.students.classes?.section,
+        }
+      }));
+
+      setFeeRecords(enhancedRecords);
+      console.log('Fetched fee records:', enhancedRecords.length);
+    } catch (error: any) {
+      console.error('Error fetching fee records:', error);
+      toast({
+        title: "Error fetching fee records",
+        description: error.message,
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const updateDiscount = async (recordId: string, discountData: {
+    discount_amount: number;
+    discount_percentage?: number;
+    discount_notes?: string;
+    discount_updated_by: string;
+  }) => {
+    try {
+      const { error } = await supabase
+        .from("student_fee_records")
+        .update({
+          ...discountData,
+          discount_updated_at: new Date().toISOString(),
+          updated_at: new Date().toISOString()
+        })
+        .eq("id", recordId);
+
+      if (error) throw error;
+
+      // Log the discount change
+      await supabase.from("fee_change_history").insert({
+        fee_record_id: recordId,
+        change_type: 'discount',
+        amount: discountData.discount_amount,
+        changed_by: discountData.discount_updated_by,
+        notes: discountData.discount_notes || 'Discount applied'
+      });
+
+      toast({
+        title: "Discount updated successfully",
+        description: "Fee record has been updated with the new discount."
+      });
+
+      // Refresh data
+      fetchFeeRecords(selectedAcademicYear);
+    } catch (error: any) {
+      toast({
+        title: "Error updating discount",
+        description: error.message,
+        variant: "destructive",
+      });
+    }
+  };
+
+  const recordPayment = async (paymentData: Omit<FeePaymentRecord, 'id' | 'created_at'>) => {
+    try {
+      const { error } = await supabase
+        .from("fee_payment_records")
+        .insert([paymentData]);
+
+      if (error) throw error;
+
+      toast({
+        title: "Payment recorded successfully",
+        description: "The payment has been added and fee status updated."
+      });
+
+      // Refresh data
+      fetchFeeRecords(selectedAcademicYear);
+    } catch (error: any) {
+      toast({
+        title: "Error recording payment",
+        description: error.message,
+        variant: "destructive",
+      });
+    }
+  };
+
+  const getChangeHistory = async (feeRecordId: string): Promise<FeeChangeHistory[]> => {
+    try {
+      const { data, error } = await supabase
+        .from("fee_change_history")
+        .select("*")
+        .eq("fee_record_id", feeRecordId)
+        .order("change_date", { ascending: false });
+
+      if (error) throw error;
+      return data || [];
+    } catch (error: any) {
+      console.error('Error fetching change history:', error);
+      return [];
+    }
+  };
+
+  const getPaymentHistory = async (feeRecordId: string): Promise<FeePaymentRecord[]> => {
+    try {
+      const { data, error } = await supabase
+        .from("fee_payment_records")
+        .select("*")
+        .eq("fee_record_id", feeRecordId)
+        .order("payment_date", { ascending: false });
+
+      if (error) throw error;
+      return data || [];
+    } catch (error: any) {
+      console.error('Error fetching payment history:', error);
+      return [];
+    }
+  };
+
+  useEffect(() => {
+    fetchAcademicYears();
+  }, []);
+
+  useEffect(() => {
+    if (selectedAcademicYear) {
+      fetchFeeRecords(selectedAcademicYear);
+    }
+  }, [selectedAcademicYear]);
+
+  useEffect(() => {
+    if (!selectedAcademicYear && currentAcademicYear) {
+      setSelectedAcademicYear(currentAcademicYear.id);
+    }
+  }, [currentAcademicYear, selectedAcademicYear]);
+
+  useEffect(() => {
+    // Set up real-time subscription for fee updates
+    const channel = supabase
+      .channel('enhanced-fee-changes')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'student_fee_records'
+        },
+        () => {
+          console.log('Fee record changed, refreshing...');
+          if (selectedAcademicYear) {
+            fetchFeeRecords(selectedAcademicYear);
+          }
+        }
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'fee_payment_records'
+        },
+        () => {
+          console.log('Payment record changed, refreshing...');
+          if (selectedAcademicYear) {
+            fetchFeeRecords(selectedAcademicYear);
+          }
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [selectedAcademicYear]);
+
+  return {
+    feeRecords,
+    academicYears,
+    currentAcademicYear,
+    selectedAcademicYear,
+    setSelectedAcademicYear,
+    loading,
+    updateDiscount,
+    recordPayment,
+    getChangeHistory,
+    getPaymentHistory,
+    refetchFeeRecords: () => fetchFeeRecords(selectedAcademicYear)
+  };
+}

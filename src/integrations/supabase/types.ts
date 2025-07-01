@@ -232,6 +232,56 @@ export type Database = {
           },
         ]
       }
+      fee_change_history: {
+        Row: {
+          amount: number | null
+          change_date: string
+          change_type: string
+          changed_by: string
+          fee_record_id: string
+          id: string
+          new_value: number | null
+          notes: string | null
+          payment_method: string | null
+          previous_value: number | null
+          receipt_number: string | null
+        }
+        Insert: {
+          amount?: number | null
+          change_date?: string
+          change_type: string
+          changed_by: string
+          fee_record_id: string
+          id?: string
+          new_value?: number | null
+          notes?: string | null
+          payment_method?: string | null
+          previous_value?: number | null
+          receipt_number?: string | null
+        }
+        Update: {
+          amount?: number | null
+          change_date?: string
+          change_type?: string
+          changed_by?: string
+          fee_record_id?: string
+          id?: string
+          new_value?: number | null
+          notes?: string | null
+          payment_method?: string | null
+          previous_value?: number | null
+          receipt_number?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fee_change_history_fee_record_id_fkey"
+            columns: ["fee_record_id"]
+            isOneToOne: false
+            referencedRelation: "student_fee_records"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       fee_discounts: {
         Row: {
           approved_by: string | null
@@ -272,6 +322,69 @@ export type Database = {
             columns: ["fee_id"]
             isOneToOne: false
             referencedRelation: "fees"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      fee_payment_records: {
+        Row: {
+          amount_paid: number
+          created_at: string
+          created_by: string
+          fee_record_id: string
+          id: string
+          late_fee: number | null
+          notes: string | null
+          payment_date: string
+          payment_method: string
+          payment_receiver: string
+          payment_time: string
+          receipt_number: string
+          student_id: string
+        }
+        Insert: {
+          amount_paid: number
+          created_at?: string
+          created_by?: string
+          fee_record_id: string
+          id?: string
+          late_fee?: number | null
+          notes?: string | null
+          payment_date: string
+          payment_method?: string
+          payment_receiver: string
+          payment_time?: string
+          receipt_number: string
+          student_id: string
+        }
+        Update: {
+          amount_paid?: number
+          created_at?: string
+          created_by?: string
+          fee_record_id?: string
+          id?: string
+          late_fee?: number | null
+          notes?: string | null
+          payment_date?: string
+          payment_method?: string
+          payment_receiver?: string
+          payment_time?: string
+          receipt_number?: string
+          student_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fee_payment_records_fee_record_id_fkey"
+            columns: ["fee_record_id"]
+            isOneToOne: false
+            referencedRelation: "student_fee_records"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fee_payment_records_student_id_fkey"
+            columns: ["student_id"]
+            isOneToOne: false
+            referencedRelation: "students"
             referencedColumns: ["id"]
           },
         ]
@@ -852,6 +965,98 @@ export type Database = {
           },
           {
             foreignKeyName: "student_fee_assignments_student_id_fkey"
+            columns: ["student_id"]
+            isOneToOne: false
+            referencedRelation: "students"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      student_fee_records: {
+        Row: {
+          academic_year_id: string
+          actual_fee: number
+          balance_fee: number | null
+          class_id: string
+          created_at: string
+          discount_amount: number
+          discount_notes: string | null
+          discount_percentage: number | null
+          discount_updated_at: string | null
+          discount_updated_by: string | null
+          due_date: string | null
+          fee_type: string
+          final_fee: number | null
+          id: string
+          paid_amount: number
+          status: string
+          student_id: string
+          updated_at: string
+        }
+        Insert: {
+          academic_year_id: string
+          actual_fee?: number
+          balance_fee?: number | null
+          class_id: string
+          created_at?: string
+          discount_amount?: number
+          discount_notes?: string | null
+          discount_percentage?: number | null
+          discount_updated_at?: string | null
+          discount_updated_by?: string | null
+          due_date?: string | null
+          fee_type?: string
+          final_fee?: number | null
+          id?: string
+          paid_amount?: number
+          status?: string
+          student_id: string
+          updated_at?: string
+        }
+        Update: {
+          academic_year_id?: string
+          actual_fee?: number
+          balance_fee?: number | null
+          class_id?: string
+          created_at?: string
+          discount_amount?: number
+          discount_notes?: string | null
+          discount_percentage?: number | null
+          discount_updated_at?: string | null
+          discount_updated_by?: string | null
+          due_date?: string | null
+          fee_type?: string
+          final_fee?: number | null
+          id?: string
+          paid_amount?: number
+          status?: string
+          student_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "student_fee_records_academic_year_id_fkey"
+            columns: ["academic_year_id"]
+            isOneToOne: false
+            referencedRelation: "academic_years"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "student_fee_records_class_id_fkey"
+            columns: ["class_id"]
+            isOneToOne: false
+            referencedRelation: "class_gender_stats"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "student_fee_records_class_id_fkey"
+            columns: ["class_id"]
+            isOneToOne: false
+            referencedRelation: "classes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "student_fee_records_student_id_fkey"
             columns: ["student_id"]
             isOneToOne: false
             referencedRelation: "students"
