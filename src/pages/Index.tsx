@@ -8,6 +8,7 @@ import { Header } from "@/components/layout/Header";
 import { StudentManagement } from "@/components/modules/StudentManagement";
 import { TeacherManagement } from "@/components/modules/TeacherManagement";
 import { FeeManagement } from "@/components/modules/FeeManagement";
+import { ParentManagement } from "@/components/modules/ParentManagement";
 import { ClassManagement } from "@/components/modules/ClassManagement";
 import { AttendanceManagement } from "@/components/modules/AttendanceManagement";
 import { ExamManagement } from "@/components/modules/ExamManagement";
@@ -38,6 +39,8 @@ const Index = () => {
     switch (activeModule) {
       case "students":
         return <StudentManagement />;
+      case "parents":
+        return <ParentManagement />;
       case "teachers":
         return <TeacherManagement />;
       case "classes":

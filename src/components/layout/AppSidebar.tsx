@@ -80,7 +80,7 @@ export function AppSidebar({ userRole, activeModule, onModuleChange }: AppSideba
       case "Teacher":
         return [...baseItems, ...teacherItems];
       case "Parent":
-        return [...baseItems, ...parentItems];
+        return [...baseItems, ...parentItems];  
       case "Accountant":
         return [...baseItems, ...accountantItems];
       default:
