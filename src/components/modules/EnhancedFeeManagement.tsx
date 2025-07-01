@@ -129,14 +129,15 @@ export function EnhancedFeeManagement() {
       />
 
       <YearWiseSummaryCards summary={{
-        totalAmount: feeRecords.reduce((sum, record) => sum + record.actual_fee, 0),
-        totalPaid: feeRecords.reduce((sum, record) => sum + record.paid_amount, 0),
+        academicYear: currentYear?.year_name || 'Unknown Year',
+        totalCollected: feeRecords.reduce((sum, record) => sum + record.paid_amount, 0),
         totalPending: feeRecords.reduce((sum, record) => sum + record.balance_fee, 0),
-        totalDiscounts: feeRecords.reduce((sum, record) => sum + record.discount_amount, 0),
-        pendingCount: feeRecords.filter(r => r.status === 'Pending').length,
-        paidCount: feeRecords.filter(r => r.status === 'Paid').length,
-        overdueCount: feeRecords.filter(r => r.status === 'Overdue').length,
-        partialCount: feeRecords.filter(r => r.status === 'Partial').length
+        totalDiscount: feeRecords.reduce((sum, record) => sum + record.discount_amount, 0),
+        totalStudents: feeRecords.length,
+        collectionRate: feeRecords.length > 0 ? 
+          (feeRecords.reduce((sum, record) => sum + record.paid_amount, 0) / 
+           feeRecords.reduce((sum, record) => sum + record.actual_fee, 0)) * 100 : 0,
+        overdueCount: feeRecords.filter(r => r.status === 'Overdue').length
       }} />
 
       <Card>
