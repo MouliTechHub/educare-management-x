@@ -2,7 +2,14 @@
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import { StudentBasic } from "@/types/database";
+
+interface AcademicYear {
+  id: string;
+  year_name: string;
+  start_date: string;
+  end_date: string;
+  is_current: boolean;
+}
 
 interface Fee {
   id: string;
@@ -22,7 +29,11 @@ interface Fee {
   discount_updated_by: string | null;
   discount_updated_at: string | null;
   academic_year_id: string;
-  student?: StudentBasic & {
+  student?: {
+    id: string;
+    first_name: string;
+    last_name: string;
+    admission_number: string;
     class_name?: string;
     section?: string;
     parent_phone?: string;
@@ -31,23 +42,13 @@ interface Fee {
   };
 }
 
-interface AcademicYear {
-  id: string;
-  year_name: string;
-  start_date: string;
-  end_date: string;
-  is_current: boolean;
-}
-
 export function useFeeData() {
   const [fees, setFees] = useState<Fee[]>([]);
   const [academicYears, setAcademicYears] = useState<AcademicYear[]>([]);
-  const [currentAcademicYear, setCurrentAcademicYear] = useState<AcademicYear | null>(null);
-  const [selectedAcademicYear, setSelectedAcademicYear] = useState<string>('');
+  const [currentAcademicYear, setCurrentAcademicYear] = useState<string>("");
   const [loading, setLoading] = useState(true);
   const { toast } = useToast();
 
-  // Fetch academic years
   const fetchAcademicYears = async () => {
     try {
       const { data, error } = await supabase
@@ -58,14 +59,16 @@ export function useFeeData() {
       if (error) throw error;
 
       setAcademicYears(data || []);
-      const current = data?.find(year => year.is_current);
-      if (current) {
-        setCurrentAcademicYear(current);
-        if (!selectedAcademicYear) {
-          setSelectedAcademicYear(current.id);
-        }
+      
+      // Set current year as default
+      const currentYear = data?.find(year => year.is_current);
+      if (currentYear) {
+        setCurrentAcademicYear(currentYear.id);
+      } else if (data && data.length > 0) {
+        setCurrentAcademicYear(data[0].id);
       }
     } catch (error: any) {
+      console.error("Error fetching academic years:", error);
       toast({
         title: "Error fetching academic years",
         description: error.message,
@@ -74,52 +77,87 @@ export function useFeeData() {
     }
   };
 
-  const fetchFees = async (academicYearId?: string) => {
+  const fetchFees = async () => {
+    if (!currentAcademicYear) return;
+    
     try {
-      let query = supabase
+      setLoading(true);
+      
+      // First, get the payment totals for each fee
+      const { data: paymentData, error: paymentError } = await supabase
+        .from('payment_history')
+        .select('fee_id, amount_paid')
+        .order('created_at', { ascending: true });
+
+      if (paymentError) throw paymentError;
+
+      // Calculate total paid per fee
+      const paymentTotals = paymentData?.reduce((acc, payment) => {
+        acc[payment.fee_id] = (acc[payment.fee_id] || 0) + payment.amount_paid;
+        return acc;
+      }, {} as Record<string, number>) || {};
+
+      // Now fetch fees with student data
+      const { data, error } = await supabase
         .from("fees")
         .select(`
           *,
-          students!inner(
-            id, 
-            first_name, 
-            last_name, 
+          students!inner (
+            id,
+            first_name,
+            last_name,
             admission_number,
             class_id,
-            classes(name, section),
-            student_parent_links(
-              parents(phone_number, email)
+            classes (
+              name,
+              section
             )
           )
         `)
+        .eq("academic_year_id", currentAcademicYear)
         .order("created_at", { ascending: false });
-
-      // Filter by academic year if specified
-      if (academicYearId) {
-        query = query.eq('academic_year_id', academicYearId);
-      }
-
-      const { data, error } = await query;
 
       if (error) throw error;
 
-      const feesWithStudents = (data || []).map(fee => ({
-        ...fee,
-        status: fee.status as 'Pending' | 'Paid' | 'Overdue',
-        student: {
-          ...fee.students,
-          class_name: fee.students.classes?.name,
-          section: fee.students.classes?.section,
-          parent_phone: fee.students.student_parent_links?.[0]?.parents?.phone_number,
-          parent_email: fee.students.student_parent_links?.[0]?.parents?.email,
-          class_id: fee.students.class_id,
-        }
-      }));
+      // Transform and enrich the data
+      const transformedFees: Fee[] = (data || []).map((fee: any) => {
+        const totalPaidFromHistory = paymentTotals[fee.id] || 0;
+        
+        return {
+          id: fee.id,
+          student_id: fee.student_id,
+          amount: fee.amount,
+          actual_amount: fee.actual_amount,
+          discount_amount: fee.discount_amount,
+          total_paid: totalPaidFromHistory, // Use calculated total from payment history
+          fee_type: fee.fee_type,
+          due_date: fee.due_date,
+          payment_date: fee.payment_date,
+          status: fee.status,
+          receipt_number: fee.receipt_number,
+          created_at: fee.created_at,
+          updated_at: fee.updated_at,
+          discount_notes: fee.discount_notes,
+          discount_updated_by: fee.discount_updated_by,
+          discount_updated_at: fee.discount_updated_at,
+          academic_year_id: fee.academic_year_id,
+          student: fee.students ? {
+            id: fee.students.id,
+            first_name: fee.students.first_name,
+            last_name: fee.students.last_name,
+            admission_number: fee.students.admission_number,
+            class_name: fee.students.classes?.name,
+            section: fee.students.classes?.section,
+            class_id: fee.students.class_id
+          } : undefined
+        };
+      });
 
-      setFees(feesWithStudents);
+      setFees(transformedFees);
     } catch (error: any) {
+      console.error("Error fetching fees:", error);
       toast({
-        title: "Error fetching fees",
+        title: "Error fetching fee data",
         description: error.message,
         variant: "destructive",
       });
@@ -133,49 +171,21 @@ export function useFeeData() {
   }, []);
 
   useEffect(() => {
-    if (selectedAcademicYear) {
-      fetchFees(selectedAcademicYear);
+    if (currentAcademicYear) {
+      fetchFees();
     }
-  }, [selectedAcademicYear]);
+  }, [currentAcademicYear]);
 
-  useEffect(() => {
-    if (!selectedAcademicYear && currentAcademicYear) {
-      setSelectedAcademicYear(currentAcademicYear.id);
-    }
-  }, [currentAcademicYear, selectedAcademicYear]);
-
-  useEffect(() => {
-    // Set up real-time subscription for fee updates
-    const channel = supabase
-      .channel('schema-db-changes')
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'fees'
-        },
-        () => {
-          console.log('Fee data changed, refreshing...');
-          if (selectedAcademicYear) {
-            fetchFees(selectedAcademicYear);
-          }
-        }
-      )
-      .subscribe();
-
-    return () => {
-      supabase.removeChannel(channel);
-    };
-  }, [selectedAcademicYear]);
+  const refetchFees = () => {
+    fetchFees();
+  };
 
   return {
     fees,
     academicYears,
     currentAcademicYear,
-    selectedAcademicYear,
-    setSelectedAcademicYear,
+    setCurrentAcademicYear,
     loading,
-    refetchFees: () => fetchFees(selectedAcademicYear)
+    refetchFees
   };
 }

@@ -126,7 +126,10 @@ export function PaymentDialog({
         academicYear: academicYearName
       });
 
-      // Create payment history record first
+      // Create payment history record with exact timestamp
+      const currentTime = new Date();
+      const paymentTime = currentTime.toTimeString().split(' ')[0]; // HH:MM:SS format
+
       const { error: historyError } = await supabase
         .from('payment_history')
         .insert({
@@ -134,6 +137,7 @@ export function PaymentDialog({
           student_id: fee.student_id,
           amount_paid: amountPaid,
           payment_date: data.payment_date,
+          payment_time: paymentTime,
           receipt_number: data.receipt_number,
           payment_receiver: data.payment_receiver,
           payment_method: data.payment_method,
@@ -233,6 +237,12 @@ export function PaymentDialog({
               <div className="text-sm space-y-1">
                 <span className="font-medium">Actual Fee: ₹{fee.actual_amount.toLocaleString()}</span>
                 <br />
+                {fee.discount_amount > 0 && (
+                  <>
+                    <span className="font-medium text-green-600">Discount: ₹{fee.discount_amount.toLocaleString()}</span>
+                    <br />
+                  </>
+                )}
                 <span className="font-medium">Final Fee: ₹{finalFee.toLocaleString()}</span>
                 <br />
                 <span className="font-medium">Paid: ₹{fee.total_paid.toLocaleString()}</span>
