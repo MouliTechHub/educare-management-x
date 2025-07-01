@@ -124,13 +124,13 @@ export function PaymentForm({ classes, students, feeStructures, onSubmit, onCanc
       ]);
 
       // Calculate total paid from all sources - properly handle the data types with explicit typing
-      const paidFromHistory = Array.isArray(paymentHistoryData.data) 
+      const paidFromHistory = Array.isArray(paymentHistoryData.data) && paymentHistoryData.data.length > 0
         ? paymentHistoryData.data.reduce((sum: number, record: any) => sum + (Number(record?.amount_paid) || 0), 0) 
         : 0;
-      const paidFromRecords = Array.isArray(feePaymentData.data) 
+      const paidFromRecords = Array.isArray(feePaymentData.data) && feePaymentData.data.length > 0
         ? feePaymentData.data.reduce((sum: number, record: any) => sum + (Number(record?.amount_paid) || 0), 0) 
         : 0;
-      const paidFromPayments = Array.isArray(studentPaymentData.data) 
+      const paidFromPayments = Array.isArray(studentPaymentData.data) && studentPaymentData.data.length > 0
         ? studentPaymentData.data.reduce((sum: number, record: any) => sum + (Number(record?.amount_paid) || 0), 0) 
         : 0;
 
