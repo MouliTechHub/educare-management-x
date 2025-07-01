@@ -124,7 +124,7 @@ export function PaymentForm({ classes, students, feeStructures, onSubmit, onCanc
           .eq('fee_structure_id', formData.fee_structure_id)
       ]);
 
-      // Calculate total paid from all sources
+      // Calculate total paid from all sources - fix the calculation
       const paidFromHistory = paymentHistoryData.data?.reduce((sum, p) => sum + p.amount_paid, 0) || 0;
       const paidFromRecords = feePaymentData.data?.reduce((sum, p) => sum + p.amount_paid, 0) || 0;
       const paidFromPayments = studentPaymentData.data?.reduce((sum, p) => sum + p.amount_paid, 0) || 0;

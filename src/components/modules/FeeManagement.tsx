@@ -73,7 +73,6 @@ export default function FeeManagement() {
     const studentName = `${student.first_name} ${student.last_name}`;
     
     // Open history dialog with comprehensive fee data
-    setSelectedStudentName(studentName);
     openHistoryDialog(student, studentFees);
   };
 
