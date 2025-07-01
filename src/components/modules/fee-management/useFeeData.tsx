@@ -51,7 +51,7 @@ export function useFeeData() {
 
   const fetchAcademicYears = async () => {
     try {
-      console.log('Fetching academic years...');
+      console.log('🔄 Fetching academic years...');
       const { data, error } = await supabase
         .from("academic_years")
         .select("*")
@@ -59,20 +59,22 @@ export function useFeeData() {
 
       if (error) throw error;
 
-      console.log('Academic years fetched:', data?.length || 0);
+      console.log('✅ Academic years fetched:', data?.length || 0);
       setAcademicYears(data || []);
       
       // Set current year as default
       const currentYear = data?.find(year => year.is_current);
       if (currentYear) {
-        console.log('Setting current academic year:', currentYear.year_name);
+        console.log('✅ Setting current academic year:', currentYear.year_name);
         setCurrentAcademicYear(currentYear.id);
       } else if (data && data.length > 0) {
-        console.log('No current year found, using first year:', data[0].year_name);
+        console.log('⚠️ No current year found, using first year:', data[0].year_name);
         setCurrentAcademicYear(data[0].id);
+      } else {
+        console.log('❌ No academic years found');
       }
     } catch (error: any) {
-      console.error("Error fetching academic years:", error);
+      console.error("❌ Error fetching academic years:", error);
       toast({
         title: "Error fetching academic years",
         description: error.message,
@@ -83,13 +85,14 @@ export function useFeeData() {
 
   const fetchFees = async () => {
     if (!currentAcademicYear) {
-      console.log('No academic year selected, skipping fee fetch');
+      console.log('⚠️ No academic year selected, skipping fee fetch');
+      setLoading(false);
       return;
     }
     
     try {
       setLoading(true);
-      console.log('Fetching fees for academic year:', currentAcademicYear);
+      console.log('🔄 Fetching fees for academic year:', currentAcademicYear);
       
       // First, get the payment totals for each fee
       const { data: paymentData, error: paymentError } = await supabase
@@ -98,9 +101,9 @@ export function useFeeData() {
         .order('created_at', { ascending: true });
 
       if (paymentError) {
-        console.error('Error fetching payment data:', paymentError);
+        console.error('❌ Error fetching payment data:', paymentError);
       } else {
-        console.log('Payment data fetched:', paymentData?.length || 0, 'records');
+        console.log('✅ Payment data fetched:', paymentData?.length || 0, 'records');
       }
 
       // Calculate total paid per fee
@@ -109,7 +112,7 @@ export function useFeeData() {
         return acc;
       }, {} as Record<string, number>) || {};
 
-      // Now fetch fees with student data - using left join instead of inner join
+      // Fetch fees with student and class data
       const { data, error } = await supabase
         .from("fees")
         .select(`
@@ -130,12 +133,20 @@ export function useFeeData() {
         .order("created_at", { ascending: false });
 
       if (error) {
-        console.error('Error fetching fees:', error);
+        console.error('❌ Error fetching fees:', error);
         throw error;
       }
 
-      console.log('Raw fee data fetched:', data?.length || 0, 'records');
-      console.log('Sample fee record:', data?.[0]);
+      console.log('✅ Raw fee data fetched:', data?.length || 0, 'records');
+      
+      if (data && data.length > 0) {
+        console.log('📋 Sample fee record structure:', {
+          id: data[0].id,
+          student_id: data[0].student_id,
+          hasStudent: !!data[0].students,
+          studentName: data[0].students ? `${data[0].students.first_name} ${data[0].students.last_name}` : 'No student data'
+        });
+      }
 
       // Transform and enrich the data
       const transformedFees: Fee[] = (data || []).map((fee: any) => {
@@ -147,7 +158,7 @@ export function useFeeData() {
           amount: fee.amount,
           actual_amount: fee.actual_amount,
           discount_amount: fee.discount_amount,
-          total_paid: totalPaidFromHistory, // Use calculated total from payment history
+          total_paid: totalPaidFromHistory,
           fee_type: fee.fee_type,
           due_date: fee.due_date,
           payment_date: fee.payment_date,
@@ -171,15 +182,17 @@ export function useFeeData() {
         };
       });
 
-      console.log('Transformed fees:', transformedFees.length, 'records');
+      console.log('✅ Transformed fees:', transformedFees.length, 'records');
+      console.log('📊 Fees with student data:', transformedFees.filter(f => f.student).length);
       setFees(transformedFees);
     } catch (error: any) {
-      console.error("Error fetching fees:", error);
+      console.error("❌ Error fetching fees:", error);
       toast({
         title: "Error fetching fee data",
         description: error.message,
         variant: "destructive",
       });
+      setFees([]); // Set empty array on error
     } finally {
       setLoading(false);
     }
@@ -192,10 +205,13 @@ export function useFeeData() {
   useEffect(() => {
     if (currentAcademicYear) {
       fetchFees();
+    } else {
+      setLoading(false);
     }
   }, [currentAcademicYear]);
 
   const refetchFees = () => {
+    console.log('🔄 Manually refreshing fees...');
     fetchFees();
   };
 
