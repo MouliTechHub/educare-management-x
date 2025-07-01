@@ -51,7 +51,7 @@ interface Parent {
 
 interface UseStudentFormSubmissionProps {
   selectedStudent: Student | null;
-  onStudentSaved: () => void;
+  onStudentSaved: (studentData?: any) => void;
   onOpenChange: (open: boolean) => void;
 }
 
@@ -108,8 +108,15 @@ export function useStudentFormSubmission({
         description: `Student ${selectedStudent ? "updated" : "created"} successfully!`,
       });
 
-      onStudentSaved();
-      onOpenChange(false);
+      // Pass the student data back for post-creation actions
+      onStudentSaved(selectedStudent ? null : studentData);
+      
+      if (selectedStudent) {
+        // For updates, close immediately
+        onOpenChange(false);
+      }
+      // For new students, don't close here - let the post-creation dialog handle it
+
     } catch (error: any) {
       console.error("Error saving student:", error);
       
