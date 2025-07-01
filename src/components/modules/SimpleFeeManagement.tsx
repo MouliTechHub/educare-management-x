@@ -225,9 +225,7 @@ export function SimpleFeeManagement() {
           fee_type: newFee.fee_type,
           actual_fee: newFee.amount,
           discount_amount: 0,
-          final_fee: newFee.amount,
           paid_amount: 0,
-          balance_fee: newFee.amount,
           due_date: newFee.due_date,
           status: 'Pending'
         });
@@ -279,7 +277,7 @@ export function SimpleFeeManagement() {
 
       if (paymentError) throw paymentError;
 
-      // Update fee record
+      // Update fee record - only update the fields we can update
       const newPaidAmount = selectedRecord.paid_amount + payment.amount;
       const newBalanceAmount = selectedRecord.final_fee - newPaidAmount;
       const newStatus = newBalanceAmount <= 0 ? 'Paid' : newBalanceAmount < selectedRecord.final_fee ? 'Partial' : 'Pending';
@@ -288,7 +286,6 @@ export function SimpleFeeManagement() {
         .from('student_fee_records')
         .update({
           paid_amount: newPaidAmount,
-          balance_fee: newBalanceAmount,
           status: newStatus
         })
         .eq('id', selectedRecord.id);
@@ -326,17 +323,11 @@ export function SimpleFeeManagement() {
         discountAmount = (selectedRecord.actual_fee * discount.amount) / 100;
       }
 
-      const newFinalFee = selectedRecord.actual_fee - discountAmount;
-      const newBalanceAmount = newFinalFee - selectedRecord.paid_amount;
-      const newStatus = newBalanceAmount <= 0 ? 'Paid' : newBalanceAmount < newFinalFee ? 'Partial' : 'Pending';
-
+      // Only update the discount amount and let the database calculate final_fee and balance_fee
       const { error } = await supabase
         .from('student_fee_records')
         .update({
           discount_amount: discountAmount,
-          final_fee: newFinalFee,
-          balance_fee: newBalanceAmount,
-          status: newStatus,
           discount_notes: discount.notes,
           discount_updated_by: 'Admin',
           discount_updated_at: new Date().toISOString()
