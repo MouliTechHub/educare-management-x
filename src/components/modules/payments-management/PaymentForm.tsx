@@ -123,16 +123,18 @@ export function PaymentForm({ classes, students, feeStructures, onSubmit, onCanc
           .eq('fee_structure_id', formData.fee_structure_id)
       ]);
 
-      // Calculate total paid from all sources - properly handle the data types with explicit typing
-      const paidFromHistory = Array.isArray(paymentHistoryData.data) && paymentHistoryData.data.length > 0
-        ? paymentHistoryData.data.reduce((sum: number, record: any) => sum + (Number(record?.amount_paid) || 0), 0) 
-        : 0;
-      const paidFromRecords = Array.isArray(feePaymentData.data) && feePaymentData.data.length > 0
-        ? feePaymentData.data.reduce((sum: number, record: any) => sum + (Number(record?.amount_paid) || 0), 0) 
-        : 0;
-      const paidFromPayments = Array.isArray(studentPaymentData.data) && studentPaymentData.data.length > 0
-        ? studentPaymentData.data.reduce((sum: number, record: any) => sum + (Number(record?.amount_paid) || 0), 0) 
-        : 0;
+      // Calculate total paid from all sources with proper type handling
+      const calculatePaidAmount = (data: any[]) => {
+        if (!Array.isArray(data) || data.length === 0) return 0;
+        return data.reduce((total, record) => {
+          const amount = Number(record?.amount_paid) || 0;
+          return total + amount;
+        }, 0);
+      };
+
+      const paidFromHistory = calculatePaidAmount(paymentHistoryData.data || []);
+      const paidFromRecords = calculatePaidAmount(feePaymentData.data || []);
+      const paidFromPayments = calculatePaidAmount(studentPaymentData.data || []);
 
       if (enhancedFeeRecord) {
         // Use data from enhanced fee management system
