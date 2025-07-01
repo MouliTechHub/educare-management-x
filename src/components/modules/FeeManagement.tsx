@@ -4,7 +4,7 @@ import { FeeManagementHeader } from "@/components/modules/fee-management/FeeMana
 import { FeeStats } from "@/components/modules/fee-management/FeeStats";
 import { FeeManagementContent } from "@/components/modules/fee-management/FeeManagementContent";
 import { PaymentDialog } from "@/components/modules/fee-management/PaymentDialog";
-import { FeeStructureDialog } from "@/components/modules/fee-management/FeeStructureDialog";
+import { DiscountDialog } from "@/components/modules/fee-management/DiscountDialog";
 import { StudentPaymentHistory } from "@/components/modules/student-management/StudentPaymentHistory";
 import { useFeeData } from "@/components/modules/fee-management/useFeeData";
 import { useFeeManagement } from "@/components/modules/fee-management/useFeeManagement";
@@ -132,7 +132,7 @@ export default function FeeManagement() {
         academicYearName={currentYear?.year_name}
       />
 
-      <FeeStructureDialog
+      <DiscountDialog
         open={discountDialogOpen}
         onOpenChange={setDiscountDialogOpen}
         fee={selectedFee}

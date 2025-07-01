@@ -1,12 +1,10 @@
-
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Textarea } from "@/components/ui/textarea";
-import { Settings } from "lucide-react";
 import { useForm } from "react-hook-form";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -35,37 +33,6 @@ interface FeeStructure {
   description: string | null;
 }
 
-interface Fee {
-  id: string;
-  student_id: string;
-  amount: number;
-  actual_amount: number;
-  discount_amount: number;
-  total_paid: number;
-  fee_type: string;
-  due_date: string;
-  payment_date: string | null;
-  status: 'Pending' | 'Paid' | 'Overdue';
-  receipt_number: string | null;
-  created_at: string;
-  updated_at: string;
-  discount_notes: string | null;
-  discount_updated_by: string | null;
-  discount_updated_at: string | null;
-  academic_year_id: string;
-  student?: {
-    id: string;
-    first_name: string;
-    last_name: string;
-    admission_number: string;
-    class_name?: string;
-    section?: string;
-    parent_phone?: string;
-    parent_email?: string;
-    class_id?: string;
-  };
-}
-
 interface FeeStructureFormData {
   class_id: string;
   academic_year_id: string;
@@ -78,9 +45,7 @@ interface FeeStructureFormData {
 interface FeeStructureDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  fee?: Fee | null;
-  onDiscountApplied: () => void;
-  academicYearName?: string;
+  onStructureCreated: () => void;
 }
 
 const VALID_FEE_TYPES = [
@@ -106,14 +71,11 @@ const FREQUENCY_OPTIONS = [
 export function FeeStructureDialog({ 
   open, 
   onOpenChange, 
-  fee, 
-  onDiscountApplied, 
-  academicYearName 
+  onStructureCreated
 }: FeeStructureDialogProps) {
   const [classes, setClasses] = useState<Class[]>([]);
   const [academicYears, setAcademicYears] = useState<AcademicYear[]>([]);
   const [feeStructures, setFeeStructures] = useState<FeeStructure[]>([]);
-  const [dialogOpen, setDialogOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const { toast } = useToast();
 
@@ -201,7 +163,7 @@ export function FeeStructureDialog({
       if (error) throw error;
 
       toast({ title: "Fee structure created successfully" });
-      onDiscountApplied();
+      onStructureCreated();
       onOpenChange(false);
       form.reset();
       fetchFeeStructures();
