@@ -21,6 +21,7 @@ export function useFeeRecords(academicYearId?: string) {
       console.log('Fetching fee records for academic year:', yearId);
       setLoading(true);
       
+      // First try to get fee records with full student data
       const { data, error } = await supabase
         .from("student_fee_records")
         .select(`
@@ -42,6 +43,38 @@ export function useFeeRecords(academicYearId?: string) {
       }
 
       console.log('Fee records fetched successfully:', data?.length || 0);
+
+      // If no records found, check if we have students without fee records
+      if (!data || data.length === 0) {
+        console.log('No fee records found, checking for students without records...');
+        
+        const { data: studentsData, error: studentsError } = await supabase
+          .from("students")
+          .select(`
+            id, 
+            first_name, 
+            last_name, 
+            admission_number,
+            class_id,
+            status,
+            classes(id, name, section)
+          `)
+          .eq('status', 'Active');
+
+        if (studentsError) {
+          console.error('Error fetching students:', studentsError);
+        } else {
+          console.log('Found students without fee records:', studentsData?.length || 0);
+          
+          if (studentsData && studentsData.length > 0) {
+            toast({
+              title: "No fee records found",
+              description: `Found ${studentsData.length} students without fee records. Please create fee records first.`,
+              variant: "destructive",
+            });
+          }
+        }
+      }
 
       const enhancedRecords: StudentFeeRecord[] = (data || []).map(record => ({
         ...record,
