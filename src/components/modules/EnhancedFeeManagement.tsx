@@ -1,6 +1,7 @@
 
 import React, { useState } from "react";
-import { AlertCircle } from "lucide-react";
+import { AlertCircle, RefreshCw } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import { FeeManagementHeader } from "./fee-management/FeeManagementHeader";
 import { YearWiseSummaryCards } from "./fee-management/YearWiseSummaryCards";
 import { FeeRecordsSection } from "./fee-management/components/FeeRecordsSection";
@@ -70,6 +71,11 @@ export function EnhancedFeeManagement() {
     refetchFeeRecords();
   };
 
+  const handleRefresh = () => {
+    console.log('Refreshing fee records...');
+    refetchFeeRecords();
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
@@ -81,35 +87,16 @@ export function EnhancedFeeManagement() {
 
   return (
     <div className="space-y-6">
-      <div className="bg-green-50 border border-green-200 rounded-lg p-4">
-        <h3 className="text-green-900 font-semibold mb-2">🚀 Enhanced Fee Management System</h3>
-        <div className="text-sm text-green-800 space-y-1">
-          <p>✅ Automatic tuition fee assignment for new students</p>
+      <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+        <h3 className="text-blue-900 font-semibold mb-2">🚀 Enhanced Fee Management System</h3>
+        <div className="text-sm text-blue-800 space-y-1">
+          <p>✅ Automatic fee record creation for students</p>
           <p>✅ Real-time discount and payment management</p>
           <p>✅ Complete payment history and change tracking</p>
           <p>✅ Export capabilities and detailed reporting</p>
           <p>📊 Total Fee Records: {feeRecords.length}</p>
-          
-          {feeRecords.length === 0 && selectedAcademicYear && (
-            <div className="bg-orange-100 border border-orange-300 rounded p-4 mt-4">
-              <div className="flex items-start space-x-3">
-                <AlertCircle className="w-5 h-5 text-orange-600 mt-0.5 flex-shrink-0" />
-                <div className="flex-1">
-                  <p className="text-orange-800 font-medium mb-2">⚠️ No fee records found!</p>
-                  <div className="text-orange-700 text-sm space-y-2">
-                    <p><strong>The database has been updated and fee records should now be created automatically.</strong></p>
-                    <p>If you still don't see records, use the button below:</p>
-                  </div>
-                  <div className="mt-4">
-                    <CreateFeeRecordsButton 
-                      academicYearId={selectedAcademicYear} 
-                      onRecordsCreated={refetchFeeRecords}
-                    />
-                  </div>
-                </div>
-              </div>
-            </div>
-          )}
+          <p>📚 Academic Years: {academicYears.length}</p>
+          <p>📅 Selected Year: {currentAcademicYear?.year_name || 'None'}</p>
         </div>
       </div>
 
@@ -131,6 +118,40 @@ export function EnhancedFeeManagement() {
         overdueCount: feeRecords.filter(r => r.status === 'Overdue').length
       }} />
 
+      {feeRecords.length === 0 && selectedAcademicYear && (
+        <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-6">
+          <div className="flex items-start space-x-3">
+            <AlertCircle className="w-6 h-6 text-yellow-600 mt-0.5 flex-shrink-0" />
+            <div className="flex-1">
+              <h3 className="text-yellow-800 font-semibold mb-2">⚠️ No Fee Records Found</h3>
+              <div className="text-yellow-700 text-sm space-y-2 mb-4">
+                <p><strong>The system couldn't find any fee records for the selected academic year.</strong></p>
+                <p>This usually happens when:</p>
+                <ul className="list-disc list-inside ml-2 space-y-1">
+                  <li>Students haven't been assigned fee records yet</li>
+                  <li>Fee structures haven't been set up for classes</li>
+                  <li>The academic year selection is incorrect</li>
+                </ul>
+              </div>
+              <div className="flex space-x-3">
+                <CreateFeeRecordsButton 
+                  academicYearId={selectedAcademicYear} 
+                  onRecordsCreated={refetchFeeRecords}
+                />
+                <Button
+                  variant="outline"
+                  onClick={handleRefresh}
+                  className="bg-white hover:bg-gray-50"
+                >
+                  <RefreshCw className="w-4 h-4 mr-2" />
+                  Refresh
+                </Button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       <FeeRecordsSection
         feeRecords={feeRecords}
         selectedAcademicYear={selectedAcademicYear}
@@ -138,7 +159,7 @@ export function EnhancedFeeManagement() {
         onDiscountClick={handleDiscountClick}
         onPaymentClick={handlePaymentClick}
         onHistoryClick={handleHistoryClick}
-        onRefreshClick={refetchFeeRecords}
+        onRefreshClick={handleRefresh}
         onExportClick={handleExportClick}
         onReportsClick={handleReportsClick}
         onRecordsCreated={refetchFeeRecords}

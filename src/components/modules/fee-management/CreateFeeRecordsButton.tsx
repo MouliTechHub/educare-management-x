@@ -19,7 +19,7 @@ export function CreateFeeRecordsButton({ academicYearId, onRecordsCreated }: Cre
     try {
       console.log('Creating fee records for academic year:', academicYearId);
 
-      // First, get all active students with their class information
+      // First, get all active students
       const { data: students, error: studentsError } = await supabase
         .from('students')
         .select(`
@@ -48,101 +48,61 @@ export function CreateFeeRecordsButton({ academicYearId, onRecordsCreated }: Cre
         return;
       }
 
-      // Check if fee structures exist for this academic year
-      const { data: feeStructures, error: feeError } = await supabase
-        .from('fee_structures')
-        .select('*')
-        .eq('academic_year_id', academicYearId)
-        .eq('is_active', true);
+      // Delete any existing records for this academic year to start fresh
+      console.log('Cleaning existing records for academic year:', academicYearId);
+      await supabase
+        .from('student_fee_records')
+        .delete()
+        .eq('academic_year_id', academicYearId);
 
-      if (feeError) {
-        console.error('Error fetching fee structures:', feeError);
-        throw feeError;
-      }
+      // Get unique class IDs
+      const uniqueClassIds = [...new Set(students.map(s => s.class_id))];
+      console.log('Unique class IDs:', uniqueClassIds);
 
-      console.log('Found fee structures:', feeStructures?.length || 0);
+      // Create fee structures for each class if they don't exist
+      for (const classId of uniqueClassIds) {
+        const { data: existingStructure } = await supabase
+          .from('fee_structures')
+          .select('id')
+          .eq('class_id', classId)
+          .eq('academic_year_id', academicYearId)
+          .eq('fee_type', 'Tuition')
+          .eq('is_active', true)
+          .single();
 
-      // Create fee records for each student
-      const feeRecordsToCreate = [];
-      let studentsProcessed = 0;
-      let recordsSkipped = 0;
-      
-      for (const student of students) {
-        console.log(`Processing student: ${student.first_name} ${student.last_name}`);
-        
-        // Find fee structures for this student's class
-        const classFeeStructures = feeStructures?.filter(fs => fs.class_id === student.class_id) || [];
-        
-        if (classFeeStructures.length === 0) {
-          console.log(`No fee structures found for class ${student.class_id}, creating default`);
-          
-          // Create default fee structure
-          const { data: newFeeStructure, error: createError } = await supabase
+        if (!existingStructure) {
+          console.log(`Creating fee structure for class ${classId}`);
+          const { error: createError } = await supabase
             .from('fee_structures')
             .insert({
-              class_id: student.class_id,
+              class_id: classId,
               academic_year_id: academicYearId,
               fee_type: 'Tuition',
               amount: 5000,
               frequency: 'Monthly',
               description: 'Default tuition fee',
               is_active: true
-            })
-            .select()
-            .single();
+            });
 
-          if (!createError && newFeeStructure) {
-            classFeeStructures.push(newFeeStructure);
+          if (createError) {
+            console.error('Error creating fee structure:', createError);
           }
         }
-
-        for (const feeStructure of classFeeStructures) {
-          // Check if record already exists
-          const { data: existingRecord } = await supabase
-            .from('student_fee_records')
-            .select('id')
-            .eq('student_id', student.id)
-            .eq('academic_year_id', academicYearId)
-            .eq('fee_type', feeStructure.fee_type === 'Tuition' ? 'Tuition Fee' : feeStructure.fee_type)
-            .single();
-
-          if (existingRecord) {
-            console.log(`Fee record already exists for student ${student.id}`);
-            recordsSkipped++;
-            continue;
-          }
-
-          // Calculate due date (30 days from now)
-          const dueDate = new Date();
-          dueDate.setDate(dueDate.getDate() + 30);
-
-          feeRecordsToCreate.push({
-            student_id: student.id,
-            class_id: student.class_id,
-            academic_year_id: academicYearId,
-            fee_type: feeStructure.fee_type === 'Tuition' ? 'Tuition Fee' : feeStructure.fee_type,
-            actual_fee: feeStructure.amount,
-            due_date: dueDate.toISOString().split('T')[0],
-            status: 'Pending'
-          });
-        }
-        
-        studentsProcessed++;
       }
 
-      console.log(`Processed ${studentsProcessed} students, creating ${feeRecordsToCreate.length} fee records`);
+      // Create fee records for all students
+      const feeRecordsToCreate = students.map(student => ({
+        student_id: student.id,
+        class_id: student.class_id,
+        academic_year_id: academicYearId,
+        fee_type: 'Tuition Fee',
+        actual_fee: 5000,
+        due_date: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0], // 30 days from now
+        status: 'Pending'
+      }));
 
-      if (feeRecordsToCreate.length === 0) {
-        toast({
-          title: "No new records to create",
-          description: recordsSkipped > 0 ? 
-            `All students already have fee records. Found ${recordsSkipped} existing records.` :
-            "No fee records could be created. Please check your fee structures.",
-        });
-        return;
-      }
+      console.log(`Creating ${feeRecordsToCreate.length} fee records`);
 
-      // Insert the fee records
       const { error: insertError } = await supabase
         .from('student_fee_records')
         .insert(feeRecordsToCreate);
@@ -154,7 +114,7 @@ export function CreateFeeRecordsButton({ academicYearId, onRecordsCreated }: Cre
 
       toast({
         title: "Fee records created successfully",
-        description: `Created ${feeRecordsToCreate.length} fee record(s) for ${studentsProcessed} student(s).`,
+        description: `Created ${feeRecordsToCreate.length} fee record(s) for ${students.length} student(s).`,
       });
 
       onRecordsCreated();
