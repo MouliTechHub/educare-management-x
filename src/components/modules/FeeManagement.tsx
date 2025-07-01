@@ -11,9 +11,9 @@ import { Form, FormControl, FormField, FormItem, FormLabel } from "@/components/
 import { Textarea } from "@/components/ui/textarea";
 import { useForm } from "react-hook-form";
 import { Calendar, Search, FileText, FileDown, Percent, Eye, Settings, Download } from "lucide-react";
-import { useFeeData } from "./fee-management/useFeeData";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
+import { useQuery } from "@tanstack/react-query";
 
 interface DiscountFormData {
   type: string;
@@ -22,8 +22,43 @@ interface DiscountFormData {
   notes: string;
 }
 
+interface Student {
+  id: string;
+  first_name: string;
+  last_name: string;
+  admission_number: string;
+  class_id: string;
+  classes?: {
+    id: string;
+    name: string;
+    section: string | null;
+  };
+}
+
+interface FeeStructure {
+  id: string;
+  class_id: string;
+  fee_type: string;
+  amount: number;
+  frequency: string;
+  academic_year_id: string;
+}
+
+interface FeeRecord {
+  id: string;
+  student_id: string;
+  student: Student;
+  fee_type: string;
+  actual_amount: number;
+  discount_amount: number;
+  total_paid: number;
+  status: 'Pending' | 'Paid' | 'Overdue' | 'Partial';
+  due_date: string;
+  class_name: string;
+  section: string;
+}
+
 export default function FeeManagement() {
-  const { fees, academicYears, currentAcademicYear, setCurrentAcademicYear, loading } = useFeeData();
   const { toast } = useToast();
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedClass, setSelectedClass] = useState("All Classes");
@@ -33,7 +68,7 @@ export default function FeeManagement() {
   const [dueDateFrom, setDueDateFrom] = useState("");
   const [dueDateTo, setDueDateTo] = useState("");
   const [discountDialogOpen, setDiscountDialogOpen] = useState(false);
-  const [selectedFee, setSelectedFee] = useState(null);
+  const [selectedFee, setSelectedFee] = useState<FeeRecord | null>(null);
   const [discountLoading, setDiscountLoading] = useState(false);
 
   const form = useForm<DiscountFormData>({
@@ -45,22 +80,143 @@ export default function FeeManagement() {
     },
   });
 
+  // Fetch academic years
+  const { data: academicYears = [] } = useQuery({
+    queryKey: ['academic-years'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('academic_years')
+        .select('*')
+        .order('start_date', { ascending: false });
+      
+      if (error) throw error;
+      return data || [];
+    }
+  });
+
+  const currentAcademicYear = academicYears.find(year => year.is_current)?.id || academicYears[0]?.id;
+
+  // Fetch students with their classes
+  const { data: students = [] } = useQuery({
+    queryKey: ['students-with-classes'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('students')
+        .select(`
+          id,
+          first_name,
+          last_name,
+          admission_number,
+          class_id,
+          classes:class_id (
+            id,
+            name,
+            section
+          )
+        `)
+        .eq('status', 'Active');
+      
+      if (error) throw error;
+      return data || [];
+    }
+  });
+
+  // Fetch fee structures
+  const { data: feeStructures = [] } = useQuery({
+    queryKey: ['fee-structures', currentAcademicYear],
+    queryFn: async () => {
+      if (!currentAcademicYear) return [];
+      
+      const { data, error } = await supabase
+        .from('fee_structures')
+        .select('*')
+        .eq('academic_year_id', currentAcademicYear)
+        .eq('is_active', true);
+      
+      if (error) throw error;
+      return data || [];
+    },
+    enabled: !!currentAcademicYear
+  });
+
+  // Fetch existing fee records
+  const { data: existingFees = [] } = useQuery({
+    queryKey: ['existing-fees', currentAcademicYear],
+    queryFn: async () => {
+      if (!currentAcademicYear) return [];
+      
+      const { data, error } = await supabase
+        .from('fees')
+        .select('*')
+        .eq('academic_year_id', currentAcademicYear);
+      
+      if (error) throw error;
+      return data || [];
+    },
+    enabled: !!currentAcademicYear
+  });
+
+  // Generate fee records by combining students with fee structures
+  const feeRecords: FeeRecord[] = useMemo(() => {
+    const records: FeeRecord[] = [];
+    
+    students.forEach(student => {
+      // Get fee structures for this student's class
+      const classFeeStructures = feeStructures.filter(fs => fs.class_id === student.class_id);
+      
+      classFeeStructures.forEach(feeStructure => {
+        // Check if fee record already exists
+        const existingFee = existingFees.find(ef => 
+          ef.student_id === student.id && 
+          ef.fee_type === feeStructure.fee_type
+        );
+        
+        // Calculate status based on payment
+        let status: 'Pending' | 'Paid' | 'Overdue' | 'Partial' = 'Pending';
+        const totalPaid = existingFee?.total_paid || 0;
+        const actualAmount = existingFee?.actual_amount || feeStructure.amount;
+        const discountAmount = existingFee?.discount_amount || 0;
+        const finalAmount = actualAmount - discountAmount;
+        
+        if (totalPaid >= finalAmount) {
+          status = 'Paid';
+        } else if (totalPaid > 0) {
+          status = 'Partial';
+        } else if (existingFee && new Date(existingFee.due_date) < new Date()) {
+          status = 'Overdue';
+        }
+
+        records.push({
+          id: existingFee?.id || `${student.id}-${feeStructure.id}`,
+          student_id: student.id,
+          student: student,
+          fee_type: feeStructure.fee_type,
+          actual_amount: actualAmount,
+          discount_amount: discountAmount,
+          total_paid: totalPaid,
+          status: status,
+          due_date: existingFee?.due_date || new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+          class_name: student.classes?.name || '',
+          section: student.classes?.section || ''
+        });
+      });
+    });
+    
+    return records;
+  }, [students, feeStructures, existingFees]);
+
   // Calculate statistics
   const stats = useMemo(() => {
-    const totalExpected = fees.reduce((sum, fee) => sum + fee.actual_amount, 0);
-    const totalCollected = fees.reduce((sum, fee) => sum + fee.total_paid, 0);
-    const totalDiscount = fees.reduce((sum, fee) => sum + fee.discount_amount, 0);
-    const pendingAmount = fees.reduce((sum, fee) => {
+    const totalExpected = feeRecords.reduce((sum, fee) => sum + fee.actual_amount, 0);
+    const totalCollected = feeRecords.reduce((sum, fee) => sum + fee.total_paid, 0);
+    const totalDiscount = feeRecords.reduce((sum, fee) => sum + fee.discount_amount, 0);
+    const pendingAmount = feeRecords.reduce((sum, fee) => {
       const finalFee = fee.actual_amount - fee.discount_amount;
       const balance = finalFee - fee.total_paid;
       return sum + (balance > 0 ? balance : 0);
     }, 0);
-    const overdueCount = fees.filter(fee => {
-      const finalFee = fee.actual_amount - fee.discount_amount;
-      const balance = finalFee - fee.total_paid;
-      return balance > 0 && new Date(fee.due_date) < new Date();
-    }).length;
-    const activeStudents = new Set(fees.map(fee => fee.student_id)).size;
+    const overdueCount = feeRecords.filter(fee => fee.status === 'Overdue').length;
+    const activeStudents = new Set(feeRecords.map(fee => fee.student_id)).size;
     const collectionRate = totalExpected > 0 ? (totalCollected / totalExpected) * 100 : 0;
 
     return {
@@ -72,27 +228,27 @@ export default function FeeManagement() {
       activeStudents,
       collectionRate: Math.round(collectionRate)
     };
-  }, [fees]);
+  }, [feeRecords]);
 
-  // Filter fees
+  // Filter fee records
   const filteredFees = useMemo(() => {
-    return fees.filter(fee => {
+    return feeRecords.filter(fee => {
       const matchesSearch = searchTerm === "" || 
-        fee.student?.first_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        fee.student?.last_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        fee.student?.admission_number?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        fee.student.first_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        fee.student.last_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        fee.student.admission_number?.toLowerCase().includes(searchTerm.toLowerCase()) ||
         fee.fee_type?.toLowerCase().includes(searchTerm.toLowerCase());
       
-      const matchesClass = selectedClass === "All Classes" || fee.student?.class_name === selectedClass;
-      const matchesSection = selectedSection === "All Sections" || fee.student?.section === selectedSection;
+      const matchesClass = selectedClass === "All Classes" || fee.class_name === selectedClass;
+      const matchesSection = selectedSection === "All Sections" || fee.section === selectedSection;
       const matchesStatus = selectedStatus === "All Status" || fee.status === selectedStatus;
       const matchesFeeType = selectedFeeType === "All Fee Types" || fee.fee_type === selectedFeeType;
       
       return matchesSearch && matchesClass && matchesSection && matchesStatus && matchesFeeType;
     });
-  }, [fees, searchTerm, selectedClass, selectedSection, selectedStatus, selectedFeeType]);
+  }, [feeRecords, searchTerm, selectedClass, selectedSection, selectedStatus, selectedFeeType]);
 
-  const handleDiscountClick = (fee) => {
+  const handleDiscountClick = (fee: FeeRecord) => {
     setSelectedFee(fee);
     form.reset({
       type: "Fixed Amount",
@@ -116,17 +272,53 @@ export default function FeeManagement() {
         discountAmount = (selectedFee.actual_amount * data.amount) / 100;
       }
 
-      const { error } = await supabase
-        .from('fees')
-        .update({
-          discount_amount: discountAmount,
-          discount_notes: data.notes,
-          discount_updated_by: 'Admin',
-          discount_updated_at: new Date().toISOString()
-        })
-        .eq('id', selectedFee.id);
+      // Check if fee record exists, if not create it
+      const existingFee = existingFees.find(ef => 
+        ef.student_id === selectedFee.student_id && 
+        ef.fee_type === selectedFee.fee_type
+      );
 
-      if (error) throw error;
+      if (existingFee) {
+        // Update existing fee record
+        const { error } = await supabase
+          .from('fees')
+          .update({
+            discount_amount: discountAmount,
+            discount_notes: data.notes,
+            discount_updated_by: 'Admin',
+            discount_updated_at: new Date().toISOString()
+          })
+          .eq('id', existingFee.id);
+
+        if (error) throw error;
+      } else {
+        // Create new fee record
+        const feeStructure = feeStructures.find(fs => 
+          fs.class_id === selectedFee.student.class_id && 
+          fs.fee_type === selectedFee.fee_type
+        );
+
+        if (feeStructure) {
+          const { error } = await supabase
+            .from('fees')
+            .insert({
+              student_id: selectedFee.student_id,
+              fee_type: selectedFee.fee_type,
+              amount: feeStructure.amount,
+              actual_amount: feeStructure.amount,
+              discount_amount: discountAmount,
+              total_paid: 0,
+              due_date: selectedFee.due_date,
+              status: 'Pending',
+              academic_year_id: currentAcademicYear,
+              discount_notes: data.notes,
+              discount_updated_by: 'Admin',
+              discount_updated_at: new Date().toISOString()
+            });
+
+          if (error) throw error;
+        }
+      }
 
       toast({
         title: "Discount applied",
@@ -135,7 +327,8 @@ export default function FeeManagement() {
 
       setDiscountDialogOpen(false);
       form.reset();
-      window.location.reload(); // Refresh to show updated data
+      // Refetch data
+      window.location.reload();
     } catch (error: any) {
       console.error('Error applying discount:', error);
       toast({
@@ -148,17 +341,7 @@ export default function FeeManagement() {
     }
   };
 
-  const currentYear = academicYears.find(year => year.id === currentAcademicYear);
-
-  if (loading) {
-    return (
-      <div className="p-6">
-        <div className="flex items-center justify-center h-64">
-          <div className="text-lg">Loading fee data...</div>
-        </div>
-      </div>
-    );
-  }
+  const currentYear = academicYears.find(year => year.is_current);
 
   return (
     <div className="p-6 space-y-6">
@@ -187,7 +370,7 @@ export default function FeeManagement() {
       {/* Academic Year Selector */}
       <div className="flex items-center space-x-2">
         <span className="text-sm font-medium">Academic Year:</span>
-        <Select value={currentAcademicYear} onValueChange={setCurrentAcademicYear}>
+        <Select value={currentAcademicYear} disabled>
           <SelectTrigger className="w-48">
             <SelectValue />
           </SelectTrigger>
@@ -277,7 +460,7 @@ export default function FeeManagement() {
             <div>
               <CardTitle>Fee Records</CardTitle>
               <p className="text-sm text-gray-600 mt-1">
-                Academic year-based fee management with change tracking - {currentYear?.year_name} (Current Year)
+                Academic year-based fee management - {currentYear?.year_name} (Current Year)
               </p>
             </div>
             <div className="flex items-center space-x-2">
@@ -310,9 +493,9 @@ export default function FeeManagement() {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="All Classes">All Classes</SelectItem>
-                  <SelectItem value="1st Class">1st Class</SelectItem>
-                  <SelectItem value="2nd Class">2nd Class</SelectItem>
-                  <SelectItem value="3rd Class">3rd Class</SelectItem>
+                  {[...new Set(feeRecords.map(fee => fee.class_name))].map(className => (
+                    <SelectItem key={className} value={className}>{className}</SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
             </div>
@@ -324,9 +507,9 @@ export default function FeeManagement() {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="All Sections">All Sections</SelectItem>
-                  <SelectItem value="A">A</SelectItem>
-                  <SelectItem value="B">B</SelectItem>
-                  <SelectItem value="C">C</SelectItem>
+                  {[...new Set(feeRecords.map(fee => fee.section).filter(Boolean))].map(section => (
+                    <SelectItem key={section} value={section}>{section}</SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
             </div>
@@ -341,6 +524,7 @@ export default function FeeManagement() {
                   <SelectItem value="Pending">Pending</SelectItem>
                   <SelectItem value="Paid">Paid</SelectItem>
                   <SelectItem value="Overdue">Overdue</SelectItem>
+                  <SelectItem value="Partial">Partial</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -352,9 +536,9 @@ export default function FeeManagement() {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="All Fee Types">All Fee Types</SelectItem>
-                  <SelectItem value="Tuition">Tuition</SelectItem>
-                  <SelectItem value="Transport">Transport</SelectItem>
-                  <SelectItem value="Library">Library</SelectItem>
+                  {[...new Set(feeRecords.map(fee => fee.fee_type))].map(feeType => (
+                    <SelectItem key={feeType} value={feeType}>{feeType}</SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
             </div>
@@ -408,14 +592,17 @@ export default function FeeManagement() {
                     <TableCell>
                       <div>
                         <div className="font-medium">
-                          {fee.student?.first_name} {fee.student?.last_name}
+                          {fee.student.first_name} {fee.student.last_name}
                         </div>
                         <div className="text-sm text-gray-500">
-                          {fee.student?.admission_number}
+                          {fee.student.admission_number}
                         </div>
                       </div>
                     </TableCell>
-                    <TableCell>{fee.student?.class_name}</TableCell>
+                    <TableCell>
+                      {fee.class_name}
+                      {fee.section && ` - ${fee.section}`}
+                    </TableCell>
                     <TableCell>{fee.fee_type}</TableCell>
                     <TableCell>₹{fee.actual_amount.toLocaleString()}</TableCell>
                     <TableCell>
@@ -426,12 +613,13 @@ export default function FeeManagement() {
                     <TableCell className={balance > 0 ? 'text-red-600' : 'text-green-600'}>
                       ₹{balance.toLocaleString()}
                     </TableCell>
-                    <TableCell>{fee.due_date ? new Date(fee.due_date).toLocaleDateString() : 'N/A'}</TableCell>
+                    <TableCell>{new Date(fee.due_date).toLocaleDateString()}</TableCell>
                     <TableCell>
                       <Badge 
                         className={
                           fee.status === 'Paid' ? 'bg-green-100 text-green-800' :
                           fee.status === 'Pending' ? 'bg-yellow-100 text-yellow-800' :
+                          fee.status === 'Partial' ? 'bg-blue-100 text-blue-800' :
                           'bg-red-100 text-red-800'
                         }
                       >
@@ -469,6 +657,12 @@ export default function FeeManagement() {
               })}
             </TableBody>
           </Table>
+
+          {filteredFees.length === 0 && (
+            <div className="text-center py-8 text-gray-500">
+              No fee records found. Make sure students are enrolled and fee structures are configured.
+            </div>
+          )}
         </CardContent>
       </Card>
 
@@ -478,7 +672,7 @@ export default function FeeManagement() {
           <DialogHeader>
             <DialogTitle>Apply Discount</DialogTitle>
             <p className="text-sm text-gray-500">
-              Apply discount for {selectedFee?.student?.first_name} {selectedFee?.student?.last_name} - {selectedFee?.fee_type}
+              Apply discount for {selectedFee?.student.first_name} {selectedFee?.student.last_name} - {selectedFee?.fee_type}
             </p>
           </DialogHeader>
           
