@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -11,7 +10,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import { Plus, CreditCard, Percent, History, RefreshCw, Search } from "lucide-react";
+import { Plus, CreditCard, Percent, History, RefreshCw, Search, X } from "lucide-react";
 
 interface Student {
   id: string;
@@ -76,7 +75,9 @@ export function SimpleFeeManagement() {
   });
   
   const [discount, setDiscount] = useState({
+    type: 'Fixed Amount',
     amount: 0,
+    reason: '',
     notes: ''
   });
 
@@ -317,14 +318,22 @@ export function SimpleFeeManagement() {
     if (!selectedRecord) return;
 
     try {
-      const newFinalFee = selectedRecord.actual_fee - discount.amount;
+      let discountAmount = 0;
+      
+      if (discount.type === 'Fixed Amount') {
+        discountAmount = discount.amount;
+      } else if (discount.type === 'Percentage') {
+        discountAmount = (selectedRecord.actual_fee * discount.amount) / 100;
+      }
+
+      const newFinalFee = selectedRecord.actual_fee - discountAmount;
       const newBalanceAmount = newFinalFee - selectedRecord.paid_amount;
       const newStatus = newBalanceAmount <= 0 ? 'Paid' : newBalanceAmount < newFinalFee ? 'Partial' : 'Pending';
 
       const { error } = await supabase
         .from('student_fee_records')
         .update({
-          discount_amount: discount.amount,
+          discount_amount: discountAmount,
           final_fee: newFinalFee,
           balance_fee: newBalanceAmount,
           status: newStatus,
@@ -338,11 +347,11 @@ export function SimpleFeeManagement() {
 
       toast({
         title: "Discount applied",
-        description: `Discount of ₹${discount.amount} applied successfully`
+        description: `Discount of ₹${discountAmount.toFixed(2)} applied successfully`
       });
 
       setDiscountDialogOpen(false);
-      setDiscount({ amount: 0, notes: '' });
+      setDiscount({ type: 'Fixed Amount', amount: 0, reason: '', notes: '' });
       loadFeeRecords();
 
     } catch (error: any) {
@@ -602,7 +611,7 @@ export function SimpleFeeManagement() {
                           size="sm"
                           onClick={() => {
                             setSelectedRecord(record);
-                            setDiscount({ amount: 0, notes: '' });
+                            setDiscount({ type: 'Fixed Amount', amount: 0, reason: '', notes: '' });
                             setDiscountDialogOpen(true);
                           }}
                         >
@@ -692,44 +701,101 @@ export function SimpleFeeManagement() {
         </DialogContent>
       </Dialog>
 
-      {/* Discount Dialog */}
+      {/* Updated Discount Dialog */}
       <Dialog open={discountDialogOpen} onOpenChange={setDiscountDialogOpen}>
-        <DialogContent>
-          <DialogHeader>
+        <DialogContent className="max-w-md">
+          <DialogHeader className="flex flex-row items-center justify-between">
             <DialogTitle>Apply Discount</DialogTitle>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setDiscountDialogOpen(false)}
+              className="h-auto p-1"
+            >
+              <X className="h-4 w-4" />
+            </Button>
           </DialogHeader>
           {selectedRecord && (
-            <div className="space-y-4">
-              <div className="bg-orange-50 p-4 rounded-lg">
-                <p><strong>Student:</strong> {selectedRecord.student?.first_name} {selectedRecord.student?.last_name}</p>
-                <p><strong>Fee Type:</strong> {selectedRecord.fee_type}</p>
-                <p><strong>Actual Fee:</strong> ₹{selectedRecord.actual_fee.toLocaleString()}</p>
-                <p><strong>Current Discount:</strong> ₹{selectedRecord.discount_amount.toLocaleString()}</p>
+            <div className="space-y-6">
+              <div className="text-sm text-gray-600">
+                Apply discount for {selectedRecord.student?.first_name} {selectedRecord.student?.last_name} - {selectedRecord.fee_type}
               </div>
-              <div>
-                <Label>Discount Amount</Label>
-                <Input
-                  type="number"
-                  value={discount.amount}
-                  onChange={(e) => setDiscount(prev => ({ ...prev, amount: parseFloat(e.target.value) || 0 }))}
-                  max={selectedRecord.actual_fee}
-                />
+              
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label className="text-sm font-medium text-gray-700">Actual Amount</Label>
+                  <div className="text-xl font-bold">₹{selectedRecord.actual_fee.toLocaleString()}</div>
+                </div>
+                <div>
+                  <Label className="text-sm font-medium text-gray-700">Current Discount</Label>
+                  <div className="text-xl font-bold text-green-600">₹{selectedRecord.discount_amount.toLocaleString()}</div>
+                </div>
               </div>
-              <div>
-                <Label>Discount Notes</Label>
-                <Textarea
-                  value={discount.notes}
-                  onChange={(e) => setDiscount(prev => ({ ...prev, notes: e.target.value }))}
-                  rows={3}
-                  placeholder="Reason for discount..."
-                />
+
+              <div className="space-y-4">
+                <div>
+                  <Label className="text-sm font-medium text-gray-900">Discount Type</Label>
+                  <Select value={discount.type} onValueChange={(value) => setDiscount(prev => ({ ...prev, type: value, amount: 0 }))}>
+                    <SelectTrigger className="mt-1">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="Fixed Amount">Fixed Amount</SelectItem>
+                      <SelectItem value="Percentage">Percentage</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div>
+                  <Label className="text-sm font-medium text-gray-900">
+                    Amount {discount.type === 'Percentage' ? '(%)' : '(₹)'}
+                  </Label>
+                  <Input
+                    type="number"
+                    value={discount.amount}
+                    onChange={(e) => setDiscount(prev => ({ ...prev, amount: parseFloat(e.target.value) || 0 }))}
+                    max={discount.type === 'Fixed Amount' ? selectedRecord.actual_fee : 100}
+                    className="mt-1"
+                  />
+                </div>
+
+                <div>
+                  <Label className="text-sm font-medium text-gray-900">Reason for Discount</Label>
+                  <Select value={discount.reason} onValueChange={(value) => setDiscount(prev => ({ ...prev, reason: value }))}>
+                    <SelectTrigger className="mt-1">
+                      <SelectValue placeholder="Select reason" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="Scholarship">Scholarship</SelectItem>
+                      <SelectItem value="Financial Hardship">Financial Hardship</SelectItem>
+                      <SelectItem value="Sibling Discount">Sibling Discount</SelectItem>
+                      <SelectItem value="Merit Based">Merit Based</SelectItem>
+                      <SelectItem value="Staff Quota">Staff Quota</SelectItem>
+                      <SelectItem value="Other">Other</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div>
+                  <Label className="text-sm font-medium text-gray-900">Additional Notes</Label>
+                  <Textarea
+                    value={discount.notes}
+                    onChange={(e) => setDiscount(prev => ({ ...prev, notes: e.target.value }))}
+                    rows={3}
+                    className="mt-1"
+                    placeholder="Enter any additional notes about this discount..."
+                  />
+                </div>
               </div>
-              <div className="bg-blue-50 p-4 rounded-lg">
-                <p><strong>New Final Fee:</strong> ₹{(selectedRecord.actual_fee - discount.amount).toLocaleString()}</p>
-              </div>
+
               <div className="flex justify-end space-x-2">
                 <Button variant="outline" onClick={() => setDiscountDialogOpen(false)}>Cancel</Button>
-                <Button onClick={applyDiscount}>Apply Discount</Button>
+                <Button 
+                  onClick={applyDiscount}
+                  className="bg-gray-900 hover:bg-gray-800 text-white"
+                >
+                  Apply Discount
+                </Button>
               </div>
             </div>
           )}
