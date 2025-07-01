@@ -53,7 +53,7 @@ export function PaymentForm({ classes, students, feeStructures, onSubmit, onCanc
       
       // Filter fee structures for the selected class
       const structuresForClass = feeStructures.filter(fs => fs.class_id === formData.class_id);
-      setFiltereredFeeStructures(structuresForClass);
+      setFilteredFeeStructures(structuresForClass);
     } else {
       setFilteredStudents([]);
       setFilteredFeeStructures([]);
