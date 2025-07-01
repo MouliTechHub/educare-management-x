@@ -19,7 +19,7 @@ export function CreateFeeRecordsButton({ academicYearId, onRecordsCreated }: Cre
     try {
       console.log('Creating fee records for academic year:', academicYearId);
 
-      // First, get all students with their class information
+      // First, get all active students with their class information
       const { data: students, error: studentsError } = await supabase
         .from('students')
         .select(`
@@ -27,19 +27,21 @@ export function CreateFeeRecordsButton({ academicYearId, onRecordsCreated }: Cre
           class_id, 
           first_name, 
           last_name,
+          status,
           classes(id, name, section)
-        `);
+        `)
+        .eq('status', 'Active');
 
       if (studentsError) {
         console.error('Error fetching students:', studentsError);
         throw studentsError;
       }
 
-      console.log('Found students:', students);
+      console.log('Found active students:', students?.length || 0);
 
       if (!students || students.length === 0) {
         toast({
-          title: "No students found",
+          title: "No active students found",
           description: "Please add students first before creating fee records.",
           variant: "destructive",
         });
@@ -58,16 +60,7 @@ export function CreateFeeRecordsButton({ academicYearId, onRecordsCreated }: Cre
         throw feeError;
       }
 
-      console.log('Found fee structures:', feeStructures);
-
-      if (!feeStructures || feeStructures.length === 0) {
-        toast({
-          title: "No fee structures found",
-          description: "Please set up fee structures for this academic year first in Fee Structure Management.",
-          variant: "destructive",
-        });
-        return;
-      }
+      console.log('Found fee structures:', feeStructures?.length || 0);
 
       // Create fee records for each student
       const feeRecordsToCreate = [];
@@ -75,14 +68,32 @@ export function CreateFeeRecordsButton({ academicYearId, onRecordsCreated }: Cre
       let recordsSkipped = 0;
       
       for (const student of students) {
-        console.log(`Processing student: ${student.first_name} ${student.last_name} (Class: ${student.class_id})`);
+        console.log(`Processing student: ${student.first_name} ${student.last_name}`);
         
         // Find fee structures for this student's class
-        const classFeeStructures = feeStructures.filter(fs => fs.class_id === student.class_id);
+        const classFeeStructures = feeStructures?.filter(fs => fs.class_id === student.class_id) || [];
         
         if (classFeeStructures.length === 0) {
-          console.log(`No fee structures found for class ${student.class_id}`);
-          continue;
+          console.log(`No fee structures found for class ${student.class_id}, creating default`);
+          
+          // Create default fee structure
+          const { data: newFeeStructure, error: createError } = await supabase
+            .from('fee_structures')
+            .insert({
+              class_id: student.class_id,
+              academic_year_id: academicYearId,
+              fee_type: 'Tuition',
+              amount: 5000,
+              frequency: 'Monthly',
+              description: 'Default tuition fee',
+              is_active: true
+            })
+            .select()
+            .single();
+
+          if (!createError && newFeeStructure) {
+            classFeeStructures.push(newFeeStructure);
+          }
         }
 
         for (const feeStructure of classFeeStructures) {
@@ -92,11 +103,11 @@ export function CreateFeeRecordsButton({ academicYearId, onRecordsCreated }: Cre
             .select('id')
             .eq('student_id', student.id)
             .eq('academic_year_id', academicYearId)
-            .eq('fee_type', feeStructure.fee_type)
+            .eq('fee_type', feeStructure.fee_type === 'Tuition' ? 'Tuition Fee' : feeStructure.fee_type)
             .single();
 
           if (existingRecord) {
-            console.log(`Fee record already exists for student ${student.id}, fee type ${feeStructure.fee_type}`);
+            console.log(`Fee record already exists for student ${student.id}`);
             recordsSkipped++;
             continue;
           }
@@ -109,7 +120,7 @@ export function CreateFeeRecordsButton({ academicYearId, onRecordsCreated }: Cre
             student_id: student.id,
             class_id: student.class_id,
             academic_year_id: academicYearId,
-            fee_type: feeStructure.fee_type,
+            fee_type: feeStructure.fee_type === 'Tuition' ? 'Tuition Fee' : feeStructure.fee_type,
             actual_fee: feeStructure.amount,
             due_date: dueDate.toISOString().split('T')[0],
             status: 'Pending'
@@ -119,21 +130,15 @@ export function CreateFeeRecordsButton({ academicYearId, onRecordsCreated }: Cre
         studentsProcessed++;
       }
 
-      console.log(`Processed ${studentsProcessed} students, creating ${feeRecordsToCreate.length} fee records, skipped ${recordsSkipped} existing records`);
+      console.log(`Processed ${studentsProcessed} students, creating ${feeRecordsToCreate.length} fee records`);
 
       if (feeRecordsToCreate.length === 0) {
-        if (recordsSkipped > 0) {
-          toast({
-            title: "No new records to create",
-            description: `All students already have fee records for this academic year. Found ${recordsSkipped} existing records.`,
-          });
-        } else {
-          toast({
-            title: "No fee records created",
-            description: "No matching fee structures found for the current students' classes.",
-            variant: "destructive",
-          });
-        }
+        toast({
+          title: "No new records to create",
+          description: recordsSkipped > 0 ? 
+            `All students already have fee records. Found ${recordsSkipped} existing records.` :
+            "No fee records could be created. Please check your fee structures.",
+        });
         return;
       }
 
