@@ -1,4 +1,3 @@
-
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -124,10 +123,16 @@ export function PaymentForm({ classes, students, feeStructures, onSubmit, onCanc
           .eq('fee_structure_id', formData.fee_structure_id)
       ]);
 
-      // Calculate total paid from all sources - fix the calculation
-      const paidFromHistory = paymentHistoryData.data?.reduce((sum, p) => sum + (p.amount_paid || 0), 0) || 0;
-      const paidFromRecords = feePaymentData.data?.reduce((sum, p) => sum + (p.amount_paid || 0), 0) || 0;
-      const paidFromPayments = studentPaymentData.data?.reduce((sum, p) => sum + (p.amount_paid || 0), 0) || 0;
+      // Calculate total paid from all sources - properly handle the data types
+      const paidFromHistory = Array.isArray(paymentHistoryData.data) 
+        ? paymentHistoryData.data.reduce((sum, record) => sum + (record?.amount_paid || 0), 0) 
+        : 0;
+      const paidFromRecords = Array.isArray(feePaymentData.data) 
+        ? feePaymentData.data.reduce((sum, record) => sum + (record?.amount_paid || 0), 0) 
+        : 0;
+      const paidFromPayments = Array.isArray(studentPaymentData.data) 
+        ? studentPaymentData.data.reduce((sum, record) => sum + (record?.amount_paid || 0), 0) 
+        : 0;
 
       if (enhancedFeeRecord) {
         // Use data from enhanced fee management system
