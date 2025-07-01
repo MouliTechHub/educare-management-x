@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
@@ -45,7 +44,11 @@ interface FeeStructureFormData {
 }
 
 interface FeeStructureDialogProps {
-  onStructureCreated: () => void;
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  fee?: Fee | null;
+  onDiscountApplied: () => void;
+  academicYearName?: string;
 }
 
 const VALID_FEE_TYPES = [
@@ -68,7 +71,13 @@ const FREQUENCY_OPTIONS = [
   { value: 'One Time', label: 'One Time' }
 ];
 
-export function FeeStructureDialog({ onStructureCreated }: FeeStructureDialogProps) {
+export function FeeStructureDialog({ 
+  open, 
+  onOpenChange, 
+  fee, 
+  onDiscountApplied, 
+  academicYearName 
+}: FeeStructureDialogProps) {
   const [classes, setClasses] = useState<Class[]>([]);
   const [academicYears, setAcademicYears] = useState<AcademicYear[]>([]);
   const [feeStructures, setFeeStructures] = useState<FeeStructure[]>([]);
@@ -88,12 +97,12 @@ export function FeeStructureDialog({ onStructureCreated }: FeeStructureDialogPro
   });
 
   useEffect(() => {
-    if (dialogOpen) {
+    if (open) {
       fetchClasses();
       fetchAcademicYears();
       fetchFeeStructures();
     }
-  }, [dialogOpen]);
+  }, [open]);
 
   const fetchClasses = async () => {
     try {
@@ -160,8 +169,8 @@ export function FeeStructureDialog({ onStructureCreated }: FeeStructureDialogPro
       if (error) throw error;
 
       toast({ title: "Fee structure created successfully" });
-      onStructureCreated();
-      setDialogOpen(false);
+      onDiscountApplied();
+      onOpenChange(false);
       form.reset();
       fetchFeeStructures();
     } catch (error: any) {
@@ -177,13 +186,7 @@ export function FeeStructureDialog({ onStructureCreated }: FeeStructureDialogPro
   };
 
   return (
-    <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-      <DialogTrigger asChild>
-        <Button variant="outline" onClick={() => form.reset()}>
-          <Settings className="w-4 h-4 mr-2" />
-          Manage Fee Structures
-        </Button>
-      </DialogTrigger>
+    <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Fee Structure Management</DialogTitle>

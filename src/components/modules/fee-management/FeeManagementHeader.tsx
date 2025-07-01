@@ -1,7 +1,7 @@
 
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Plus, Settings } from "lucide-react";
+import { Plus, Settings, RefreshCw } from "lucide-react";
 
 interface AcademicYear {
   id: string;
@@ -13,14 +13,16 @@ interface AcademicYear {
 
 interface FeeManagementHeaderProps {
   academicYears: AcademicYear[];
-  selectedAcademicYear: string;
+  currentAcademicYear: string;
   onYearChange: (year: string) => void;
+  onRefresh: () => void;
 }
 
 export function FeeManagementHeader({
   academicYears,
-  selectedAcademicYear,
-  onYearChange
+  currentAcademicYear,
+  onYearChange,
+  onRefresh
 }: FeeManagementHeaderProps) {
   return (
     <div className="space-y-6">
@@ -30,6 +32,10 @@ export function FeeManagementHeader({
           <p className="text-gray-600 mt-2">Manage student fees, payments, and fee structures</p>
         </div>
         <div className="flex space-x-3">
+          <Button variant="outline" onClick={onRefresh}>
+            <RefreshCw className="w-4 h-4 mr-2" />
+            Refresh
+          </Button>
           <Button variant="outline">
             <Settings className="w-4 h-4 mr-2" />
             Manage Fee Structure
@@ -74,7 +80,7 @@ export function FeeManagementHeader({
       <div className="flex items-center justify-between">
         <div className="flex items-center space-x-2">
           <span className="text-sm font-medium">Academic Year:</span>
-          <Select value={selectedAcademicYear} onValueChange={onYearChange}>
+          <Select value={currentAcademicYear} onValueChange={onYearChange}>
             <SelectTrigger className="w-48">
               <SelectValue placeholder="Select academic year" />
             </SelectTrigger>

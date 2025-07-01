@@ -7,7 +7,7 @@ import { Header } from "@/components/layout/Header";
 // Import all the management modules
 import { StudentManagement } from "@/components/modules/StudentManagement";
 import { TeacherManagement } from "@/components/modules/TeacherManagement";
-import { FeeManagement } from "@/components/modules/FeeManagement";
+import FeeManagement from "@/components/modules/FeeManagement";
 import { ParentManagement } from "@/components/modules/ParentManagement";
 import { ClassManagement } from "@/components/modules/ClassManagement";
 import { AttendanceManagement } from "@/components/modules/AttendanceManagement";
