@@ -4,6 +4,7 @@ import { FeeManagementHeader } from "./fee-management/FeeManagementHeader";
 import { FeeStats } from "./fee-management/FeeStats";
 import { FeeManagementContent } from "./fee-management/FeeManagementContent";
 import { DiscountDialog } from "./fee-management/DiscountDialog";
+import { StudentPaymentHistory } from "./student-management/StudentPaymentHistory";
 import { useFeeData } from "./fee-management/useFeeData";
 import { useFeeManagement } from "./fee-management/useFeeManagement";
 
@@ -58,7 +59,16 @@ export default function FeeManagement() {
   };
 
   const handleHistoryClick = (student) => {
-    if (!student) return;
+    console.log('History clicked for student:', student);
+    if (!student) {
+      console.warn('No student data provided for history');
+      return;
+    }
+    
+    // Get all fees for this student
+    const studentFees = fees.filter(fee => fee.student_id === student.id);
+    console.log('Student fees found:', studentFees.length);
+    
     openHistoryDialog(student, fees);
   };
 
@@ -109,6 +119,15 @@ export default function FeeManagement() {
         onOpenChange={setDiscountDialogOpen}
         selectedFee={selectedFee}
         onSuccess={refetchFees}
+      />
+
+      <StudentPaymentHistory
+        open={historyDialogOpen}
+        onOpenChange={setHistoryDialogOpen}
+        studentName={selectedStudentName}
+        fees={selectedStudentFees}
+        academicYears={academicYears}
+        selectedAcademicYear={currentAcademicYear}
       />
     </div>
   );

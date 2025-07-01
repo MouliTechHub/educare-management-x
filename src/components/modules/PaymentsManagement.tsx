@@ -123,21 +123,107 @@ export function PaymentsManagement() {
         throw new Error("Payment date cannot be in the past");
       }
 
-      const { error } = await supabase
-        .from("student_payments")
-        .insert([{
+      // Get current academic year
+      const { data: currentYear, error: yearError } = await supabase
+        .from("academic_years")
+        .select("id")
+        .eq("is_current", true)
+        .single();
+
+      if (yearError || !currentYear) {
+        throw new Error("No current academic year found");
+      }
+
+      // Get fee structure details
+      const selectedStructure = feeStructures.find(fs => fs.id === data.fee_structure_id);
+      if (!selectedStructure) {
+        throw new Error("Fee structure not found");
+      }
+
+      // First, find or create fee record in the enhanced fee system
+      let feeRecord;
+      const { data: existingFeeRecord, error: feeRecordError } = await supabase
+        .from("student_fee_records")
+        .select("*")
+        .eq("student_id", data.student_id)
+        .eq("academic_year_id", currentYear.id)
+        .eq("fee_type", selectedStructure.fee_type)
+        .single();
+
+      if (feeRecordError && feeRecordError.code !== 'PGRST116') {
+        throw feeRecordError;
+      }
+
+      if (existingFeeRecord) {
+        feeRecord = existingFeeRecord;
+      } else {
+        // Create new fee record
+        const { data: newFeeRecord, error: createError } = await supabase
+          .from("student_fee_records")
+          .insert({
+            student_id: data.student_id,
+            class_id: data.class_id,
+            academic_year_id: currentYear.id,
+            fee_type: selectedStructure.fee_type,
+            actual_fee: selectedStructure.amount,
+            due_date: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0], // 30 days from now
+            status: 'Pending'
+          })
+          .select()
+          .single();
+
+        if (createError) throw createError;
+        feeRecord = newFeeRecord;
+      }
+
+      // Generate receipt number
+      const receiptNumber = `RCP-${Date.now()}-${Math.random().toString(36).substr(2, 4).toUpperCase()}`;
+
+      // Record payment in both systems
+      const [paymentResult, feePaymentResult] = await Promise.all([
+        // Record in student_payments table
+        supabase.from("student_payments").insert([{
           student_id: data.student_id,
           fee_structure_id: data.fee_structure_id,
           amount_paid: parseFloat(data.amount_paid),
           payment_date: data.payment_date,
           payment_method: data.payment_method,
           late_fee: parseFloat(data.late_fee) || 0,
-          reference_number: data.reference_number || null,
+          reference_number: data.reference_number || receiptNumber,
           payment_received_by: data.payment_received_by,
           notes: data.notes || null,
-        }]);
+        }]),
 
-      if (error) throw error;
+        // Record in fee_payment_records table (enhanced system)
+        supabase.from("fee_payment_records").insert([{
+          fee_record_id: feeRecord.id,
+          student_id: data.student_id,
+          amount_paid: parseFloat(data.amount_paid),
+          payment_date: data.payment_date,
+          payment_method: data.payment_method,
+          late_fee: parseFloat(data.late_fee) || 0,
+          receipt_number: data.reference_number || receiptNumber,
+          payment_receiver: data.payment_received_by,
+          notes: data.notes || null,
+          created_by: data.payment_received_by
+        }])
+      ]);
+
+      if (paymentResult.error) throw paymentResult.error;
+      if (feePaymentResult.error) throw feePaymentResult.error;
+
+      // Also record in payment_history for timeline tracking
+      await supabase.from("payment_history").insert([{
+        fee_id: feeRecord.id,
+        student_id: data.student_id,
+        amount_paid: parseFloat(data.amount_paid),
+        payment_date: data.payment_date,
+        receipt_number: data.reference_number || receiptNumber,
+        payment_receiver: data.payment_received_by,
+        payment_method: data.payment_method,
+        notes: data.notes || null,
+        fee_type: selectedStructure.fee_type
+      }]);
 
       toast({ title: "Payment recorded successfully" });
       setDialogOpen(false);
