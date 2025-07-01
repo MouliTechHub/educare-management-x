@@ -65,11 +65,16 @@ export default function FeeManagement() {
       return;
     }
     
-    // Get all fees for this student
+    // Get all fees for this student across all fee systems
     const studentFees = fees.filter(fee => fee.student_id === student.id);
     console.log('Student fees found:', studentFees.length);
     
-    openHistoryDialog(student, fees);
+    // Create a comprehensive fee list for history
+    const studentName = `${student.first_name} ${student.last_name}`;
+    
+    // Open history dialog with comprehensive fee data
+    setSelectedStudentName(studentName);
+    openHistoryDialog(student, studentFees);
   };
 
   const currentYear = academicYears.find(year => year.is_current);

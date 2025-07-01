@@ -75,8 +75,8 @@ export function useFeeData() {
     try {
       console.log('📊 Fetching fees for academic year:', currentAcademicYear);
       
-      // First get payment totals from both payment systems
-      const [paymentHistoryData, feePaymentData] = await Promise.all([
+      // Fetch payment totals from all payment systems
+      const [paymentHistoryData, feePaymentData, studentPaymentData] = await Promise.all([
         supabase
           .from('payment_history')
           .select('fee_id, amount_paid')
@@ -85,6 +85,11 @@ export function useFeeData() {
         supabase
           .from('fee_payment_records')
           .select('fee_record_id, amount_paid')
+          .order('created_at', { ascending: true }),
+
+        supabase
+          .from('student_payments')
+          .select('*')
           .order('created_at', { ascending: true })
       ]);
 
@@ -100,7 +105,14 @@ export function useFeeData() {
         return acc;
       }, {} as Record<string, number>) || {};
 
-      // Fetch fees from the enhanced fee system (student_fee_records)
+      // Group student payments by student_id and fee_structure
+      const studentPaymentTotals = studentPaymentData.data?.reduce((acc, payment) => {
+        const key = `${payment.student_id}_${payment.fee_structure_id}`;
+        acc[key] = (acc[key] || 0) + payment.amount_paid;
+        return acc;
+      }, {} as Record<string, number>) || {};
+
+      // Fetch enhanced fee records first (these are the primary source of truth)
       const { data: enhancedFeeData, error: enhancedError } = await supabase
         .from("student_fee_records")
         .select(`
@@ -126,99 +138,33 @@ export function useFeeData() {
         console.error('Error fetching enhanced fee data:', enhancedError);
       }
 
-      // Also fetch from legacy fees table for backward compatibility
-      const { data: legacyFeeData, error: legacyError } = await supabase
-        .from("fees")
-        .select(`
-          *,
-          students (
-            id,
-            first_name,
-            last_name,
-            admission_number,
-            gender,
-            status,
-            class_id,
-            classes (
-              name,
-              section
-            )
-          )
-        `)
-        .eq("academic_year_id", currentAcademicYear)
-        .order("created_at", { ascending: false });
-
-      if (legacyError) {
-        console.error('Error fetching legacy fee data:', legacyError);
-      }
-
       console.log('✅ Enhanced fee data fetched:', enhancedFeeData?.length || 0, 'records');
-      console.log('✅ Legacy fee data fetched:', legacyFeeData?.length || 0, 'records');
 
-      // Combine and transform the data, prioritizing enhanced fee records
+      // Create a map to track unique student-fee combinations
+      const uniqueFeeMap = new Map();
       let allFees = [];
 
-      // Process enhanced fee records first
+      // Process enhanced fee records first (priority system)
       if (enhancedFeeData && enhancedFeeData.length > 0) {
-        const enhancedFees = enhancedFeeData.map((fee: any) => {
-          const totalPaidFromRecords = paymentTotalsFromRecords[fee.id] || 0;
+        enhancedFeeData.forEach((fee: any) => {
+          const uniqueKey = `${fee.student_id}_${fee.fee_type}`;
           
-          return {
-            id: fee.id,
-            student_id: fee.student_id,
-            amount: fee.actual_fee,
-            actual_amount: fee.actual_fee,
-            discount_amount: fee.discount_amount,
-            total_paid: totalPaidFromRecords,
-            fee_type: fee.fee_type,
-            due_date: fee.due_date,
-            payment_date: null,
-            status: fee.status,
-            receipt_number: null,
-            created_at: fee.created_at,
-            updated_at: fee.updated_at,
-            discount_notes: fee.discount_notes,
-            discount_updated_by: fee.discount_updated_by,
-            discount_updated_at: fee.discount_updated_at,
-            academic_year_id: fee.academic_year_id,
-            student: fee.students ? {
-              id: fee.students.id,
-              first_name: fee.students.first_name,
-              last_name: fee.students.last_name,
-              admission_number: fee.students.admission_number,
-              gender: fee.students.gender as 'Male' | 'Female' | 'Other',
-              status: fee.students.status as 'Active' | 'Inactive' | 'Alumni',
-              class_name: fee.students.classes?.name,
-              section: fee.students.classes?.section,
-              class_id: fee.students.class_id
-            } : null
-          };
-        });
-
-        allFees = [...enhancedFees];
-      }
-
-      // Add legacy fees if no enhanced records exist for those students
-      if (legacyFeeData && legacyFeeData.length > 0) {
-        const existingStudentIds = new Set(allFees.map(f => f.student_id));
-        
-        const legacyFees = legacyFeeData
-          .filter((fee: any) => !existingStudentIds.has(fee.student_id))
-          .map((fee: any) => {
-            const totalPaidFromHistory = paymentTotalsFromHistory[fee.id] || 0;
+          // Only add if we haven't seen this student-fee combination
+          if (!uniqueFeeMap.has(uniqueKey)) {
+            const totalPaidFromRecords = paymentTotalsFromRecords[fee.id] || 0;
             
-            return {
+            const transformedFee = {
               id: fee.id,
               student_id: fee.student_id,
-              amount: fee.amount,
-              actual_amount: fee.actual_amount,
+              amount: fee.actual_fee,
+              actual_amount: fee.actual_fee,
               discount_amount: fee.discount_amount,
-              total_paid: totalPaidFromHistory,
+              total_paid: totalPaidFromRecords,
               fee_type: fee.fee_type,
               due_date: fee.due_date,
-              payment_date: fee.payment_date,
+              payment_date: null,
               status: fee.status,
-              receipt_number: fee.receipt_number,
+              receipt_number: null,
               created_at: fee.created_at,
               updated_at: fee.updated_at,
               discount_notes: fee.discount_notes,
@@ -237,17 +183,111 @@ export function useFeeData() {
                 class_id: fee.students.class_id
               } : null
             };
-          });
 
-        allFees = [...allFees, ...legacyFees];
+            uniqueFeeMap.set(uniqueKey, transformedFee);
+            allFees.push(transformedFee);
+          }
+        });
       }
 
-      console.log('✅ Total combined fees:', allFees.length);
+      // Only fetch legacy fees if no enhanced records exist for any students
+      if (allFees.length === 0) {
+        const { data: legacyFeeData, error: legacyError } = await supabase
+          .from("fees")
+          .select(`
+            *,
+            students (
+              id,
+              first_name,
+              last_name,
+              admission_number,
+              gender,
+              status,
+              class_id,
+              classes (
+                name,
+                section
+              )
+            )
+          `)
+          .eq("academic_year_id", currentAcademicYear)
+          .order("created_at", { ascending: false });
+
+        if (legacyError) {
+          console.error('Error fetching legacy fee data:', legacyError);
+        } else {
+          console.log('✅ Legacy fee data fetched:', legacyFeeData?.length || 0, 'records');
+          
+          legacyFeeData?.forEach((fee: any) => {
+            const uniqueKey = `${fee.student_id}_${fee.fee_type}`;
+            
+            if (!uniqueFeeMap.has(uniqueKey)) {
+              const totalPaidFromHistory = paymentTotalsFromHistory[fee.id] || 0;
+              
+              const transformedFee = {
+                id: fee.id,
+                student_id: fee.student_id,
+                amount: fee.amount,
+                actual_amount: fee.actual_amount,
+                discount_amount: fee.discount_amount,
+                total_paid: totalPaidFromHistory,
+                fee_type: fee.fee_type,
+                due_date: fee.due_date,
+                payment_date: fee.payment_date,
+                status: fee.status,
+                receipt_number: fee.receipt_number,
+                created_at: fee.created_at,
+                updated_at: fee.updated_at,
+                discount_notes: fee.discount_notes,
+                discount_updated_by: fee.discount_updated_by,
+                discount_updated_at: fee.discount_updated_at,
+                academic_year_id: fee.academic_year_id,
+                student: fee.students ? {
+                  id: fee.students.id,
+                  first_name: fee.students.first_name,
+                  last_name: fee.students.last_name,
+                  admission_number: fee.students.admission_number,
+                  gender: fee.students.gender as 'Male' | 'Female' | 'Other',
+                  status: fee.students.status as 'Active' | 'Inactive' | 'Alumni',
+                  class_name: fee.students.classes?.name,
+                  section: fee.students.classes?.section,
+                  class_id: fee.students.class_id
+                } : null
+              };
+
+              uniqueFeeMap.set(uniqueKey, transformedFee);
+              allFees.push(transformedFee);
+            }
+          });
+        }
+      }
+
+      // Update fees with student payment totals from student_payments table
+      allFees = allFees.map(fee => {
+        // Try to find matching student payment based on student_id and fee type
+        const studentPaymentKey = Object.keys(studentPaymentTotals).find(key => {
+          const [studentId] = key.split('_');
+          return studentId === fee.student_id;
+        });
+        
+        if (studentPaymentKey) {
+          const additionalPayments = studentPaymentTotals[studentPaymentKey] || 0;
+          return {
+            ...fee,
+            total_paid: fee.total_paid + additionalPayments
+          };
+        }
+        
+        return fee;
+      });
+
+      console.log('✅ Final processed fees:', allFees.length);
       console.log('📊 Fees with student data:', allFees.filter(f => f.student).length);
+      console.log('🔍 Unique fee combinations:', uniqueFeeMap.size);
 
       setFees(allFees);
     } catch (error: any) {
-      console.error("Error fetching fees:", error);
+      console.error("❌ Error fetching fees:", error);
       toast({
         title: "Error fetching fees",
         description: error.message,

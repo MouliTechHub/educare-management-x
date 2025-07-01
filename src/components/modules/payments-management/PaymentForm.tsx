@@ -64,10 +64,12 @@ export function PaymentForm({ classes, students, feeStructures, onSubmit, onCanc
     setFeeDetails(null);
   }, [formData.class_id, students, feeStructures]);
 
-  // Get fee details from fee management system
+  // Get fee details from both fee management systems
   useEffect(() => {
     if (formData.student_id && formData.fee_structure_id) {
       fetchFeeDetails();
+    } else {
+      setFeeDetails(null);
     }
   }, [formData.student_id, formData.fee_structure_id]);
 
@@ -89,60 +91,119 @@ export function PaymentForm({ classes, students, feeStructures, onSubmit, onCanc
       const selectedStructure = feeStructures.find(fs => fs.id === formData.fee_structure_id);
       if (!selectedStructure) return;
 
-      // Check if fee record exists in fee management system
-      const { data: feeRecord, error: feeError } = await supabase
-        .from("fees")
+      // First check enhanced fee system (student_fee_records)
+      const { data: enhancedFeeRecord, error: enhancedError } = await supabase
+        .from("student_fee_records")
         .select("*")
         .eq("student_id", formData.student_id)
         .eq("academic_year_id", currentYear.id)
         .eq("fee_type", selectedStructure.fee_type)
-        .single();
+        .maybeSingle();
 
-      if (feeError && feeError.code !== 'PGRST116') {
-        console.error("Error fetching fee record:", feeError);
-        return;
+      if (enhancedError && enhancedError.code !== 'PGRST116') {
+        console.error("Error fetching enhanced fee record:", enhancedError);
       }
 
-      if (feeRecord) {
-        // Use data from fee management system
-        const actualAmount = feeRecord.actual_amount;
-        const discountAmount = feeRecord.discount_amount;
+      // Check existing payments from all systems
+      const [paymentHistoryData, feePaymentData, studentPaymentData] = await Promise.all([
+        supabase
+          .from('payment_history')
+          .select('amount_paid')
+          .eq('student_id', formData.student_id)
+          .eq('fee_type', selectedStructure.fee_type),
+        
+        enhancedFeeRecord ? supabase
+          .from('fee_payment_records')
+          .select('amount_paid')
+          .eq('fee_record_id', enhancedFeeRecord.id) : Promise.resolve({ data: [] }),
+        
+        supabase
+          .from('student_payments')
+          .select('amount_paid')
+          .eq('student_id', formData.student_id)
+          .eq('fee_structure_id', formData.fee_structure_id)
+      ]);
+
+      // Calculate total paid from all sources
+      const paidFromHistory = paymentHistoryData.data?.reduce((sum, p) => sum + p.amount_paid, 0) || 0;
+      const paidFromRecords = feePaymentData.data?.reduce((sum, p) => sum + p.amount_paid, 0) || 0;
+      const paidFromPayments = studentPaymentData.data?.reduce((sum, p) => sum + p.amount_paid, 0) || 0;
+
+      if (enhancedFeeRecord) {
+        // Use data from enhanced fee management system
+        const actualAmount = enhancedFeeRecord.actual_fee;
+        const discountAmount = enhancedFeeRecord.discount_amount;
         const finalAmount = actualAmount - discountAmount;
-        const paidAmount = feeRecord.total_paid;
-        const balanceAmount = finalAmount - paidAmount;
+        const totalPaid = Math.max(paidFromHistory, paidFromRecords, paidFromPayments);
+        const balanceAmount = Math.max(0, finalAmount - totalPaid);
 
         setFeeDetails({
           actualAmount,
           discountAmount,
           finalAmount,
-          paidAmount,
+          paidAmount: totalPaid,
           balanceAmount
         });
 
         setFormData(prev => ({ 
           ...prev, 
-          amount_paid: Math.max(0, balanceAmount).toString() 
+          amount_paid: balanceAmount > 0 ? balanceAmount.toString() : '0'
         }));
       } else {
-        // Fallback to fee structure amount if no fee record exists
-        const actualAmount = selectedStructure.amount;
-        const discountAmount = 0;
-        const finalAmount = actualAmount;
-        const paidAmount = 0;
-        const balanceAmount = finalAmount;
+        // Check legacy fee system
+        const { data: legacyFeeRecord, error: legacyError } = await supabase
+          .from("fees")
+          .select("*")
+          .eq("student_id", formData.student_id)
+          .eq("academic_year_id", currentYear.id)
+          .eq("fee_type", selectedStructure.fee_type)
+          .maybeSingle();
 
-        setFeeDetails({
-          actualAmount,
-          discountAmount,
-          finalAmount,
-          paidAmount,
-          balanceAmount
-        });
+        if (legacyError && legacyError.code !== 'PGRST116') {
+          console.error("Error fetching legacy fee record:", legacyError);
+        }
 
-        setFormData(prev => ({ 
-          ...prev, 
-          amount_paid: balanceAmount.toString() 
-        }));
+        if (legacyFeeRecord) {
+          // Use data from legacy fee system
+          const actualAmount = legacyFeeRecord.actual_amount || selectedStructure.amount;
+          const discountAmount = legacyFeeRecord.discount_amount || 0;
+          const finalAmount = actualAmount - discountAmount;
+          const totalPaid = Math.max(paidFromHistory, paidFromPayments, legacyFeeRecord.total_paid || 0);
+          const balanceAmount = Math.max(0, finalAmount - totalPaid);
+
+          setFeeDetails({
+            actualAmount,
+            discountAmount,
+            finalAmount,
+            paidAmount: totalPaid,
+            balanceAmount
+          });
+
+          setFormData(prev => ({ 
+            ...prev, 
+            amount_paid: balanceAmount > 0 ? balanceAmount.toString() : '0'
+          }));
+        } else {
+          // Fallback to fee structure amount if no fee record exists
+          const actualAmount = selectedStructure.amount;
+          const discountAmount = 0;
+          const finalAmount = actualAmount;
+          const totalPaid = Math.max(paidFromHistory, paidFromPayments);
+          const balanceAmount = Math.max(0, finalAmount - totalPaid);
+
+          setFeeDetails({
+            actualAmount,
+            discountAmount,
+            finalAmount,
+            paidAmount: totalPaid,
+            balanceAmount
+          });
+
+          setFormData(prev => ({ 
+            ...prev, 
+            amount_paid: balanceAmount > 0 ? balanceAmount.toString() : '0'
+          }));
+        }
       }
     } catch (error) {
       console.error("Error fetching fee details:", error);
