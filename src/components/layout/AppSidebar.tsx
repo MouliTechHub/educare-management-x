@@ -54,6 +54,7 @@ export function AppSidebar({ userRole, activeModule, onModuleChange }: AppSideba
       { id: "exams", title: "Exams & Grades", icon: FileText, badge: null },
       { id: "timetable", title: "Timetable", icon: Clock, badge: null },
       { id: "reports", title: "Reports", icon: BarChart3, badge: null },
+      { id: "academic-years", title: "Academic Years", icon: Calendar, badge: null },
       { id: "settings", title: "Settings", icon: Settings, badge: null },
     ];
 
