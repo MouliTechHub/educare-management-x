@@ -13,9 +13,9 @@ interface SalaryFilters {
 export function useTeacherSalaryFilters(salaries: TeacherSalary[], searchTerm: string) {
   const [filters, setFilters] = useState<SalaryFilters>({
     teacherId: '',
-    status: '',
-    month: '',
-    year: '',
+    status: 'all',
+    month: 'all',
+    year: 'all',
     paymentDateFrom: '',
     paymentDateTo: ''
   });
@@ -27,9 +27,9 @@ export function useTeacherSalaryFilters(salaries: TeacherSalary[], searchTerm: s
   const clearFilters = () => {
     setFilters({
       teacherId: '',
-      status: '',
-      month: '',
-      year: '',
+      status: 'all',
+      month: 'all',
+      year: 'all',
       paymentDateFrom: '',
       paymentDateTo: ''
     });
@@ -50,17 +50,17 @@ export function useTeacherSalaryFilters(salaries: TeacherSalary[], searchTerm: s
       }
 
       // Status filter
-      if (filters.status && salary.status !== filters.status) {
+      if (filters.status && filters.status !== 'all' && salary.status !== filters.status) {
         return false;
       }
 
       // Month filter
-      if (filters.month && salary.month !== parseInt(filters.month)) {
+      if (filters.month && filters.month !== 'all' && salary.month !== parseInt(filters.month)) {
         return false;
       }
 
       // Year filter
-      if (filters.year && salary.year !== parseInt(filters.year)) {
+      if (filters.year && filters.year !== 'all' && salary.year !== parseInt(filters.year)) {
         return false;
       }
 

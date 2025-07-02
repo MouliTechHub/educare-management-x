@@ -39,7 +39,7 @@ export function SalaryFilters({ filters, onFilterChange, onClearFilters }: Salar
               <SelectValue placeholder="All statuses" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="">All statuses</SelectItem>
+              <SelectItem value="all">All statuses</SelectItem>
               <SelectItem value="Pending">Pending</SelectItem>
               <SelectItem value="Paid">Paid</SelectItem>
             </SelectContent>
@@ -53,7 +53,7 @@ export function SalaryFilters({ filters, onFilterChange, onClearFilters }: Salar
               <SelectValue placeholder="All months" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="">All months</SelectItem>
+              <SelectItem value="all">All months</SelectItem>
               {Array.from({ length: 12 }, (_, i) => (
                 <SelectItem key={i + 1} value={(i + 1).toString()}>
                   {new Date(0, i).toLocaleString('default', { month: 'long' })}
@@ -70,7 +70,7 @@ export function SalaryFilters({ filters, onFilterChange, onClearFilters }: Salar
               <SelectValue placeholder="All years" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="">All years</SelectItem>
+              <SelectItem value="all">All years</SelectItem>
               {Array.from({ length: 5 }, (_, i) => {
                 const year = new Date().getFullYear() - 2 + i;
                 return (

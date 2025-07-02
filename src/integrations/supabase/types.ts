@@ -1356,6 +1356,7 @@ export type Database = {
       }
       teacher_salaries: {
         Row: {
+          academic_year_id: string
           attended_days: number
           bonus: number | null
           calculated_salary: number
@@ -1375,6 +1376,7 @@ export type Database = {
           year: number
         }
         Insert: {
+          academic_year_id: string
           attended_days?: number
           bonus?: number | null
           calculated_salary: number
@@ -1394,6 +1396,7 @@ export type Database = {
           year: number
         }
         Update: {
+          academic_year_id?: string
           attended_days?: number
           bonus?: number | null
           calculated_salary?: number
@@ -1413,6 +1416,13 @@ export type Database = {
           year?: number
         }
         Relationships: [
+          {
+            foreignKeyName: "teacher_salaries_academic_year_id_fkey"
+            columns: ["academic_year_id"]
+            isOneToOne: false
+            referencedRelation: "academic_years"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "teacher_salaries_teacher_id_fkey"
             columns: ["teacher_id"]

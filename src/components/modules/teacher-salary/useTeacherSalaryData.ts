@@ -24,9 +24,6 @@ export function useTeacherSalaryData() {
             last_name,
             employee_id,
             salary
-          ),
-          academic_years (
-            year_name
           )
         `)
         .order("year", { ascending: false })
