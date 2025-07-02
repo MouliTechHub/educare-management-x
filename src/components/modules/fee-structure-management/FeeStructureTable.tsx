@@ -3,12 +3,13 @@ import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Edit, Trash2, DollarSign, Calendar } from "lucide-react";
+import { StandardizedFeeType } from "@/constants/feeTypes";
 
-interface FeeStructure {
+interface StandardizedFeeStructure {
   id: string;
   class_id: string;
   academic_year_id: string;
-  fee_type: 'Tuition' | 'Transport' | 'Meals' | 'Books' | 'Uniform' | 'Activities' | 'Laboratory' | 'Library' | 'Sports' | 'Other';
+  fee_type: StandardizedFeeType;
   amount: number;
   frequency: 'Monthly' | 'Quarterly' | 'Annually' | 'One Time';
   description: string | null;
@@ -25,8 +26,8 @@ interface FeeStructure {
 }
 
 interface FeeStructureTableProps {
-  feeStructures: FeeStructure[];
-  onEdit: (structure: FeeStructure) => void;
+  feeStructures: StandardizedFeeStructure[];
+  onEdit: (structure: StandardizedFeeStructure) => void;
   onDelete: (id: string) => void;
 }
 
@@ -51,10 +52,17 @@ export function FeeStructureTable({ feeStructures, onEdit, onDelete }: FeeStruct
 
   const getFeeTypeColor = (feeType: string) => {
     switch (feeType) {
-      case 'Tuition': return 'bg-indigo-100 text-indigo-800';
-      case 'Transport': return 'bg-yellow-100 text-yellow-800';
-      case 'Meals': return 'bg-pink-100 text-pink-800';
-      case 'Books': return 'bg-cyan-100 text-cyan-800';
+      case 'Tuition Fee': return 'bg-indigo-100 text-indigo-800';
+      case 'Transport Fee': return 'bg-yellow-100 text-yellow-800';
+      case 'Meals Fee': return 'bg-pink-100 text-pink-800';
+      case 'Books Fee': return 'bg-cyan-100 text-cyan-800';
+      case 'Development Fee': return 'bg-emerald-100 text-emerald-800';
+      case 'Library Fee': return 'bg-violet-100 text-violet-800';
+      case 'Laboratory Fee': return 'bg-orange-100 text-orange-800';
+      case 'Sports Fee': return 'bg-lime-100 text-lime-800';
+      case 'Exam Fee': return 'bg-rose-100 text-rose-800';
+      case 'Uniform Fee': return 'bg-teal-100 text-teal-800';
+      case 'Activities Fee': return 'bg-amber-100 text-amber-800';
       default: return 'bg-gray-100 text-gray-800';
     }
   };
