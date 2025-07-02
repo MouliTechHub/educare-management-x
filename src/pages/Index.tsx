@@ -22,6 +22,8 @@ import { PaymentsManagement } from "@/components/modules/PaymentsManagement";
 import { ReportsManagement } from "@/components/modules/ReportsManagement";
 import { AcademicYearManagement } from "@/components/modules/AcademicYearManagement";
 import { Dashboard } from "@/components/modules/Dashboard";
+import { ExpenseManagement } from "@/components/modules/ExpenseManagement";
+import { TeacherSalaryManagement } from "@/components/modules/TeacherSalaryManagement";
 
 const Index = () => {
   const [activeModule, setActiveModule] = useState<string>("dashboard");
@@ -94,6 +96,10 @@ const Index = () => {
         return <ReportsManagement />;
       case "academic-years":
         return <AcademicYearManagement />;
+      case "expenses":
+        return <ExpenseManagement />;
+      case "teacher-salaries":
+        return <TeacherSalaryManagement />;
       case "dashboard":
       default:
         return <Dashboard />;

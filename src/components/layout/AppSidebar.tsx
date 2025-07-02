@@ -49,6 +49,8 @@ export function AppSidebar({ userRole, activeModule, onModuleChange }: AppSideba
       { id: "fees", title: "Fee Management", icon: DollarSign, badge: "3" },
       { id: "fee-structure", title: "Fee Structure", icon: Receipt, badge: null },
       { id: "payments", title: "Payments", icon: CreditCard, badge: null },
+      { id: "expenses", title: "Expense Management", icon: Receipt, badge: null },
+      { id: "teacher-salaries", title: "Teacher Salaries", icon: DollarSign, badge: null },
       { id: "exams", title: "Exams & Grades", icon: FileText, badge: null },
       { id: "timetable", title: "Timetable", icon: Clock, badge: null },
       { id: "reports", title: "Reports", icon: BarChart3, badge: null },

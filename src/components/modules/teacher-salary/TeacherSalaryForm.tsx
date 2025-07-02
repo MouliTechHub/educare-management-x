@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -7,7 +7,6 @@ import { Button } from "@/components/ui/button";
 import { TeacherSalary, Teacher } from "@/types/database";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Calculator } from "lucide-react";
-import { useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 
 interface TeacherSalaryFormProps {
@@ -27,20 +26,19 @@ export function TeacherSalaryForm({ selectedSalary, teachers, onSubmit, onCancel
       teacher_id: selectedSalary?.teacher_id || "",
       month: selectedSalary?.month || new Date().getMonth() + 1,
       year: selectedSalary?.year || new Date().getFullYear(),
-      academic_year_id: selectedSalary?.academic_year_id || "",
-      base_salary: selectedSalary?.base_salary || 0,
-      attendance_days: selectedSalary?.attendance_days || 26,
+      salary_rate: selectedSalary?.salary_rate || 0,
+      attended_days: selectedSalary?.attended_days || 26,
       working_days: selectedSalary?.working_days || 26,
       bonus: selectedSalary?.bonus || 0,
       deductions: selectedSalary?.deductions || 0,
       payment_date: selectedSalary?.payment_date || "",
-      payment_mode: selectedSalary?.payment_mode || "Bank Transfer",
+      payment_method: selectedSalary?.payment_method || "Bank Transfer",
       status: selectedSalary?.status || "Pending",
       notes: selectedSalary?.notes || ""
     },
   });
 
-  const watchedValues = form.watch(['base_salary', 'attendance_days', 'working_days', 'bonus', 'deductions']);
+  const watchedValues = form.watch(['salary_rate', 'attended_days', 'working_days', 'bonus', 'deductions']);
 
   useEffect(() => {
     fetchAcademicYears();
@@ -51,19 +49,19 @@ export function TeacherSalaryForm({ selectedSalary, teachers, onSubmit, onCancel
       const teacher = teachers.find(t => t.id === form.watch('teacher_id'));
       setSelectedTeacher(teacher || null);
       if (teacher && teacher.salary) {
-        form.setValue('base_salary', teacher.salary);
+        form.setValue('salary_rate', teacher.salary);
       }
     }
-  }, [form.watch('teacher_id'), teachers]);
+  }, [form.watch('teacher_id'), teachers, form]);
 
   useEffect(() => {
-    const [baseSalary, attendanceDays, workingDays, bonus, deductions] = watchedValues;
-    if (baseSalary && workingDays && attendanceDays !== undefined) {
-      const calculated = (baseSalary / workingDays) * attendanceDays;
-      const final = calculated + (bonus || 0) - (deductions || 0);
+    const [salaryRate, attendedDays, workingDays, bonus, deductions] = watchedValues;
+    if (salaryRate && workingDays && attendedDays !== undefined) {
+      const calculated = (Number(salaryRate) / Number(workingDays)) * Number(attendedDays);
+      const final = calculated + (Number(bonus) || 0) - (Number(deductions) || 0);
       setCalculatedSalary(final);
     }
-  }, watchedValues);
+  }, [watchedValues]);
 
   const fetchAcademicYears = async () => {
     try {
@@ -121,32 +119,6 @@ export function TeacherSalaryForm({ selectedSalary, teachers, onSubmit, onCancel
             />
             <FormField
               control={form.control}
-              name="academic_year_id"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Academic Year *</FormLabel>
-                  <Select onValueChange={field.onChange} value={field.value}>
-                    <FormControl>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select academic year" />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      {academicYears.map((year) => (
-                        <SelectItem key={year.id} value={year.id}>
-                          {year.year_name} {year.is_current && '(Current)'}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-          </div>
-          <div className="grid grid-cols-2 gap-4">
-            <FormField
-              control={form.control}
               name="month"
               render={({ field }) => (
                 <FormItem>
@@ -169,6 +141,8 @@ export function TeacherSalaryForm({ selectedSalary, teachers, onSubmit, onCancel
                 </FormItem>
               )}
             />
+          </div>
+          <div className="grid grid-cols-2 gap-4">
             <FormField
               control={form.control}
               name="year"
@@ -211,7 +185,7 @@ export function TeacherSalaryForm({ selectedSalary, teachers, onSubmit, onCancel
             <div className="grid grid-cols-3 gap-4">
               <FormField
                 control={form.control}
-                name="base_salary"
+                name="salary_rate"
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Base Salary *</FormLabel>
@@ -249,7 +223,7 @@ export function TeacherSalaryForm({ selectedSalary, teachers, onSubmit, onCancel
               />
               <FormField
                 control={form.control}
-                name="attendance_days"
+                name="attended_days"
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Attendance Days *</FormLabel>
@@ -311,7 +285,7 @@ export function TeacherSalaryForm({ selectedSalary, teachers, onSubmit, onCancel
 
             <div className="p-3 bg-muted rounded-lg">
               <div className="text-sm space-y-1">
-                <div>Calculated Salary: ₹{((form.watch('base_salary') || 0) / (form.watch('working_days') || 26) * (form.watch('attendance_days') || 0)).toLocaleString()}</div>
+                <div>Calculated Salary: ₹{((form.watch('salary_rate') || 0) / (form.watch('working_days') || 26) * (form.watch('attended_days') || 0)).toLocaleString()}</div>
                 <div className="font-semibold text-lg">Final Salary: ₹{calculatedSalary.toLocaleString()}</div>
               </div>
             </div>
@@ -358,11 +332,11 @@ export function TeacherSalaryForm({ selectedSalary, teachers, onSubmit, onCancel
             />
             <FormField
               control={form.control}
-              name="payment_mode"
+              name="payment_method"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Payment Mode</FormLabel>
-                  <Select onValueChange={field.onChange} value={field.value}>
+                  <FormLabel>Payment Method</FormLabel>
+                  <Select onValueChange={field.onChange} value={field.value || ""}>
                     <FormControl>
                       <SelectTrigger>
                         <SelectValue />
@@ -380,6 +354,20 @@ export function TeacherSalaryForm({ selectedSalary, teachers, onSubmit, onCancel
             />
           </div>
         </div>
+
+        <FormField
+          control={form.control}
+          name="notes"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Notes</FormLabel>
+              <FormControl>
+                <Input {...field} placeholder="Additional notes..." />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
 
         <div className="flex justify-end space-x-2 pt-4">
           <Button type="button" variant="outline" onClick={onCancel}>

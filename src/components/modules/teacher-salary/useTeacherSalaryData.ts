@@ -60,8 +60,8 @@ export function useTeacherSalaryData() {
     try {
       // Calculate final salary based on attendance
       const workingDays = salaryData.working_days || 26;
-      const attendanceDays = salaryData.attendance_days || workingDays;
-      const baseSalary = salaryData.base_salary;
+      const attendanceDays = salaryData.attended_days || workingDays;
+      const baseSalary = salaryData.salary_rate;
       
       const calculatedSalary = (baseSalary / workingDays) * attendanceDays;
       const finalSalary = calculatedSalary + (salaryData.bonus || 0) - (salaryData.deductions || 0);
@@ -160,9 +160,8 @@ export function useTeacherSalaryData() {
           teacher_id: teacherId,
           month,
           year,
-          academic_year_id: academicYearId,
-          base_salary: baseSalary,
-          attendance_days: attendanceDays,
+          salary_rate: baseSalary,
+          attended_days: attendanceDays,
           working_days: workingDays,
           calculated_salary: calculatedSalary,
           bonus: 0,
@@ -200,20 +199,20 @@ export function useTeacherSalaryData() {
         headers.join(','),
         ...salariesToExport.map(salary => {
           const teacher = teachers.find(t => t.id === salary.teacher_id);
-          return [
-            `"${teacher ? `${teacher.first_name} ${teacher.last_name}` : 'Unknown'}"`,
-            teacher?.employee_id || 'N/A',
-            `${salary.month}/${salary.year}`,
-            salary.base_salary,
-            salary.attendance_days,
-            salary.working_days,
-            salary.calculated_salary,
-            salary.bonus || 0,
-            salary.deductions || 0,
-            salary.final_salary,
-            salary.status,
-            salary.payment_date || 'Not Paid'
-          ].join(',');
+            return [
+              `"${teacher ? `${teacher.first_name} ${teacher.last_name}` : 'Unknown'}"`,
+              teacher?.employee_id || 'N/A',
+              `${salary.month}/${salary.year}`,
+              salary.salary_rate,
+              salary.attended_days,
+              salary.working_days,
+              salary.calculated_salary,
+              salary.bonus || 0,
+              salary.deductions || 0,
+              salary.final_salary,
+              salary.status,
+              salary.payment_date || 'Not Paid'
+            ].join(',');
         })
       ].join('\n');
 

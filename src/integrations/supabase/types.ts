@@ -232,6 +232,65 @@ export type Database = {
           },
         ]
       }
+      expenses: {
+        Row: {
+          academic_year_id: string
+          amount: number
+          category: string
+          created_at: string | null
+          created_by: string | null
+          date: string
+          description: string
+          id: string
+          month: number
+          paid_to: string
+          payment_method: string
+          receipt_url: string | null
+          updated_at: string | null
+          year: number
+        }
+        Insert: {
+          academic_year_id: string
+          amount: number
+          category: string
+          created_at?: string | null
+          created_by?: string | null
+          date: string
+          description: string
+          id?: string
+          month: number
+          paid_to: string
+          payment_method?: string
+          receipt_url?: string | null
+          updated_at?: string | null
+          year: number
+        }
+        Update: {
+          academic_year_id?: string
+          amount?: number
+          category?: string
+          created_at?: string | null
+          created_by?: string | null
+          date?: string
+          description?: string
+          id?: string
+          month?: number
+          paid_to?: string
+          payment_method?: string
+          receipt_url?: string | null
+          updated_at?: string | null
+          year?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "expenses_academic_year_id_fkey"
+            columns: ["academic_year_id"]
+            isOneToOne: false
+            referencedRelation: "academic_years"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       fee_change_history: {
         Row: {
           amount: number | null
@@ -463,6 +522,7 @@ export type Database = {
           due_date: string
           fee_type: string
           id: string
+          notes: string | null
           payment_date: string | null
           receipt_number: string | null
           status: string
@@ -482,6 +542,7 @@ export type Database = {
           due_date: string
           fee_type: string
           id?: string
+          notes?: string | null
           payment_date?: string | null
           receipt_number?: string | null
           status?: string
@@ -501,6 +562,7 @@ export type Database = {
           due_date?: string
           fee_type?: string
           id?: string
+          notes?: string | null
           payment_date?: string | null
           receipt_number?: string | null
           status?: string
@@ -1291,6 +1353,74 @@ export type Database = {
           name?: string
         }
         Relationships: []
+      }
+      teacher_salaries: {
+        Row: {
+          attended_days: number
+          bonus: number | null
+          calculated_salary: number
+          created_at: string | null
+          deductions: number | null
+          final_salary: number
+          id: string
+          month: number
+          notes: string | null
+          payment_date: string | null
+          payment_method: string | null
+          salary_rate: number
+          status: string
+          teacher_id: string
+          updated_at: string | null
+          working_days: number
+          year: number
+        }
+        Insert: {
+          attended_days?: number
+          bonus?: number | null
+          calculated_salary: number
+          created_at?: string | null
+          deductions?: number | null
+          final_salary: number
+          id?: string
+          month: number
+          notes?: string | null
+          payment_date?: string | null
+          payment_method?: string | null
+          salary_rate: number
+          status?: string
+          teacher_id: string
+          updated_at?: string | null
+          working_days?: number
+          year: number
+        }
+        Update: {
+          attended_days?: number
+          bonus?: number | null
+          calculated_salary?: number
+          created_at?: string | null
+          deductions?: number | null
+          final_salary?: number
+          id?: string
+          month?: number
+          notes?: string | null
+          payment_date?: string | null
+          payment_method?: string | null
+          salary_rate?: number
+          status?: string
+          teacher_id?: string
+          updated_at?: string | null
+          working_days?: number
+          year?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "teacher_salaries_teacher_id_fkey"
+            columns: ["teacher_id"]
+            isOneToOne: false
+            referencedRelation: "teachers"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       teacher_subject_links: {
         Row: {

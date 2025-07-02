@@ -52,8 +52,8 @@ export function TeacherSalaryTable({ salaries, onEditSalary, onDeleteSalary }: T
               <TableCell>
                 {new Date(0, salary.month - 1).toLocaleString('default', { month: 'long' })} {salary.year}
               </TableCell>
-              <TableCell>{formatCurrency(salary.base_salary)}</TableCell>
-              <TableCell>{salary.attendance_days}/{salary.working_days} days</TableCell>
+              <TableCell>{formatCurrency(salary.salary_rate)}</TableCell>
+              <TableCell>{salary.attended_days}/{salary.working_days} days</TableCell>
               <TableCell className="font-medium">{formatCurrency(salary.final_salary)}</TableCell>
               <TableCell>
                 <Badge className={getStatusColor(salary.status)}>
