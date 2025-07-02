@@ -46,7 +46,7 @@ export function ExpenseSummaryCards({ expenses }: ExpenseSummaryCardsProps) {
 
   // Payment mode breakdown
   const paymentModes = expenses.reduce((acc, expense) => {
-    acc[expense.payment_mode] = (acc[expense.payment_mode] || 0) + 1;
+    acc[expense.payment_method] = (acc[expense.payment_method] || 0) + 1;
     return acc;
   }, {} as Record<string, number>);
 

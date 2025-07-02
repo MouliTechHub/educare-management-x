@@ -243,6 +243,7 @@ export type Database = {
           description: string
           id: string
           month: number
+          notes: string | null
           paid_to: string
           payment_method: string
           receipt_url: string | null
@@ -259,6 +260,7 @@ export type Database = {
           description: string
           id?: string
           month: number
+          notes?: string | null
           paid_to: string
           payment_method?: string
           receipt_url?: string | null
@@ -275,6 +277,7 @@ export type Database = {
           description?: string
           id?: string
           month?: number
+          notes?: string | null
           paid_to?: string
           payment_method?: string
           receipt_url?: string | null

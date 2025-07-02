@@ -47,7 +47,7 @@ export function ExpenseCharts({ expenses }: ExpenseChartsProps) {
 
   // Payment mode distribution
   const paymentModeData = expenses.reduce((acc, expense) => {
-    acc[expense.payment_mode] = (acc[expense.payment_mode] || 0) + expense.amount;
+    acc[expense.payment_method] = (acc[expense.payment_method] || 0) + expense.amount;
     return acc;
   }, {} as Record<string, number>);
 

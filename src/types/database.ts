@@ -262,7 +262,7 @@ export interface Expense {
   description: string;
   amount: number;
   paid_to: string;
-  payment_mode: string;
+  payment_method: string;
   receipt_url: string | null;
   academic_year_id: string;
   month: number;

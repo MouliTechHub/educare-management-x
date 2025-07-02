@@ -44,7 +44,7 @@ export function useExpenseFilters(expenses: Expense[], searchTerm: string) {
           expense.description.toLowerCase().includes(searchLower) ||
           expense.category.toLowerCase().includes(searchLower) ||
           expense.paid_to.toLowerCase().includes(searchLower) ||
-          expense.payment_mode.toLowerCase().includes(searchLower);
+          expense.payment_method.toLowerCase().includes(searchLower);
         
         if (!matchesSearch) return false;
       }
@@ -55,7 +55,7 @@ export function useExpenseFilters(expenses: Expense[], searchTerm: string) {
       }
 
       // Payment mode filter
-      if (filters.paymentMode && filters.paymentMode !== 'all' && expense.payment_mode !== filters.paymentMode) {
+      if (filters.paymentMode && filters.paymentMode !== 'all' && expense.payment_method !== filters.paymentMode) {
         return false;
       }
 

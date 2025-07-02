@@ -99,7 +99,7 @@ export function useExpenseData() {
           `"${expense.description.replace(/"/g, '""')}"`,
           expense.amount,
           `"${expense.paid_to.replace(/"/g, '""')}"`,
-          expense.payment_mode,
+          expense.payment_method,
           expense.academic_year_id, // You might want to get the year name from the relation
           expense.month,
           `"${(expense.notes || '').replace(/"/g, '""')}"`

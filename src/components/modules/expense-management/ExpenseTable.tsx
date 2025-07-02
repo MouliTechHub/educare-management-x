@@ -72,7 +72,7 @@ export function ExpenseTable({ expenses, onEditExpense, onDeleteExpense }: Expen
               </TableCell>
               <TableCell>{expense.paid_to}</TableCell>
               <TableCell>
-                <Badge variant="outline">{expense.payment_mode}</Badge>
+                <Badge variant="outline">{expense.payment_method}</Badge>
               </TableCell>
               <TableCell>
                 {expense.receipt_url ? (

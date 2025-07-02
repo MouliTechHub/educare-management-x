@@ -56,7 +56,7 @@ export function ExpenseForm({ selectedExpense, onSubmit, onCancel }: ExpenseForm
       description: selectedExpense?.description || "",
       amount: selectedExpense?.amount || "",
       paid_to: selectedExpense?.paid_to || "",
-      payment_mode: selectedExpense?.payment_mode || "Cash",
+      payment_method: selectedExpense?.payment_method || "Cash",
       receipt_url: selectedExpense?.receipt_url || "",
       academic_year_id: selectedExpense?.academic_year_id || "",
       month: selectedExpense?.month || new Date().getMonth() + 1,
@@ -224,7 +224,7 @@ export function ExpenseForm({ selectedExpense, onSubmit, onCancel }: ExpenseForm
           <div className="grid grid-cols-2 gap-4">
             <FormField
               control={form.control}
-              name="payment_mode"
+              name="payment_method"
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Payment Mode *</FormLabel>
@@ -296,7 +296,7 @@ export function ExpenseForm({ selectedExpense, onSubmit, onCancel }: ExpenseForm
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Month *</FormLabel>
-                  <Select onValueChange={(value) => field.onChange(parseInt(value))} value={field.value?.toString()}>
+                  <Select onValueChange={(value) => field.onChange(parseInt(value))} value={field.value?.toString() || ""}>
                     <FormControl>
                       <SelectTrigger>
                         <SelectValue />
