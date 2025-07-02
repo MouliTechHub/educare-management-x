@@ -10,13 +10,13 @@ import { useToast } from "@/hooks/use-toast";
 import { Class, AcademicYear } from "@/types/database";
 import { FeeStructureForm } from "./fee-structure-management/FeeStructureForm";
 import { FeeStructureTable } from "./fee-structure-management/FeeStructureTable";
-import { STANDARDIZED_FEE_TYPES } from "@/constants/feeTypes";
+import { StandardizedFeeType } from "@/constants/feeTypes";
 
-interface FeeStructure {
+interface StandardizedFeeStructure {
   id: string;
   class_id: string;
   academic_year_id: string;
-  fee_type: typeof STANDARDIZED_FEE_TYPES[number];
+  fee_type: StandardizedFeeType;
   amount: number;
   frequency: 'Monthly' | 'Quarterly' | 'Annually' | 'One Time';
   description: string | null;
@@ -33,12 +33,12 @@ interface FeeStructure {
 }
 
 export function FeeStructureManagement() {
-  const [feeStructures, setFeeStructures] = useState<FeeStructure[]>([]);
+  const [feeStructures, setFeeStructures] = useState<StandardizedFeeStructure[]>([]);
   const [classes, setClasses] = useState<Class[]>([]);
   const [academicYears, setAcademicYears] = useState<AcademicYear[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [dialogOpen, setDialogOpen] = useState(false);
-  const [selectedStructure, setSelectedStructure] = useState<FeeStructure | null>(null);
+  const [selectedStructure, setSelectedStructure] = useState<StandardizedFeeStructure | null>(null);
   const [loading, setLoading] = useState(true);
   const { toast } = useToast();
 
@@ -63,14 +63,14 @@ export function FeeStructureManagement() {
 
       if (structuresError) throw structuresError;
 
-      // Transform data to match FeeStructure interface
-      const transformedStructures: FeeStructure[] = (structuresData || []).map(structure => ({
+      // Transform data to match StandardizedFeeStructure interface
+      const transformedStructures: StandardizedFeeStructure[] = (structuresData || []).map(structure => ({
         id: structure.id,
         class_id: structure.class_id,
         academic_year_id: structure.academic_year_id,
-        fee_type: structure.fee_type as FeeStructure['fee_type'],
+        fee_type: structure.fee_type as StandardizedFeeType,
         amount: structure.amount,
-        frequency: structure.frequency as FeeStructure['frequency'],
+        frequency: structure.frequency as StandardizedFeeStructure['frequency'],
         description: structure.description,
         is_active: structure.is_active,
         created_at: structure.created_at,
@@ -154,7 +154,7 @@ export function FeeStructureManagement() {
     }
   };
 
-  const handleEdit = (structure: FeeStructure) => {
+  const handleEdit = (structure: StandardizedFeeStructure) => {
     setSelectedStructure(structure);
     setDialogOpen(true);
   };
