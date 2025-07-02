@@ -5,6 +5,7 @@ import { FeeStats } from "./fee-management/FeeStats";
 import { FeeManagementContent } from "./fee-management/FeeManagementContent";
 import { DiscountDialog } from "./fee-management/DiscountDialog";
 import { StudentPaymentHistory } from "./student-management/StudentPaymentHistory";
+import { PaymentHistoryErrorBoundary } from "./student-management/PaymentHistoryErrorBoundary";
 import { useFeeData } from "./fee-management/useFeeData";
 import { useFeeManagement } from "./fee-management/useFeeManagement";
 
@@ -66,17 +67,21 @@ export default function FeeManagement() {
       return;
     }
     
-    // Get all fees for this student across all fee systems
-    const studentFees = fees.filter(fee => fee.student_id === student.id);
-    console.log('📊 Student fees found:', studentFees.length);
-    
-    if (studentFees.length === 0) {
-      console.warn('⚠️ No fees found for student:', student.id);
-      // Still open the dialog to show "no records" message
+    try {
+      // Get all fees for this student across all fee systems
+      const studentFees = fees.filter(fee => fee.student_id === student.id);
+      console.log('📊 Student fees found:', studentFees.length);
+      
+      if (studentFees.length === 0) {
+        console.warn('⚠️ No fees found for student:', student.id);
+        // Still open the dialog to show "no records" message
+      }
+      
+      // Open history dialog with comprehensive fee data
+      openHistoryDialog(student, studentFees);
+    } catch (error) {
+      console.error('❌ Error opening history dialog:', error);
     }
-    
-    // Open history dialog with comprehensive fee data
-    openHistoryDialog(student, studentFees);
   };
 
   const currentYear = academicYears.find(year => year.is_current);
@@ -128,14 +133,16 @@ export default function FeeManagement() {
         onSuccess={refetchFees}
       />
 
-      <StudentPaymentHistory
-        open={historyDialogOpen}
-        onOpenChange={setHistoryDialogOpen}
-        studentName={selectedStudentName}
-        fees={selectedStudentFees}
-        academicYears={academicYears}
-        selectedAcademicYear={currentAcademicYear}
-      />
+      <PaymentHistoryErrorBoundary>
+        <StudentPaymentHistory
+          open={historyDialogOpen}
+          onOpenChange={setHistoryDialogOpen}
+          studentName={selectedStudentName}
+          fees={selectedStudentFees}
+          academicYears={academicYears}
+          selectedAcademicYear={currentAcademicYear}
+        />
+      </PaymentHistoryErrorBoundary>
     </div>
   );
 }

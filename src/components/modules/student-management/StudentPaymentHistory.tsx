@@ -1,5 +1,5 @@
 
-import { Dialog, DialogContent } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogDescription } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useState, useEffect } from "react";
 import { Fee } from "@/types/database";
@@ -39,7 +39,7 @@ export function StudentPaymentHistory({
   selectedAcademicYear 
 }: StudentPaymentHistoryProps) {
   const [searchTerm, setSearchTerm] = useState("");
-  const [currentAcademicYear, setCurrentAcademicYear] = useState(selectedAcademicYear || "");
+  const [currentAcademicYear, setCurrentAcademicYear] = useState(selectedAcademicYear || "all");
 
   const {
     paymentHistory,
@@ -51,7 +51,7 @@ export function StudentPaymentHistory({
     selectedPayment,
     openReversalDialog,
     fetchPaymentHistory
-  } = useStudentPaymentHistory(fees, currentAcademicYear);
+  } = useStudentPaymentHistory(fees, currentAcademicYear === "all" ? "" : currentAcademicYear);
 
   useEffect(() => {
     if (open && fees && fees.length > 0) {
@@ -68,6 +68,9 @@ export function StudentPaymentHistory({
     return (
       <Dialog open={open} onOpenChange={onOpenChange}>
         <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+          <DialogDescription className="sr-only">
+            Payment history for student with no fee records
+          </DialogDescription>
           <PaymentHistoryDialogHeader 
             studentName={displayStudentName} 
             currentYear={academicYears.find(year => year.id === currentAcademicYear)} 
@@ -85,7 +88,7 @@ export function StudentPaymentHistory({
   }
 
   const currentYear = academicYears.find(year => year.id === currentAcademicYear);
-  const yearFilteredFees = currentAcademicYear 
+  const yearFilteredFees = currentAcademicYear && currentAcademicYear !== "all"
     ? fees.filter(fee => fee.academic_year_id === currentAcademicYear)
     : fees;
 
@@ -116,6 +119,9 @@ export function StudentPaymentHistory({
     <>
       <Dialog open={open} onOpenChange={onOpenChange}>
         <DialogContent className="max-w-7xl max-h-[90vh] overflow-y-auto">
+          <DialogDescription className="sr-only">
+            Complete payment history and fee records for {displayStudentName}
+          </DialogDescription>
           <PaymentHistoryDialogHeader 
             studentName={displayStudentName} 
             currentYear={currentYear} 

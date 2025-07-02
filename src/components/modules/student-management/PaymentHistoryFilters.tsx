@@ -16,7 +16,7 @@ interface PaymentHistoryFiltersProps {
   onSearchChange: (value: string) => void;
   academicYears: AcademicYear[];
   currentAcademicYear: string;
-  onYearChange: (year: string) => void;
+  onYearChange: (value: string) => void;
 }
 
 export function PaymentHistoryFilters({
@@ -27,35 +27,31 @@ export function PaymentHistoryFilters({
   onYearChange
 }: PaymentHistoryFiltersProps) {
   return (
-    <div className="flex items-center justify-between space-x-4">
-      <div className="flex items-center space-x-2">
-        <Search className="w-4 h-4 text-gray-400" />
+    <div className="flex flex-col sm:flex-row gap-4 p-4 bg-gray-50 rounded-lg">
+      <div className="flex-1 relative">
+        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
         <Input
-          placeholder="Search by fee type, status, payment method, or receipt number..."
+          placeholder="Search by fee type, payment method, receipt number..."
           value={searchTerm}
           onChange={(e) => onSearchChange(e.target.value)}
-          className="max-w-md"
+          className="pl-10"
         />
       </div>
-      
-      {academicYears.length > 0 && (
-        <div className="flex items-center space-x-2">
-          <span className="text-sm font-medium">Academic Year:</span>
-          <Select value={currentAcademicYear} onValueChange={onYearChange}>
-            <SelectTrigger className="w-48">
-              <SelectValue placeholder="Select academic year" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="">All Years</SelectItem>
-              {academicYears.map((year) => (
-                <SelectItem key={year.id} value={year.id}>
-                  {year.year_name} {year.is_current && "(Current)"}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-      )}
+      <div className="w-full sm:w-64">
+        <Select value={currentAcademicYear || "all"} onValueChange={onYearChange}>
+          <SelectTrigger>
+            <SelectValue placeholder="Select Academic Year" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All Academic Years</SelectItem>
+            {academicYears && academicYears.length > 0 && academicYears.map((year) => (
+              <SelectItem key={year.id} value={year.id}>
+                {year.year_name} {year.is_current ? "(Current)" : ""}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
     </div>
   );
 }
