@@ -24,6 +24,7 @@ interface EnhancedFeeTableRowProps {
   onDiscountClick: (fee: Fee) => void;
   onHistoryClick: (student: Fee['student']) => void;
   onNotesEdit: (feeId: string, notes: string) => void;
+  onReminderClick: (fee: Fee) => void;
 }
 
 export function EnhancedFeeTableRow({
@@ -33,10 +34,11 @@ export function EnhancedFeeTableRow({
   onPaymentClick,
   onDiscountClick,
   onHistoryClick,
-  onNotesEdit
+  onNotesEdit,
+  onReminderClick
 }: EnhancedFeeTableRowProps) {
   const [isEditingNotes, setIsEditingNotes] = useState(false);
-  const [notesValue, setNotesValue] = useState(fee.discount_notes || '');
+  const [notesValue, setNotesValue] = useState(fee.notes || '');
 
   const finalFee = fee.actual_amount - fee.discount_amount;
   const balanceAmount = finalFee - fee.total_paid;
@@ -57,7 +59,7 @@ export function EnhancedFeeTableRow({
   };
 
   const handleCancelNotes = () => {
-    setNotesValue(fee.discount_notes || '');
+    setNotesValue(fee.notes || '');
     setIsEditingNotes(false);
   };
 
@@ -128,7 +130,7 @@ export function EnhancedFeeTableRow({
         ) : (
           <div className="flex items-center gap-1">
             <span className="text-xs text-gray-600 max-w-20 truncate">
-              {fee.discount_notes || 'Add notes...'}
+              {fee.notes || 'Add notes...'}
             </span>
             <Button 
               size="sm" 
@@ -173,6 +175,7 @@ export function EnhancedFeeTableRow({
             <Button
               variant="outline"
               size="sm"
+              onClick={() => onReminderClick(fee)}
               title="Send reminder"
               className="text-orange-600 border-orange-200 hover:bg-orange-50"
             >

@@ -1,4 +1,5 @@
 import React from "react";
+import { supabase } from "@/integrations/supabase/client";
 import { FeeManagementHeader } from "./fee-management/FeeManagementHeader";
 import { EnhancedFeeStats } from "./fee-management/EnhancedFeeStats";
 import { BulkActionsPanel } from "./fee-management/BulkActionsPanel";
@@ -6,6 +7,8 @@ import { EnhancedFeeTable } from "./fee-management/EnhancedFeeTable";
 import { EnhancedFilters } from "./fee-management/EnhancedFilters";
 import { ExportButtons } from "./fee-management/ExportButtons";
 import { DiscountDialog } from "./fee-management/DiscountDialog";
+import { PaymentRecordDialog } from "./fee-management/PaymentRecordDialog";
+import { ReminderDialog } from "./fee-management/ReminderDialog";
 import { StudentPaymentHistory } from "./student-management/StudentPaymentHistory";
 import { PaymentHistoryErrorBoundary } from "./student-management/PaymentHistoryErrorBoundary";
 import { useFeeData } from "./fee-management/useFeeData";
@@ -37,6 +40,8 @@ export default function FeeManagement() {
   } = useFeeManagement();
 
   const [discountDialogOpen, setDiscountDialogOpen] = React.useState(false);
+  const [paymentDialogOpen, setPaymentDialogOpen] = React.useState(false);
+  const [reminderDialogOpen, setReminderDialogOpen] = React.useState(false);
   const [selectedFee, setSelectedFee] = React.useState(null);
   const [selectedFees, setSelectedFees] = React.useState<Set<string>>(new Set());
 
@@ -59,8 +64,8 @@ export default function FeeManagement() {
   };
 
   const handlePaymentClick = (fee) => {
-    console.log('Payment clicked for fee:', fee.id);
-    // Payment functionality to be implemented
+    setSelectedFee(fee);
+    setPaymentDialogOpen(true);
   };
 
   const handleHistoryClick = (student) => {
@@ -86,6 +91,11 @@ export default function FeeManagement() {
     } catch (error) {
       console.error('❌ Error opening history dialog:', error);
     }
+  };
+
+  const handleReminderClick = (fee) => {
+    setSelectedFees(new Set([fee.id]));
+    setReminderDialogOpen(true);
   };
 
   const currentYear = academicYears.find(year => year.is_current);
@@ -122,6 +132,10 @@ export default function FeeManagement() {
         selectedFees={selectedFees}
         onSelectionChange={setSelectedFees}
         onRefresh={refetchFees}
+        onBulkReminder={(feeIds) => {
+          setSelectedFees(new Set(feeIds));
+          setReminderDialogOpen(true);
+        }}
       />
 
       <div className="space-y-4">
@@ -145,10 +159,20 @@ export default function FeeManagement() {
           onPaymentClick={handlePaymentClick}
           onDiscountClick={handleDiscountClick}
           onHistoryClick={handleHistoryClick}
-          onNotesEdit={(feeId, notes) => {
-            console.log('Notes updated for fee:', feeId, notes);
-            // This would update the fee notes in the database
+          onNotesEdit={async (feeId, notes) => {
+            try {
+              const { error } = await supabase
+                .from('fees')
+                .update({ notes } as any)
+                .eq('id', feeId);
+                
+              if (error) throw error;
+              refetchFees();
+            } catch (error) {
+              console.error('Error updating notes:', error);
+            }
           }}
+          onReminderClick={handleReminderClick}
         />
       </div>
 
@@ -156,6 +180,20 @@ export default function FeeManagement() {
         open={discountDialogOpen}
         onOpenChange={setDiscountDialogOpen}
         selectedFee={selectedFee}
+        onSuccess={refetchFees}
+      />
+
+      <PaymentRecordDialog
+        open={paymentDialogOpen}
+        onOpenChange={setPaymentDialogOpen}
+        fee={selectedFee}
+        onSuccess={refetchFees}
+      />
+
+      <ReminderDialog
+        open={reminderDialogOpen}
+        onOpenChange={setReminderDialogOpen}
+        fees={filteredFees.filter(f => selectedFees.has(f.id))}
         onSuccess={refetchFees}
       />
 

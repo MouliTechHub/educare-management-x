@@ -12,6 +12,7 @@ interface EnhancedFeeTableProps {
   onDiscountClick: (fee: Fee) => void;
   onHistoryClick: (student: Fee['student']) => void;
   onNotesEdit: (feeId: string, notes: string) => void;
+  onReminderClick: (fee: Fee) => void;
 }
 
 export function EnhancedFeeTable({ 
@@ -21,7 +22,8 @@ export function EnhancedFeeTable({
   onPaymentClick, 
   onDiscountClick, 
   onHistoryClick,
-  onNotesEdit 
+  onNotesEdit,
+  onReminderClick 
 }: EnhancedFeeTableProps) {
   if (fees.length === 0) {
     return (
@@ -91,6 +93,7 @@ export function EnhancedFeeTable({
               onDiscountClick={onDiscountClick}
               onHistoryClick={onHistoryClick}
               onNotesEdit={onNotesEdit}
+              onReminderClick={onReminderClick}
             />
           ))}
         </TableBody>

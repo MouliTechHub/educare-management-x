@@ -35,7 +35,7 @@ export interface Fee {
   discount_updated_by: string | null;
   discount_updated_at: string | null;
   academic_year_id: string;
-  notes?: string;
+  notes: string | null;
   student?: {
     id: string;
     first_name: string;

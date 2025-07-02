@@ -30,13 +30,15 @@ interface BulkActionsPanelProps {
   selectedFees: Set<string>;
   onSelectionChange: (feeIds: Set<string>) => void;
   onRefresh: () => void;
+  onBulkReminder: (feeIds: string[]) => void;
 }
 
-export function BulkActionsPanel({ 
-  fees, 
-  selectedFees, 
-  onSelectionChange, 
-  onRefresh 
+export function BulkActionsPanel({
+  fees,
+  selectedFees,
+  onSelectionChange,
+  onRefresh,
+  onBulkReminder
 }: BulkActionsPanelProps) {
   const [showBulkDialog, setShowBulkDialog] = useState(false);
   const [actionType, setActionType] = useState<'discount' | 'reminder' | ''>('');
