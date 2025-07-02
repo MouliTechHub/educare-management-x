@@ -57,7 +57,8 @@ export function TeacherManagement() {
   const filteredTeachers = teachers.filter((teacher) =>
     `${teacher.first_name} ${teacher.last_name}`.toLowerCase().includes(searchTerm.toLowerCase()) ||
     teacher.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    (teacher.employee_id && teacher.employee_id.toLowerCase().includes(searchTerm.toLowerCase()))
+    (teacher.employee_id && teacher.employee_id.toLowerCase().includes(searchTerm.toLowerCase())) ||
+    (teacher.aadhaar_number && teacher.aadhaar_number.includes(searchTerm.replace(/\s/g, '')))
   );
 
   if (loading) {
@@ -102,10 +103,10 @@ export function TeacherManagement() {
             <div className="flex items-center space-x-2">
               <Search className="w-4 h-4 text-gray-400" />
               <Input
-                placeholder="Search teachers..."
+                placeholder="Search by name, email, employee ID, or Aadhaar..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-64"
+                className="w-80"
               />
             </div>
           </div>

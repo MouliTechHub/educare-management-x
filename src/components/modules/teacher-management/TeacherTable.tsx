@@ -2,7 +2,7 @@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { UserCheck, Edit, Trash2 } from "lucide-react";
+import { UserCheck, Edit, Trash2, Eye } from "lucide-react";
 import { Teacher } from "@/types/database";
 
 interface TeacherTableProps {
@@ -12,6 +12,12 @@ interface TeacherTableProps {
 }
 
 export function TeacherTable({ teachers, onEditTeacher, onDeleteTeacher }: TeacherTableProps) {
+  const maskAadhaar = (aadhaar: string) => {
+    if (!aadhaar) return "N/A";
+    const cleaned = aadhaar.replace(/\s/g, '');
+    if (cleaned.length !== 12) return "Invalid";
+    return `XXXX XXXX ${cleaned.slice(-4)}`;
+  };
   return (
     <Table>
       <TableHeader>
@@ -20,6 +26,7 @@ export function TeacherTable({ teachers, onEditTeacher, onDeleteTeacher }: Teach
           <TableHead>Employee ID</TableHead>
           <TableHead>Email</TableHead>
           <TableHead>Phone</TableHead>
+          <TableHead>Aadhaar</TableHead>
           <TableHead>Department</TableHead>
           <TableHead>Designation</TableHead>
           <TableHead>Status</TableHead>
@@ -38,6 +45,9 @@ export function TeacherTable({ teachers, onEditTeacher, onDeleteTeacher }: Teach
             <TableCell>{teacher.employee_id || "N/A"}</TableCell>
             <TableCell>{teacher.email}</TableCell>
             <TableCell>{teacher.phone_number}</TableCell>
+            <TableCell>
+              <span className="font-mono text-sm">{maskAadhaar(teacher.aadhaar_number)}</span>
+            </TableCell>
             <TableCell>{teacher.department || "N/A"}</TableCell>
             <TableCell>{teacher.designation || "N/A"}</TableCell>
             <TableCell>

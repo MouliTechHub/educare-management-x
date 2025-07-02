@@ -253,3 +253,42 @@ export interface Fee {
   created_at: string;
   updated_at: string;
 }
+
+// Expense Management
+export interface Expense {
+  id: string;
+  date: string;
+  category: string;
+  description: string;
+  amount: number;
+  paid_to: string;
+  payment_mode: string;
+  receipt_url: string | null;
+  academic_year_id: string;
+  month: number;
+  notes: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+// Teacher Salary Management
+export interface TeacherSalary {
+  id: string;
+  teacher_id: string;
+  month: number;
+  year: number;
+  academic_year_id: string;
+  base_salary: number;
+  attendance_days: number;
+  working_days: number;
+  calculated_salary: number;
+  bonus: number;
+  deductions: number;
+  final_salary: number;
+  payment_date: string | null;
+  payment_mode: string | null;
+  status: 'Pending' | 'Paid';
+  notes: string | null;
+  created_at: string;
+  updated_at: string;
+}

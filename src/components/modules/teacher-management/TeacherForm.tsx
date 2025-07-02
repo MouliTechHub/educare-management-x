@@ -18,6 +18,7 @@ interface TeacherFormProps {
 export function TeacherForm({ selectedTeacher, onSubmit, onCancel }: TeacherFormProps) {
   const [phoneError, setPhoneError] = useState<string>('');
   const [emergencyPhoneError, setEmergencyPhoneError] = useState<string>('');
+  const [aadhaarError, setAadhaarError] = useState<string>('');
 
   const form = useForm<TeacherFormData>({
     defaultValues: {
@@ -41,6 +42,8 @@ export function TeacherForm({ selectedTeacher, onSubmit, onCancel }: TeacherForm
       emergency_contact_name: selectedTeacher?.emergency_contact_name || "",
       emergency_contact_phone: selectedTeacher?.emergency_contact_phone || "",
       emergency_contact_relation: selectedTeacher?.emergency_contact_relation || "",
+      aadhaar_number: selectedTeacher?.aadhaar_number || "",
+      pan_number: selectedTeacher?.pan_number || "",
     },
   });
 
@@ -79,6 +82,27 @@ export function TeacherForm({ selectedTeacher, onSubmit, onCancel }: TeacherForm
         setEmergencyPhoneError('');
       }
     }
+  };
+
+  const validateAadhaar = (value: string) => {
+    const cleaned = value.replace(/\s/g, '');
+    if (!cleaned) {
+      setAadhaarError('Aadhaar number is required');
+      return false;
+    }
+    if (!/^[0-9]{12}$/.test(cleaned)) {
+      setAadhaarError('Aadhaar number must be exactly 12 digits');
+      return false;
+    }
+    setAadhaarError('');
+    return true;
+  };
+
+  const formatAadhaar = (value: string) => {
+    const cleaned = value.replace(/\s/g, '');
+    if (cleaned.length <= 4) return cleaned;
+    if (cleaned.length <= 8) return `${cleaned.slice(0, 4)} ${cleaned.slice(4)}`;
+    return `${cleaned.slice(0, 4)} ${cleaned.slice(4, 8)} ${cleaned.slice(8, 12)}`;
   };
 
   const handleSubmit = async (data: TeacherFormData) => {
@@ -444,11 +468,65 @@ export function TeacherForm({ selectedTeacher, onSubmit, onCancel }: TeacherForm
           </div>
         </div>
 
+        {/* Identity Documents */}
+        <div className="space-y-4">
+          <h3 className="text-lg font-semibold">Identity Documents</h3>
+          <div className="grid grid-cols-2 gap-4">
+            <FormField
+              control={form.control}
+              name="aadhaar_number"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Aadhaar Number *</FormLabel>
+                  <FormControl>
+                    <Input 
+                      {...field} 
+                      required
+                      placeholder="XXXX XXXX XXXX"
+                      maxLength={14}
+                      onChange={(e) => {
+                        const formatted = formatAadhaar(e.target.value);
+                        field.onChange(formatted);
+                        validateAadhaar(e.target.value);
+                      }}
+                      onBlur={(e) => validateAadhaar(e.target.value)}
+                    />
+                  </FormControl>
+                  {aadhaarError && (
+                    <p className="text-xs text-destructive mt-1">{aadhaarError}</p>
+                  )}
+                  <p className="text-xs text-gray-500 mt-1">12-digit unique identification number</p>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name="pan_number"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>PAN Number</FormLabel>
+                  <FormControl>
+                    <Input 
+                      {...field} 
+                      placeholder="AAAAA9999A"
+                      maxLength={10}
+                      onChange={(e) => field.onChange(e.target.value.toUpperCase())}
+                    />
+                  </FormControl>
+                  <p className="text-xs text-gray-500 mt-1">10-character alphanumeric code (optional)</p>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+          </div>
+        </div>
+
         <div className="flex justify-end space-x-2 pt-4">
           <Button type="button" variant="outline" onClick={onCancel}>
             Cancel
           </Button>
-          <Button type="submit" disabled={!!phoneError || !!emergencyPhoneError}>
+          <Button type="submit" disabled={!!phoneError || !!emergencyPhoneError || !!aadhaarError}>
             {selectedTeacher ? "Update" : "Create"} Teacher
           </Button>
         </div>
