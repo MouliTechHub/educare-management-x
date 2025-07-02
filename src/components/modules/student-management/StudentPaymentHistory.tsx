@@ -10,6 +10,8 @@ import { PaymentHistoryTab } from "./PaymentHistoryTab";
 import { PaymentHistoryDialogHeader } from "./PaymentHistoryDialogHeader";
 import { PaymentHistoryEmptyState } from "./PaymentHistoryEmptyState";
 import { useStudentPaymentHistory } from "./useStudentPaymentHistory";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { AlertTriangle, Loader2 } from "lucide-react";
 
 interface AcademicYear {
   id: string;
@@ -43,6 +45,7 @@ export function StudentPaymentHistory({
     paymentHistory,
     paymentReversals,
     loading,
+    error,
     reversalDialogOpen,
     setReversalDialogOpen,
     selectedPayment,
@@ -51,37 +54,70 @@ export function StudentPaymentHistory({
   } = useStudentPaymentHistory(fees, currentAcademicYear);
 
   useEffect(() => {
-    if (open) {
+    if (open && fees && fees.length > 0) {
+      console.log('📖 Payment history dialog opened, fetching data...');
       fetchPaymentHistory();
     }
   }, [open, fees, currentAcademicYear]);
+
+  // Handle case where no student name is provided
+  const displayStudentName = studentName || 'Unknown Student';
+
+  // Handle case where no fees are provided
+  if (!fees || fees.length === 0) {
+    return (
+      <Dialog open={open} onOpenChange={onOpenChange}>
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+          <PaymentHistoryDialogHeader 
+            studentName={displayStudentName} 
+            currentYear={academicYears.find(year => year.id === currentAcademicYear)} 
+          />
+          
+          <Alert>
+            <AlertTriangle className="h-4 w-4" />
+            <AlertDescription>
+              No fee records found for this student. Please check if the student has been assigned any fees.
+            </AlertDescription>
+          </Alert>
+        </DialogContent>
+      </Dialog>
+    );
+  }
 
   const currentYear = academicYears.find(year => year.id === currentAcademicYear);
   const yearFilteredFees = currentAcademicYear 
     ? fees.filter(fee => fee.academic_year_id === currentAcademicYear)
     : fees;
 
-  const filteredFees = yearFilteredFees.filter(fee =>
-    fee.fee_type.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    fee.status.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    (fee.receipt_number && fee.receipt_number.toLowerCase().includes(searchTerm.toLowerCase()))
-  );
+  const filteredFees = yearFilteredFees.filter(fee => {
+    if (!searchTerm) return true;
+    const searchLower = searchTerm.toLowerCase();
+    return (
+      fee.fee_type?.toLowerCase().includes(searchLower) ||
+      fee.status?.toLowerCase().includes(searchLower) ||
+      (fee.receipt_number && fee.receipt_number.toLowerCase().includes(searchLower))
+    );
+  });
 
-  const filteredPaymentHistory = paymentHistory.filter(payment =>
-    payment.fee_type.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    payment.payment_method.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    payment.payment_receiver.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    payment.receipt_number.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  const filteredPaymentHistory = paymentHistory.filter(payment => {
+    if (!searchTerm) return true;
+    const searchLower = searchTerm.toLowerCase();
+    return (
+      payment.fee_type?.toLowerCase().includes(searchLower) ||
+      payment.payment_method?.toLowerCase().includes(searchLower) ||
+      payment.payment_receiver?.toLowerCase().includes(searchLower) ||
+      payment.receipt_number?.toLowerCase().includes(searchLower)
+    );
+  });
 
-  const showEmptyState = filteredFees.length === 0 && filteredPaymentHistory.length === 0;
+  const showEmptyState = !loading && !error && filteredFees.length === 0 && filteredPaymentHistory.length === 0;
 
   return (
     <>
       <Dialog open={open} onOpenChange={onOpenChange}>
         <DialogContent className="max-w-7xl max-h-[90vh] overflow-y-auto">
           <PaymentHistoryDialogHeader 
-            studentName={studentName} 
+            studentName={displayStudentName} 
             currentYear={currentYear} 
           />
           
@@ -122,36 +158,57 @@ export function StudentPaymentHistory({
               onYearChange={setCurrentAcademicYear}
             />
 
-            <Tabs defaultValue="payments" className="w-full">
-              <TabsList className="grid w-full grid-cols-2">
-                <TabsTrigger value="payments" className="flex items-center space-x-2">
-                  <span>🕐 Detailed Payment Timeline</span>
-                </TabsTrigger>
-                <TabsTrigger value="fees" className="flex items-center space-x-2">
-                  <span>📋 Fee Structure Summary</span>
-                </TabsTrigger>
-              </TabsList>
-              
-              <TabsContent value="payments" className="space-y-4">
-                <PaymentHistoryTab
-                  paymentHistory={filteredPaymentHistory}
-                  paymentReversals={paymentReversals}
-                  loading={loading}
-                  onReversalClick={openReversalDialog}
-                />
-              </TabsContent>
-              
-              <TabsContent value="fees" className="space-y-4">
-                <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
-                  <h3 className="font-medium text-yellow-900 mb-2">Fee Structure Overview</h3>
-                  <p className="text-sm text-yellow-700">
-                    This shows the consolidated fee structure and payment status. 
-                    For detailed transaction history with timestamps, use the "Detailed Payment Timeline" tab.
-                  </p>
-                </div>
-                <FeeRecordsTab fees={filteredFees} />
-              </TabsContent>
-            </Tabs>
+            {/* Show loading state */}
+            {loading && (
+              <div className="flex items-center justify-center py-8">
+                <Loader2 className="w-6 h-6 animate-spin mr-2" />
+                <span>Loading payment history...</span>
+              </div>
+            )}
+
+            {/* Show error state */}
+            {error && !loading && (
+              <Alert variant="destructive">
+                <AlertTriangle className="h-4 w-4" />
+                <AlertDescription>
+                  {error}. Please try refreshing or contact support if the issue persists.
+                </AlertDescription>
+              </Alert>
+            )}
+
+            {/* Show content when not loading and no error */}
+            {!loading && !error && (
+              <Tabs defaultValue="payments" className="w-full">
+                <TabsList className="grid w-full grid-cols-2">
+                  <TabsTrigger value="payments" className="flex items-center space-x-2">
+                    <span>🕐 Detailed Payment Timeline ({filteredPaymentHistory.length})</span>
+                  </TabsTrigger>
+                  <TabsTrigger value="fees" className="flex items-center space-x-2">
+                    <span>📋 Fee Structure Summary ({filteredFees.length})</span>
+                  </TabsTrigger>
+                </TabsList>
+                
+                <TabsContent value="payments" className="space-y-4">
+                  <PaymentHistoryTab
+                    paymentHistory={filteredPaymentHistory}
+                    paymentReversals={paymentReversals}
+                    loading={loading}
+                    onReversalClick={openReversalDialog}
+                  />
+                </TabsContent>
+                
+                <TabsContent value="fees" className="space-y-4">
+                  <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+                    <h3 className="font-medium text-yellow-900 mb-2">Fee Structure Overview</h3>
+                    <p className="text-sm text-yellow-700">
+                      This shows the consolidated fee structure and payment status. 
+                      For detailed transaction history with timestamps, use the "Detailed Payment Timeline" tab.
+                    </p>
+                  </div>
+                  <FeeRecordsTab fees={filteredFees} />
+                </TabsContent>
+              </Tabs>
+            )}
 
             {showEmptyState && <PaymentHistoryEmptyState />}
           </div>

@@ -59,18 +59,21 @@ export default function FeeManagement() {
   };
 
   const handleHistoryClick = (student) => {
-    console.log('History clicked for student:', student);
+    console.log('🔍 History clicked for student:', student);
+    
     if (!student) {
-      console.warn('No student data provided for history');
+      console.warn('⚠️ No student data provided for history');
       return;
     }
     
     // Get all fees for this student across all fee systems
     const studentFees = fees.filter(fee => fee.student_id === student.id);
-    console.log('Student fees found:', studentFees.length);
+    console.log('📊 Student fees found:', studentFees.length);
     
-    // Create a comprehensive fee list for history
-    const studentName = `${student.first_name} ${student.last_name}`;
+    if (studentFees.length === 0) {
+      console.warn('⚠️ No fees found for student:', student.id);
+      // Still open the dialog to show "no records" message
+    }
     
     // Open history dialog with comprehensive fee data
     openHistoryDialog(student, studentFees);
