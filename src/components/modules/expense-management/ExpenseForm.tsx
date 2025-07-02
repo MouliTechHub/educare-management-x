@@ -98,6 +98,19 @@ export function ExpenseForm({ selectedExpense, onSubmit, onCancel }: ExpenseForm
       return;
     }
 
+    // Calculate month and year from date
+    const expenseDate = new Date(data.date);
+    data.month = expenseDate.getMonth() + 1;
+    data.year = expenseDate.getFullYear();
+
+    // Add created_by field
+    data.created_by = 'Admin';
+
+    // Add id if editing
+    if (selectedExpense) {
+      data.id = selectedExpense.id;
+    }
+
     try {
       await onSubmit(data);
     } catch (error: any) {
