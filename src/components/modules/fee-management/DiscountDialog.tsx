@@ -41,63 +41,119 @@ export function DiscountDialog({ open, onOpenChange, selectedFee, onSuccess }: D
 
     setLoading(true);
     try {
+      // Validation
+      if (data.amount <= 0) {
+        toast({
+          title: "Invalid discount amount",
+          description: "Discount amount must be greater than 0",
+          variant: "destructive",
+        });
+        setLoading(false);
+        return;
+      }
+
+      if (!data.reason) {
+        toast({
+          title: "Reason required",
+          description: "Please select a reason for the discount",
+          variant: "destructive",
+        });
+        setLoading(false);
+        return;
+      }
+
       let discountAmount = 0;
       
       if (data.type === 'Fixed Amount') {
         discountAmount = data.amount;
+        if (discountAmount > selectedFee.actual_amount) {
+          toast({
+            title: "Invalid discount amount",
+            description: "Discount cannot exceed the actual fee amount",
+            variant: "destructive",
+          });
+          setLoading(false);
+          return;
+        }
       } else if (data.type === 'Percentage') {
+        if (data.amount > 100) {
+          toast({
+            title: "Invalid percentage",
+            description: "Discount percentage cannot exceed 100%",
+            variant: "destructive",
+          });
+          setLoading(false);
+          return;
+        }
         discountAmount = (selectedFee.actual_amount * data.amount) / 100;
       }
 
       const currentYear = academicYears.find(year => year.is_current);
       if (!currentYear) throw new Error('No current academic year found');
 
-      // Check if fee record exists
-      const existingFee = existingFees.find(ef => 
+      // Apply discount to both fee systems for consistency
+      const discountData = {
+        discount_amount: discountAmount,
+        discount_notes: data.notes,
+        discount_updated_by: 'Admin',
+        discount_updated_at: new Date().toISOString()
+      };
+
+      // Update or create in legacy fees table
+      const legacyFee = existingFees.find(ef => 
         ef.student_id === selectedFee.student_id && 
         ef.fee_type === selectedFee.fee_type
       );
 
-      if (existingFee) {
-        // Update existing fee record
-        const { error } = await supabase
+      if (legacyFee) {
+        const { error: legacyError } = await supabase
           .from('fees')
-          .update({
-            discount_amount: discountAmount,
-            discount_notes: data.notes,
-            discount_updated_by: 'Admin',
-            discount_updated_at: new Date().toISOString()
-          })
-          .eq('id', existingFee.id);
+          .update(discountData)
+          .eq('id', legacyFee.id);
 
-        if (error) throw error;
+        if (legacyError) throw legacyError;
       } else {
-        // Create new fee record
+        // Create new legacy fee record if needed
         const feeStructure = feeStructures.find(fs => 
-          fs.class_id === selectedFee.student.class_id && 
+          fs.class_id === selectedFee.student?.class_id && 
           fs.fee_type === selectedFee.fee_type
         );
 
         if (feeStructure) {
-          const { error } = await supabase
+          const { error: legacyInsertError } = await supabase
             .from('fees')
             .insert({
               student_id: selectedFee.student_id,
               fee_type: selectedFee.fee_type,
               amount: feeStructure.amount,
               actual_amount: feeStructure.amount,
-              discount_amount: discountAmount,
+              ...discountData,
               total_paid: 0,
               due_date: selectedFee.due_date,
               status: 'Pending',
-              academic_year_id: currentYear.id,
-              discount_notes: data.notes,
-              discount_updated_by: 'Admin',
-              discount_updated_at: new Date().toISOString()
+              academic_year_id: currentYear.id
             });
 
-          if (error) throw error;
+          if (legacyInsertError) throw legacyInsertError;
         }
+      }
+
+      // Update enhanced fee records table if the record exists there
+      const { error: enhancedError } = await supabase
+        .from('student_fee_records')
+        .update({
+          discount_amount: discountAmount,
+          discount_notes: data.notes,
+          discount_updated_by: 'Admin',
+          discount_updated_at: new Date().toISOString()
+        })
+        .eq('student_id', selectedFee.student_id)
+        .eq('fee_type', selectedFee.fee_type)
+        .eq('academic_year_id', currentYear.id);
+
+      // Don't throw error if no enhanced record exists, as it's optional
+      if (enhancedError) {
+        console.warn('Enhanced fee record update failed:', enhancedError);
       }
 
       toast({

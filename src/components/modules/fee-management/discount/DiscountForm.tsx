@@ -62,7 +62,16 @@ export function DiscountForm({ form, onSubmit, loading, selectedFee, onCancel }:
                   step="0.01"
                   min="0"
                   max={form.watch('type') === 'Fixed Amount' ? selectedFee?.actual_amount : 100}
-                  onChange={(e) => field.onChange(parseFloat(e.target.value) || 0)}
+                  onChange={(e) => {
+                    const value = parseFloat(e.target.value) || 0;
+                    const maxValue = form.watch('type') === 'Fixed Amount' ? selectedFee?.actual_amount : 100;
+                    
+                    if (value > maxValue) {
+                      field.onChange(maxValue);
+                    } else {
+                      field.onChange(value);
+                    }
+                  }}
                 />
               </FormControl>
             </FormItem>
