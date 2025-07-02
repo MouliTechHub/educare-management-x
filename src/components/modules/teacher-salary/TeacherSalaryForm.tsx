@@ -26,6 +26,7 @@ export function TeacherSalaryForm({ selectedSalary, teachers, onSubmit, onCancel
       teacher_id: selectedSalary?.teacher_id || "",
       month: selectedSalary?.month || new Date().getMonth() + 1,
       year: selectedSalary?.year || new Date().getFullYear(),
+      academic_year_id: selectedSalary?.academic_year_id || "",
       salary_rate: selectedSalary?.salary_rate || 0,
       attended_days: selectedSalary?.attended_days || 26,
       working_days: selectedSalary?.working_days || 26,
@@ -73,6 +74,14 @@ export function TeacherSalaryForm({ selectedSalary, teachers, onSubmit, onCancel
 
       if (error) throw error;
       setAcademicYears(data || []);
+      
+      // Auto-select current academic year if not editing
+      if (!selectedSalary && data?.length > 0) {
+        const current = data.find(year => year.is_current);
+        if (current) {
+          form.setValue('academic_year_id', current.id);
+        }
+      }
     } catch (error) {
       console.error("Error fetching academic years:", error);
     }
@@ -80,6 +89,15 @@ export function TeacherSalaryForm({ selectedSalary, teachers, onSubmit, onCancel
 
   const handleSubmit = async (data: any) => {
     try {
+      // Ensure calculated_salary and final_salary are included
+      data.calculated_salary = (Number(data.salary_rate) / Number(data.working_days)) * Number(data.attended_days);
+      data.final_salary = data.calculated_salary + (Number(data.bonus) || 0) - (Number(data.deductions) || 0);
+      
+      // Add id if editing
+      if (selectedSalary) {
+        data.id = selectedSalary.id;
+      }
+      
       await onSubmit(data);
     } catch (error: any) {
       console.error("Error saving salary:", error);
@@ -164,6 +182,30 @@ export function TeacherSalaryForm({ selectedSalary, teachers, onSubmit, onCancel
                           </SelectItem>
                         );
                       })}
+                    </SelectContent>
+                  </Select>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name="academic_year_id"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Academic Year *</FormLabel>
+                  <Select onValueChange={field.onChange} value={field.value}>
+                    <FormControl>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select academic year" />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      {academicYears.map((year) => (
+                        <SelectItem key={year.id} value={year.id}>
+                          {year.year_name} {year.is_current && '(Current)'}
+                        </SelectItem>
+                      ))}
                     </SelectContent>
                   </Select>
                   <FormMessage />
