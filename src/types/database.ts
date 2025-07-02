@@ -106,7 +106,7 @@ export interface FeeStructure {
   id: string;
   class_id: string;
   academic_year_id: string;
-  fee_type: 'Tuition' | 'Transport' | 'Meals' | 'Books' | 'Uniform' | 'Activities' | 'Laboratory' | 'Library' | 'Sports' | 'Other';
+  fee_type: 'Tuition Fee' | 'Transport Fee' | 'Meals Fee' | 'Books Fee' | 'Uniform Fee' | 'Activities Fee' | 'Laboratory Fee' | 'Library Fee' | 'Sports Fee' | 'Development Fee' | 'Exam Fee' | 'Other Fee';
   amount: number;
   frequency: 'Monthly' | 'Quarterly' | 'Annually' | 'One Time';
   description: string | null;

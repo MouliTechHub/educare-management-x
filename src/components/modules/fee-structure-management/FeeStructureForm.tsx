@@ -5,7 +5,21 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { useState, useEffect } from "react";
-import { FeeStructure, Class, AcademicYear } from "@/types/database";
+import { Class, AcademicYear } from "@/types/database";
+import { FEE_TYPE_OPTIONS } from "@/constants/feeTypes";
+
+interface FeeStructure {
+  id: string;
+  class_id: string;
+  academic_year_id: string;
+  fee_type: string;
+  amount: number;
+  frequency: string;
+  description: string | null;
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
+}
 
 interface FeeStructureFormProps {
   selectedStructure: FeeStructure | null;
@@ -14,11 +28,6 @@ interface FeeStructureFormProps {
   onSubmit: (data: any) => void;
   onCancel: () => void;
 }
-
-const FEE_TYPES = [
-  'Tuition', 'Transport', 'Meals', 'Books', 'Uniform', 
-  'Activities', 'Laboratory', 'Library', 'Sports', 'Other'
-];
 
 const FREQUENCIES = ['Monthly', 'Quarterly', 'Annually', 'One Time'];
 
@@ -127,9 +136,9 @@ export function FeeStructureForm({ selectedStructure, classes, academicYears, on
               <SelectValue placeholder="Select fee type" />
             </SelectTrigger>
             <SelectContent>
-              {FEE_TYPES.map((type) => (
-                <SelectItem key={type} value={type}>
-                  {type}
+              {FEE_TYPE_OPTIONS.map((option) => (
+                <SelectItem key={option.value} value={option.value}>
+                  {option.label}
                 </SelectItem>
               ))}
             </SelectContent>

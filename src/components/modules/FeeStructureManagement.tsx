@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -9,12 +10,13 @@ import { useToast } from "@/hooks/use-toast";
 import { Class, AcademicYear } from "@/types/database";
 import { FeeStructureForm } from "./fee-structure-management/FeeStructureForm";
 import { FeeStructureTable } from "./fee-structure-management/FeeStructureTable";
+import { STANDARDIZED_FEE_TYPES } from "@/constants/feeTypes";
 
 interface FeeStructure {
   id: string;
   class_id: string;
   academic_year_id: string;
-  fee_type: 'Tuition' | 'Transport' | 'Meals' | 'Books' | 'Uniform' | 'Activities' | 'Laboratory' | 'Library' | 'Sports' | 'Other';
+  fee_type: typeof STANDARDIZED_FEE_TYPES[number];
   amount: number;
   frequency: 'Monthly' | 'Quarterly' | 'Annually' | 'One Time';
   description: string | null;

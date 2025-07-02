@@ -1,4 +1,3 @@
-
 import React from "react";
 import { FeeManagementHeader } from "./fee-management/FeeManagementHeader";
 import { FeeStats } from "./fee-management/FeeStats";
@@ -8,6 +7,7 @@ import { StudentPaymentHistory } from "./student-management/StudentPaymentHistor
 import { PaymentHistoryErrorBoundary } from "./student-management/PaymentHistoryErrorBoundary";
 import { useFeeData } from "./fee-management/useFeeData";
 import { useFeeManagement } from "./fee-management/useFeeManagement";
+import { FeeTypeValidator } from "./fee-management/FeeTypeValidator";
 
 export default function FeeManagement() {
   const {
@@ -112,6 +112,8 @@ export default function FeeManagement() {
       />
 
       <FeeStats fees={filteredFees} />
+
+      <FeeTypeValidator />
 
       <FeeManagementContent
         currentYear={currentYear}

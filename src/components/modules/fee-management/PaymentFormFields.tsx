@@ -125,9 +125,12 @@ export function PaymentFormFields({ form, balanceAmount, validationErrors, onFie
             <FormControl>
               <select {...field} className="w-full p-2 border rounded-md" required>
                 <option value="Cash">Cash</option>
+                <option value="PhonePe">PhonePe</option>
+                <option value="GPay">GPay</option>
                 <option value="Online">Online Transfer</option>
                 <option value="Cheque">Cheque</option>
                 <option value="Card">Card</option>
+                <option value="Bank Transfer">Bank Transfer</option>
               </select>
             </FormControl>
             <FormMessage />

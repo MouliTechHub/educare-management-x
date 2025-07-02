@@ -1,7 +1,9 @@
+
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
 import { Class, FilterState } from "./types/feeTypes";
+import { FEE_TYPE_OPTIONS } from "@/constants/feeTypes";
 
 interface FeeManagementFiltersProps {
   searchTerm: string;
@@ -10,18 +12,6 @@ interface FeeManagementFiltersProps {
   onFiltersChange: (filters: FilterState) => void;
   classes: Class[];
 }
-
-// Valid fee types that match the database constraint
-const VALID_FEE_TYPES = [
-  { value: 'Tuition', label: 'Tuition Fee' },
-  { value: 'Development', label: 'Development Fee' },
-  { value: 'Library', label: 'Library Fee' },
-  { value: 'Lab', label: 'Laboratory Fee' },
-  { value: 'Sports', label: 'Sports Fee' },
-  { value: 'Transport', label: 'Transport Fee' },
-  { value: 'Exam', label: 'Exam Fee' },
-  { value: 'Other', label: 'Other' }
-];
 
 export function FeeManagementFilters({ 
   searchTerm, 
@@ -108,7 +98,7 @@ export function FeeManagementFilters({
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">All Fee Types</SelectItem>
-              {VALID_FEE_TYPES.map((feeType) => (
+              {FEE_TYPE_OPTIONS.map((feeType) => (
                 <SelectItem key={feeType.value} value={feeType.value}>
                   {feeType.label}
                 </SelectItem>
