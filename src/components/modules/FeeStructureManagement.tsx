@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -61,7 +60,10 @@ export function FeeStructureManagement() {
         .eq("is_active", true)
         .order("created_at", { ascending: false });
 
-      if (structuresError) throw structuresError;
+      if (structuresError) {
+        console.error('Error fetching fee structures:', structuresError);
+        throw structuresError;
+      }
 
       // Transform data to match StandardizedFeeStructure interface
       const transformedStructures: StandardizedFeeStructure[] = (structuresData || []).map(structure => ({
@@ -99,9 +101,10 @@ export function FeeStructureManagement() {
       setClasses(classesData || []);
       setAcademicYears(yearsData || []);
     } catch (error: any) {
+      console.error('Error in fetchData:', error);
       toast({
         title: "Error fetching data",
-        description: error.message,
+        description: error.message || "Failed to fetch data",
         variant: "destructive",
       });
     } finally {
@@ -111,34 +114,43 @@ export function FeeStructureManagement() {
 
   const handleSubmit = async (data: any) => {
     try {
-      if (selectedStructure) {
-        const { error } = await supabase
-          .from("fee_structures")
-          .update({
-            class_id: data.class_id,
-            academic_year_id: data.academic_year_id,
-            fee_type: data.fee_type,
-            amount: parseFloat(data.amount),
-            frequency: data.frequency,
-            description: data.description || null,
-          })
-          .eq("id", selectedStructure.id);
+      console.log('Submitting fee structure data:', data);
+      
+      const submitData = {
+        class_id: data.class_id,
+        academic_year_id: data.academic_year_id,
+        fee_type: data.fee_type,
+        amount: parseFloat(data.amount),
+        frequency: data.frequency,
+        description: data.description || null,
+      };
 
-        if (error) throw error;
+      console.log('Final submit data to database:', submitData);
+
+      if (selectedStructure) {
+        const { data: result, error } = await supabase
+          .from("fee_structures")
+          .update(submitData)
+          .eq("id", selectedStructure.id)
+          .select();
+
+        console.log('Update result:', result);
+        if (error) {
+          console.error('Update error:', error);
+          throw error;
+        }
         toast({ title: "Fee structure updated successfully" });
       } else {
-        const { error } = await supabase
+        const { data: result, error } = await supabase
           .from("fee_structures")
-          .insert([{
-            class_id: data.class_id,
-            academic_year_id: data.academic_year_id,
-            fee_type: data.fee_type,
-            amount: parseFloat(data.amount),
-            frequency: data.frequency,
-            description: data.description || null,
-          }]);
+          .insert([submitData])
+          .select();
 
-        if (error) throw error;
+        console.log('Insert result:', result);
+        if (error) {
+          console.error('Insert error:', error);
+          throw error;
+        }
         toast({ title: "Fee structure created successfully" });
       }
 
@@ -146,9 +158,19 @@ export function FeeStructureManagement() {
       setSelectedStructure(null);
       fetchData();
     } catch (error: any) {
+      console.error('Error saving fee structure:', error);
+      
+      let errorMessage = "Failed to save fee structure";
+      if (error.message) {
+        errorMessage = error.message;
+      }
+      if (error.details) {
+        errorMessage += ` - ${error.details}`;
+      }
+      
       toast({
         title: "Error saving fee structure",
-        description: error.message,
+        description: errorMessage,
         variant: "destructive",
       });
     }

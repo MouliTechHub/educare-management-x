@@ -7,6 +7,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { useState, useEffect } from "react";
 import { Class, AcademicYear } from "@/types/database";
 import { FEE_TYPE_OPTIONS } from "@/constants/feeTypes";
+import { useToast } from "@/hooks/use-toast";
 
 interface FeeStructure {
   id: string;
@@ -32,6 +33,7 @@ interface FeeStructureFormProps {
 const FREQUENCIES = ['Monthly', 'Quarterly', 'Annually', 'One Time'];
 
 export function FeeStructureForm({ selectedStructure, classes, academicYears, onSubmit, onCancel }: FeeStructureFormProps) {
+  const { toast } = useToast();
   const [formData, setFormData] = useState({
     class_id: '',
     academic_year_id: '',
@@ -65,23 +67,62 @@ export function FeeStructureForm({ selectedStructure, classes, academicYears, on
     }
   }, [selectedStructure, academicYears]);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
+    console.log('Form data being submitted:', formData);
+    
     if (!formData.class_id || !formData.academic_year_id || !formData.fee_type || !formData.amount || !formData.frequency) {
-      alert('Please fill in all required fields');
+      toast({
+        title: "Validation Error",
+        description: "Please fill in all required fields",
+        variant: "destructive",
+      });
       return;
     }
 
     if (parseFloat(formData.amount) <= 0) {
-      alert('Amount must be greater than 0');
+      toast({
+        title: "Validation Error", 
+        description: "Amount must be greater than 0",
+        variant: "destructive",
+      });
       return;
     }
 
-    onSubmit(formData);
+    // Ensure we're using exact fee type values
+    const selectedFeeType = FEE_TYPE_OPTIONS.find(option => option.value === formData.fee_type);
+    if (!selectedFeeType) {
+      toast({
+        title: "Validation Error",
+        description: "Please select a valid fee type",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const submitData = {
+      ...formData,
+      fee_type: selectedFeeType.value, // Use exact value from constants
+      amount: parseFloat(formData.amount)
+    };
+
+    console.log('Final submit data:', submitData);
+    
+    try {
+      await onSubmit(submitData);
+    } catch (error) {
+      console.error('Error submitting form:', error);
+      toast({
+        title: "Error",
+        description: error instanceof Error ? error.message : "Failed to save fee structure",
+        variant: "destructive",
+      });
+    }
   };
 
   const handleInputChange = (field: string, value: string) => {
+    console.log(`Updating ${field} to:`, value);
     setFormData({ ...formData, [field]: value });
   };
 
@@ -143,6 +184,11 @@ export function FeeStructureForm({ selectedStructure, classes, academicYears, on
               ))}
             </SelectContent>
           </Select>
+          {formData.fee_type && (
+            <p className="text-xs text-gray-500">
+              Selected: {formData.fee_type}
+            </p>
+          )}
         </div>
 
         <div className="space-y-2">
