@@ -12,7 +12,7 @@ interface Fee {
   fee_type: string;
   due_date: string;
   payment_date: string | null;
-  status: 'Pending' | 'Paid' | 'Overdue';
+  status: 'Pending' | 'Paid' | 'Overdue' | 'Partial';
   receipt_number: string | null;
   created_at: string;
   updated_at: string;
@@ -30,6 +30,8 @@ interface Fee {
     parent_phone?: string;
     parent_email?: string;
     class_id?: string;
+    gender?: 'Male' | 'Female' | 'Other';
+    status?: 'Active' | 'Inactive' | 'Alumni';
   };
 }
 
@@ -41,7 +43,7 @@ export function FeeStats({ fees }: FeeStatsProps) {
   const stats = {
     total: fees.reduce((sum, fee) => sum + (fee.actual_amount - fee.discount_amount), 0),
     collected: fees.reduce((sum, fee) => sum + fee.total_paid, 0),
-    pending: fees.filter(fee => fee.status === 'Pending').reduce((sum, fee) => sum + (fee.actual_amount - fee.discount_amount - fee.total_paid), 0),
+    pending: fees.filter(fee => fee.status === 'Pending' || fee.status === 'Partial').reduce((sum, fee) => sum + (fee.actual_amount - fee.discount_amount - fee.total_paid), 0),
     overdue: fees.filter(fee => fee.status === 'Overdue').length
   };
 

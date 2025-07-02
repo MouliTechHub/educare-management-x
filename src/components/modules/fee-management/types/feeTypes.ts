@@ -12,6 +12,9 @@ export interface FilterState {
   fee_type: string;
   due_date_from: string;
   due_date_to: string;
+  has_discount: string;
+  payment_status: string;
+  search_parent: string;
 }
 
 export interface Fee {
@@ -24,7 +27,7 @@ export interface Fee {
   fee_type: string;
   due_date: string;
   payment_date: string | null;
-  status: 'Pending' | 'Paid' | 'Overdue';
+  status: 'Pending' | 'Paid' | 'Overdue' | 'Partial';
   receipt_number: string | null;
   created_at: string;
   updated_at: string;
@@ -32,6 +35,7 @@ export interface Fee {
   discount_updated_by: string | null;
   discount_updated_at: string | null;
   academic_year_id: string;
+  notes?: string;
   student?: {
     id: string;
     first_name: string;
@@ -42,6 +46,8 @@ export interface Fee {
     parent_phone?: string;
     parent_email?: string;
     class_id?: string;
+    gender?: 'Male' | 'Female' | 'Other';
+    status?: 'Active' | 'Inactive' | 'Alumni';
   };
 }
 

@@ -1,7 +1,10 @@
 import React from "react";
 import { FeeManagementHeader } from "./fee-management/FeeManagementHeader";
-import { FeeStats } from "./fee-management/FeeStats";
-import { FeeManagementContent } from "./fee-management/FeeManagementContent";
+import { EnhancedFeeStats } from "./fee-management/EnhancedFeeStats";
+import { BulkActionsPanel } from "./fee-management/BulkActionsPanel";
+import { EnhancedFeeTable } from "./fee-management/EnhancedFeeTable";
+import { EnhancedFilters } from "./fee-management/EnhancedFilters";
+import { ExportButtons } from "./fee-management/ExportButtons";
 import { DiscountDialog } from "./fee-management/DiscountDialog";
 import { StudentPaymentHistory } from "./student-management/StudentPaymentHistory";
 import { PaymentHistoryErrorBoundary } from "./student-management/PaymentHistoryErrorBoundary";
@@ -35,6 +38,7 @@ export default function FeeManagement() {
 
   const [discountDialogOpen, setDiscountDialogOpen] = React.useState(false);
   const [selectedFee, setSelectedFee] = React.useState(null);
+  const [selectedFees, setSelectedFees] = React.useState<Set<string>>(new Set());
 
   // Apply filters to fees
   const filteredFees = applyFilters(fees).filter(fee => {
@@ -111,22 +115,42 @@ export default function FeeManagement() {
         onRefresh={refetchFees}
       />
 
-      <FeeStats fees={filteredFees} />
+      <EnhancedFeeStats fees={filteredFees} filters={filters} />
 
-      <FeeTypeValidator />
-
-      <FeeManagementContent
-        currentYear={currentYear}
-        searchTerm={searchTerm}
-        onSearchChange={setSearchTerm}
-        filters={filters}
-        onFiltersChange={setFilters}
-        classes={classes}
-        filteredFees={filteredFees}
-        onPaymentClick={handlePaymentClick}
-        onDiscountClick={handleDiscountClick}
-        onHistoryClick={handleHistoryClick}
+      <BulkActionsPanel
+        fees={filteredFees}
+        selectedFees={selectedFees}
+        onSelectionChange={setSelectedFees}
+        onRefresh={refetchFees}
       />
+
+      <div className="space-y-4">
+        <div className="flex justify-between items-center">
+          <h3 className="text-lg font-semibold">Fee Records</h3>
+          <ExportButtons fees={filteredFees} filters={filters} />
+        </div>
+
+        <EnhancedFilters
+          searchTerm={searchTerm}
+          onSearchChange={setSearchTerm}
+          filters={filters as any}
+          onFiltersChange={setFilters as any}
+          classes={classes}
+        />
+
+        <EnhancedFeeTable
+          fees={filteredFees}
+          selectedFees={selectedFees}
+          onSelectionChange={setSelectedFees}
+          onPaymentClick={handlePaymentClick}
+          onDiscountClick={handleDiscountClick}
+          onHistoryClick={handleHistoryClick}
+          onNotesEdit={(feeId, notes) => {
+            console.log('Notes updated for fee:', feeId, notes);
+            // This would update the fee notes in the database
+          }}
+        />
+      </div>
 
       <DiscountDialog
         open={discountDialogOpen}
@@ -140,7 +164,7 @@ export default function FeeManagement() {
           open={historyDialogOpen}
           onOpenChange={setHistoryDialogOpen}
           studentName={selectedStudentName}
-          fees={selectedStudentFees}
+          fees={selectedStudentFees as any}
           academicYears={academicYears}
           selectedAcademicYear={currentAcademicYear}
         />

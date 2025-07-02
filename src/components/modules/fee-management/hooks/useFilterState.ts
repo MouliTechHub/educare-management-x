@@ -10,6 +10,9 @@ export function useFilterState() {
     fee_type: "all",
     due_date_from: "",
     due_date_to: "",
+    has_discount: "all",
+    payment_status: "all",
+    search_parent: ""
   });
 
   const updateFilter = (key: keyof FilterState, value: string) => {
