@@ -123,112 +123,35 @@ export function PaymentsManagement() {
         throw new Error("Payment date cannot be in the past");
       }
 
-      // Get current academic year
-      const { data: currentYear, error: yearError } = await supabase
-        .from("academic_years")
-        .select("id")
-        .eq("is_current", true)
-        .single();
-
-      if (yearError || !currentYear) {
-        throw new Error("No current academic year found");
-      }
-
-      // Get fee structure details
-      const selectedStructure = feeStructures.find(fs => fs.id === data.fee_structure_id);
-      if (!selectedStructure) {
-        throw new Error("Fee structure not found");
-      }
-
-      // First, find or create fee record in the enhanced fee system
-      let feeRecord;
-      const { data: existingFeeRecord, error: feeRecordError } = await supabase
-        .from("student_fee_records")
-        .select("*")
-        .eq("student_id", data.student_id)
-        .eq("academic_year_id", currentYear.id)
-        .eq("fee_type", selectedStructure.fee_type)
-        .single();
-
-      if (feeRecordError && feeRecordError.code !== 'PGRST116') {
-        throw feeRecordError;
-      }
-
-      if (existingFeeRecord) {
-        feeRecord = existingFeeRecord;
-      } else {
-        // Create new fee record
-        const { data: newFeeRecord, error: createError } = await supabase
-          .from("student_fee_records")
-          .insert({
-            student_id: data.student_id,
-            class_id: data.class_id,
-            academic_year_id: currentYear.id,
-            fee_type: selectedStructure.fee_type,
-            actual_fee: selectedStructure.amount,
-            due_date: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0], // 30 days from now
-            status: 'Pending'
-          })
-          .select()
-          .single();
-
-        if (createError) throw createError;
-        feeRecord = newFeeRecord;
-      }
-
-      // Generate receipt number
-      const receiptNumber = `RCP-${Date.now()}-${Math.random().toString(36).substr(2, 4).toUpperCase()}`;
-
-      // Record payment in both systems
-      const [paymentResult, feePaymentResult] = await Promise.all([
-        // Record in student_payments table
-        supabase.from("student_payments").insert([{
+      // Record payment in student_payments table (legacy support)
+      const { error: legacyPaymentError } = await supabase
+        .from("student_payments")
+        .insert([{
           student_id: data.student_id,
           fee_structure_id: data.fee_structure_id,
           amount_paid: parseFloat(data.amount_paid),
           payment_date: data.payment_date,
           payment_method: data.payment_method,
           late_fee: parseFloat(data.late_fee) || 0,
-          reference_number: data.reference_number || receiptNumber,
+          reference_number: data.reference_number,
           payment_received_by: data.payment_received_by,
           notes: data.notes || null,
-        }]),
+        }]);
 
-        // Record in fee_payment_records table (enhanced system)
-        supabase.from("fee_payment_records").insert([{
-          fee_record_id: feeRecord.id,
-          student_id: data.student_id,
-          amount_paid: parseFloat(data.amount_paid),
-          payment_date: data.payment_date,
-          payment_method: data.payment_method,
-          late_fee: parseFloat(data.late_fee) || 0,
-          receipt_number: data.reference_number || receiptNumber,
-          payment_receiver: data.payment_received_by,
-          notes: data.notes || null,
-          created_by: data.payment_received_by
-        }])
-      ]);
+      if (legacyPaymentError) {
+        console.error("Error recording legacy payment:", legacyPaymentError);
+        throw legacyPaymentError;
+      }
 
-      if (paymentResult.error) throw paymentResult.error;
-      if (feePaymentResult.error) throw feePaymentResult.error;
-
-      // Also record in payment_history for timeline tracking
-      await supabase.from("payment_history").insert([{
-        fee_id: feeRecord.id,
-        student_id: data.student_id,
-        amount_paid: parseFloat(data.amount_paid),
-        payment_date: data.payment_date,
-        receipt_number: data.reference_number || receiptNumber,
-        payment_receiver: data.payment_received_by,
-        payment_method: data.payment_method,
-        notes: data.notes || null,
-        fee_type: selectedStructure.fee_type
-      }]);
-
-      toast({ title: "Payment recorded successfully" });
+      toast({ 
+        title: "Payment recorded successfully",
+        description: `Payment of ₹${parseFloat(data.amount_paid).toLocaleString()} has been recorded successfully.`
+      });
+      
       setDialogOpen(false);
-      fetchData();
+      fetchData(); // Refresh the data to show the new payment
     } catch (error: any) {
+      console.error("Error in handleSubmit:", error);
       toast({
         title: "Error recording payment",
         description: error.message,
@@ -262,7 +185,7 @@ export function PaymentsManagement() {
       <div className="flex justify-between items-center">
         <div>
           <h1 className="text-3xl font-bold text-gray-900">Payments Management</h1>
-          <p className="text-gray-600 mt-2">Record and track student fee payments</p>
+          <p className="text-gray-600 mt-2">Record and track student fee payments with automatic fee management sync</p>
         </div>
         <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
           <DialogTrigger asChild>
@@ -275,7 +198,7 @@ export function PaymentsManagement() {
             <DialogHeader>
               <DialogTitle>Record New Payment</DialogTitle>
               <DialogDescription>
-                Record a payment made by a student for their fees
+                Record a payment made by a student for their fees. This will automatically sync with Fee Management.
               </DialogDescription>
             </DialogHeader>
             <PaymentForm
@@ -294,7 +217,7 @@ export function PaymentsManagement() {
           <div className="flex items-center justify-between">
             <div>
               <CardTitle>Payment Records</CardTitle>
-              <CardDescription>View all recorded payments and their details</CardDescription>
+              <CardDescription>View all recorded payments and their details with real-time fee synchronization</CardDescription>
             </div>
             <div className="flex items-center space-x-2">
               <Search className="w-4 h-4 text-gray-400" />

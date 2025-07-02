@@ -75,8 +75,8 @@ export function useFeeData() {
     try {
       console.log('📊 Fetching fees for academic year:', currentAcademicYear);
       
-      // Fetch payment totals from all payment systems
-      const [paymentHistoryData, feePaymentData, studentPaymentData] = await Promise.all([
+      // Fetch payment totals from all payment systems with better error handling
+      const [paymentHistoryResult, feePaymentResult, studentPaymentResult] = await Promise.allSettled([
         supabase
           .from('payment_history')
           .select('fee_id, amount_paid')
@@ -94,23 +94,29 @@ export function useFeeData() {
       ]);
 
       // Calculate payment totals from payment_history
-      const paymentTotalsFromHistory = paymentHistoryData.data?.reduce((acc, payment) => {
-        acc[payment.fee_id] = (acc[payment.fee_id] || 0) + payment.amount_paid;
-        return acc;
-      }, {} as Record<string, number>) || {};
+      const paymentTotalsFromHistory = paymentHistoryResult.status === 'fulfilled' && paymentHistoryResult.value.data
+        ? paymentHistoryResult.value.data.reduce((acc, payment) => {
+            acc[payment.fee_id] = (acc[payment.fee_id] || 0) + payment.amount_paid;
+            return acc;
+          }, {} as Record<string, number>)
+        : {};
 
       // Calculate payment totals from fee_payment_records
-      const paymentTotalsFromRecords = feePaymentData.data?.reduce((acc, payment) => {
-        acc[payment.fee_record_id] = (acc[payment.fee_record_id] || 0) + payment.amount_paid;
-        return acc;
-      }, {} as Record<string, number>) || {};
+      const paymentTotalsFromRecords = feePaymentResult.status === 'fulfilled' && feePaymentResult.value.data
+        ? feePaymentResult.value.data.reduce((acc, payment) => {
+            acc[payment.fee_record_id] = (acc[payment.fee_record_id] || 0) + payment.amount_paid;
+            return acc;
+          }, {} as Record<string, number>)
+        : {};
 
       // Group student payments by student_id and fee_structure
-      const studentPaymentTotals = studentPaymentData.data?.reduce((acc, payment) => {
-        const key = `${payment.student_id}_${payment.fee_structure_id}`;
-        acc[key] = (acc[key] || 0) + payment.amount_paid;
-        return acc;
-      }, {} as Record<string, number>) || {};
+      const studentPaymentTotals = studentPaymentResult.status === 'fulfilled' && studentPaymentResult.value.data
+        ? studentPaymentResult.value.data.reduce((acc, payment) => {
+            const key = `${payment.student_id}_${payment.fee_structure_id}`;
+            acc[key] = (acc[key] || 0) + payment.amount_paid;
+            return acc;
+          }, {} as Record<string, number>)
+        : {};
 
       // Fetch enhanced fee records first (these are the primary source of truth)
       const { data: enhancedFeeData, error: enhancedError } = await supabase
@@ -152,6 +158,8 @@ export function useFeeData() {
           // Only add if we haven't seen this student-fee combination
           if (!uniqueFeeMap.has(uniqueKey)) {
             const totalPaidFromRecords = paymentTotalsFromRecords[fee.id] || 0;
+            const totalPaidFromHistory = paymentTotalsFromHistory[fee.id] || 0;
+            const totalPaid = Math.max(totalPaidFromRecords, totalPaidFromHistory, fee.paid_amount || 0);
             
             const transformedFee = {
               id: fee.id,
@@ -159,7 +167,7 @@ export function useFeeData() {
               amount: fee.actual_fee,
               actual_amount: fee.actual_fee,
               discount_amount: fee.discount_amount,
-              total_paid: totalPaidFromRecords,
+              total_paid: totalPaid,
               fee_type: fee.fee_type,
               due_date: fee.due_date,
               payment_date: null,
@@ -230,7 +238,7 @@ export function useFeeData() {
                 amount: fee.amount,
                 actual_amount: fee.actual_amount,
                 discount_amount: fee.discount_amount,
-                total_paid: totalPaidFromHistory,
+                total_paid: Math.max(totalPaidFromHistory, fee.total_paid || 0),
                 fee_type: fee.fee_type,
                 due_date: fee.due_date,
                 payment_date: fee.payment_date,
@@ -274,7 +282,7 @@ export function useFeeData() {
           const additionalPayments = studentPaymentTotals[studentPaymentKey] || 0;
           return {
             ...fee,
-            total_paid: fee.total_paid + additionalPayments
+            total_paid: Math.max(fee.total_paid, additionalPayments)
           };
         }
         

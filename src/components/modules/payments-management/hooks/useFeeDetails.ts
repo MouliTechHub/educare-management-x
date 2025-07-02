@@ -1,7 +1,7 @@
 
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { Class, Student, FeeStructure } from "@/types/database";
+import { FeeStructure } from "@/types/database";
 
 interface FeeDetails {
   actualAmount: number;
@@ -26,7 +26,7 @@ export function useFeeDetails(
     }
   }, [studentId, feeStructureId]);
 
-  const calculatePaidAmount = (data: any[]) => {
+  const calculatePaidAmount = (data: any[] | null) => {
     if (!Array.isArray(data) || data.length === 0) return 0;
     return data.reduce((total, record) => {
       const amount = Number(record?.amount_paid) || 0;
@@ -85,9 +85,9 @@ export function useFeeDetails(
           .eq('fee_structure_id', feeStructureId)
       ]);
 
-      const paidFromHistory = calculatePaidAmount(paymentHistoryData.data || []);
-      const paidFromRecords = calculatePaidAmount(feePaymentData.data || []);
-      const paidFromPayments = calculatePaidAmount(studentPaymentData.data || []);
+      const paidFromHistory = calculatePaidAmount(paymentHistoryData.data);
+      const paidFromRecords = calculatePaidAmount(feePaymentData.data);
+      const paidFromPayments = calculatePaidAmount(studentPaymentData.data);
 
       if (enhancedFeeRecord) {
         // Use data from enhanced fee management system
