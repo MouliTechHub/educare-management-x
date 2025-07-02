@@ -47,7 +47,7 @@ interface ExpenseFiltersProps {
 }
 
 export function ExpenseFilters({ filters, onFilterChange, onClearFilters }: ExpenseFiltersProps) {
-  const hasActiveFilters = Object.values(filters).some(value => value !== '');
+  const hasActiveFilters = Object.values(filters).some(value => value !== '' && value !== 'all');
 
   return (
     <div className="space-y-4 p-4 border rounded-lg bg-muted/20">
@@ -69,7 +69,7 @@ export function ExpenseFilters({ filters, onFilterChange, onClearFilters }: Expe
               <SelectValue placeholder="All categories" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="">All categories</SelectItem>
+              <SelectItem value="all">All categories</SelectItem>
               {EXPENSE_CATEGORIES.map((category) => (
                 <SelectItem key={category} value={category}>
                   {category}
@@ -86,7 +86,7 @@ export function ExpenseFilters({ filters, onFilterChange, onClearFilters }: Expe
               <SelectValue placeholder="All modes" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="">All modes</SelectItem>
+              <SelectItem value="all">All modes</SelectItem>
               {PAYMENT_MODES.map((mode) => (
                 <SelectItem key={mode} value={mode}>
                   {mode}

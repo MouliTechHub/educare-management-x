@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -24,9 +24,10 @@ export function BulkSalaryProcessing({ teachers, onProcess, onClose }: BulkSalar
   const [processing, setProcessing] = useState(false);
   const { toast } = useToast();
 
-  useState(() => {
+  
+  useEffect(() => {
     fetchAcademicYears();
-  });
+  }, []);
 
   const fetchAcademicYears = async () => {
     try {

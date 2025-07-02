@@ -12,8 +12,8 @@ interface ExpenseFilters {
 
 export function useExpenseFilters(expenses: Expense[], searchTerm: string) {
   const [filters, setFilters] = useState<ExpenseFilters>({
-    category: '',
-    paymentMode: '',
+    category: 'all',
+    paymentMode: 'all',
     dateFrom: '',
     dateTo: '',
     amountMin: '',
@@ -26,8 +26,8 @@ export function useExpenseFilters(expenses: Expense[], searchTerm: string) {
 
   const clearFilters = () => {
     setFilters({
-      category: '',
-      paymentMode: '',
+      category: 'all',
+      paymentMode: 'all',
       dateFrom: '',
       dateTo: '',
       amountMin: '',
@@ -50,12 +50,12 @@ export function useExpenseFilters(expenses: Expense[], searchTerm: string) {
       }
 
       // Category filter
-      if (filters.category && expense.category !== filters.category) {
+      if (filters.category && filters.category !== 'all' && expense.category !== filters.category) {
         return false;
       }
 
       // Payment mode filter
-      if (filters.paymentMode && expense.payment_mode !== filters.paymentMode) {
+      if (filters.paymentMode && filters.paymentMode !== 'all' && expense.payment_mode !== filters.paymentMode) {
         return false;
       }
 
