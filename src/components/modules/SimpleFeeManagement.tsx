@@ -10,6 +10,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { FEE_TYPE_OPTIONS } from "@/constants/feeTypes";
 import { Plus, CreditCard, Percent, History, RefreshCw, Search, X } from "lucide-react";
 
 interface Student {
@@ -497,10 +498,11 @@ export function SimpleFeeManagement() {
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="Tuition Fee">Tuition Fee</SelectItem>
-                          <SelectItem value="Transport Fee">Transport Fee</SelectItem>
-                          <SelectItem value="Exam Fee">Exam Fee</SelectItem>
-                          <SelectItem value="Library Fee">Library Fee</SelectItem>
+                          {FEE_TYPE_OPTIONS.map((option) => (
+                            <SelectItem key={option.value} value={option.value}>
+                              {option.label}
+                            </SelectItem>
+                          ))}
                         </SelectContent>
                       </Select>
                     </div>
