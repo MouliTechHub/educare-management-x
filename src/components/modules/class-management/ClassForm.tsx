@@ -25,13 +25,13 @@ export function ClassForm({ teachers, selectedClass, onSubmit, onCancel }: Class
       setFormData({
         name: selectedClass.name,
         section: selectedClass.section || '',
-        homeroom_teacher_id: selectedClass.homeroom_teacher_id || '',
+        homeroom_teacher_id: selectedClass.homeroom_teacher_id || 'no-teacher',
       });
     } else {
       setFormData({
         name: '',
         section: '',
-        homeroom_teacher_id: '',
+        homeroom_teacher_id: 'no-teacher',
       });
     }
   }, [selectedClass]);
@@ -46,7 +46,7 @@ export function ClassForm({ teachers, selectedClass, onSubmit, onCancel }: Class
 
     onSubmit({
       ...formData,
-      homeroom_teacher_id: formData.homeroom_teacher_id || null,
+      homeroom_teacher_id: formData.homeroom_teacher_id === "no-teacher" ? null : formData.homeroom_teacher_id || null,
     });
   };
 
@@ -87,7 +87,7 @@ export function ClassForm({ teachers, selectedClass, onSubmit, onCancel }: Class
             <SelectValue placeholder="Select a teacher" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="">No teacher assigned</SelectItem>
+            <SelectItem value="no-teacher">No teacher assigned</SelectItem>
             {teachers.map((teacher) => (
               <SelectItem key={teacher.id} value={teacher.id}>
                 {teacher.first_name} {teacher.last_name}

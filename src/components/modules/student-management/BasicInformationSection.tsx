@@ -131,7 +131,7 @@ export function BasicInformationSection({ formData, setFormData, classes }: Basi
           <div className="space-y-2">
             <Label htmlFor="class_id">Class *</Label>
             <Select
-              value={formData.class_id || ""}
+              value={formData.class_id || undefined}
               onValueChange={(value) => handleInputChange('class_id', value)}
             >
               <SelectTrigger>
@@ -189,7 +189,7 @@ export function BasicInformationSection({ formData, setFormData, classes }: Basi
 
           <div className="space-y-2">
             <Label htmlFor="caste_category">Caste Category *</Label>
-            <Select value={formData.caste_category || ''} onValueChange={(value) => handleInputChange('caste_category', value)}>
+            <Select value={formData.caste_category || undefined} onValueChange={(value) => handleInputChange('caste_category', value)}>
               <SelectTrigger>
                 <SelectValue placeholder="Select category" />
               </SelectTrigger>
@@ -203,7 +203,7 @@ export function BasicInformationSection({ formData, setFormData, classes }: Basi
 
           <div className="space-y-2">
             <Label htmlFor="religion">Religion</Label>
-            <Select value={formData.religion || ''} onValueChange={(value) => handleInputChange('religion', value)}>
+            <Select value={formData.religion || undefined} onValueChange={(value) => handleInputChange('religion', value)}>
               <SelectTrigger>
                 <SelectValue placeholder="Select religion" />
               </SelectTrigger>
@@ -220,7 +220,7 @@ export function BasicInformationSection({ formData, setFormData, classes }: Basi
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <div className="space-y-2">
             <Label htmlFor="blood_group">Blood Group</Label>
-            <Select value={formData.blood_group || ''} onValueChange={(value) => handleInputChange('blood_group', value)}>
+            <Select value={formData.blood_group || undefined} onValueChange={(value) => handleInputChange('blood_group', value)}>
               <SelectTrigger>
                 <SelectValue placeholder="Select blood group" />
               </SelectTrigger>
