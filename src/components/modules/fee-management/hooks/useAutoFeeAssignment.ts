@@ -42,25 +42,74 @@ export function useAutoFeeAssignment() {
     try {
       console.log('🔄 Starting automatic fee assignment for academic year:', academicYearId);
 
-      // Fetch all active students with their classes
-      const { data: students, error: studentsError } = await supabase
-        .from("students")
-        .select(`
-          id,
-          first_name,
-          last_name,
-          admission_number,
-          class_id,
-          classes (
-            name,
-            section
-          )
-        `)
-        .eq("status", "Active");
+      // Check if this is the current academic year
+      const { data: currentYear } = await supabase
+        .from('academic_years')
+        .select('id, is_current')
+        .eq('id', academicYearId)
+        .single();
 
-      if (studentsError) throw studentsError;
+      let students = [];
 
-      console.log('✅ Fetched students:', students?.length || 0);
+      if (currentYear?.is_current) {
+        // For current academic year, get all active students
+        const { data: studentsData, error: studentsError } = await supabase
+          .from("students")
+          .select(`
+            id,
+            first_name,
+            last_name,
+            admission_number,
+            class_id,
+            classes (
+              name,
+              section
+            )
+          `)
+          .eq("status", "Active");
+
+        if (studentsError) throw studentsError;
+        students = studentsData || [];
+      } else {
+        // For future years, only get students who have been promoted to this academic year
+        const { data: promotedStudents, error: promotionError } = await supabase
+          .from('student_promotions')
+          .select(`
+            student_id,
+            to_class_id,
+            students!inner (
+              id,
+              first_name,
+              last_name,
+              admission_number,
+              status,
+              classes (
+                name,
+                section
+              )
+            )
+          `)
+          .eq('to_academic_year_id', academicYearId)
+          .eq('promotion_type', 'promoted')
+          .eq('students.status', 'Active');
+
+        if (promotionError) {
+          console.warn('No promotions found for academic year:', academicYearId);
+          students = [];
+        } else {
+          // Map promoted students with their new class information
+          students = (promotedStudents || []).map(promotion => ({
+            id: promotion.students.id,
+            first_name: promotion.students.first_name,
+            last_name: promotion.students.last_name,
+            admission_number: promotion.students.admission_number,
+            class_id: promotion.to_class_id, // Use the promoted class
+            classes: promotion.students.classes
+          }));
+        }
+      }
+
+      console.log('✅ Students eligible for fee assignment:', students.length);
 
       // Fetch all active fee structures for the academic year
       const { data: feeStructures, error: feeStructuresError } = await supabase
@@ -101,7 +150,7 @@ export function useAutoFeeAssignment() {
       const feeRecordsToInsert = [];
       let assignmentCount = 0;
 
-      for (const student of students || []) {
+      for (const student of students) {
         const classStructures = feeStructuresByClass[student.class_id] || [];
         
         for (const structure of classStructures) {

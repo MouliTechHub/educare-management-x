@@ -45,7 +45,7 @@ export function useOutstandingFees(currentAcademicYearId: string) {
 
       if (studentsError) throw studentsError;
 
-      // Get all unpaid/partially paid fees from current and previous years
+      // Get all unpaid/partially paid fees from current academic year only
       const { data: feesData, error: feesError } = await supabase
         .from('fees')
         .select(`
@@ -54,11 +54,13 @@ export function useOutstandingFees(currentAcademicYearId: string) {
           fee_type,
           amount,
           actual_amount,
+          discount_amount,
           total_paid,
           due_date,
           academic_year_id,
           academic_years!inner(year_name, start_date)
         `)
+        .eq('academic_year_id', currentAcademicYearId)
         .neq('status', 'Paid')
         .order('due_date', { ascending: true });
 
@@ -71,7 +73,8 @@ export function useOutstandingFees(currentAcademicYearId: string) {
         const student = studentsData?.find(s => s.id === fee.student_id);
         if (!student) return;
 
-        const balanceAmount = fee.actual_amount - fee.total_paid;
+        // Calculate actual balance: actual amount minus discount minus total paid
+        const balanceAmount = fee.actual_amount - fee.discount_amount - fee.total_paid;
         if (balanceAmount <= 0) return; // Skip if fully paid
 
         const studentKey = fee.student_id;
