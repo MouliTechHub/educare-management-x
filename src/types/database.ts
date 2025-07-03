@@ -309,3 +309,17 @@ export interface StudentPromotion {
   created_at: string;
   updated_at: string;
 }
+
+// Promotion Audit Log
+export interface PromotionAuditLog {
+  id: string;
+  academic_year_from: string;
+  academic_year_to: string;
+  promoted_by: string;
+  promotion_date: string;
+  students_promoted: number;
+  students_blocked: number;
+  fee_actions_summary: string;
+  notes: string;
+  created_at: string;
+}

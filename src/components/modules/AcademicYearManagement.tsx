@@ -10,7 +10,7 @@ import { Plus, Search, ArrowUp } from "lucide-react";
 import { AcademicYearForm } from "./academic-year/AcademicYearForm";
 import { AcademicYearTable } from "./academic-year/AcademicYearTable";
 import { useAcademicYearData } from "./academic-year/useAcademicYearData";
-import { StudentPromotionDialog } from "./academic-year/StudentPromotionDialog";
+import { EnhancedStudentPromotionDialog } from "./academic-year/EnhancedStudentPromotionDialog";
 import { AcademicYear } from "@/types/database";
 
 export function AcademicYearManagement() {
@@ -80,6 +80,20 @@ export function AcademicYearManagement() {
       alert("No current academic year set. Please set a current year first.");
       return;
     }
+
+    // Check if target year is the immediate next year in sequence
+    const sortedYears = [...allAcademicYears].sort((a, b) => 
+      new Date(a.start_date).getTime() - new Date(b.start_date).getTime()
+    );
+    
+    const currentIndex = sortedYears.findIndex(year => year.id === currentYear.id);
+    const targetIndex = sortedYears.findIndex(year => year.id === targetYear.id);
+    
+    if (targetIndex !== currentIndex + 1) {
+      alert("Students can only be promoted to the immediate next academic year in sequence. Please select the correct year.");
+      return;
+    }
+
     setPromotionTargetYear(targetYear);
     setIsPromotionDialogOpen(true);
   };
@@ -122,19 +136,26 @@ export function AcademicYearManagement() {
                 <Button variant="outline" onClick={() => handleEdit(currentYear)}>
                   Edit
                 </Button>
-                {allAcademicYears.some(year => !year.is_current) && (
-                  <Button onClick={() => {
-                    const nextYear = allAcademicYears.find(year => !year.is_current && new Date(year.start_date) > new Date(currentYear.end_date));
-                    if (nextYear) {
-                      handlePromoteStudents(nextYear);
-                    } else {
-                      alert("No future academic year available for promotion. Please create one first.");
-                    }
-                  }}>
-                    <ArrowUp className="w-4 h-4 mr-2" />
-                    Promote Students
-                  </Button>
-                )}
+                {(() => {
+                  // Find the immediate next year in sequence
+                  const sortedYears = [...allAcademicYears].sort((a, b) => 
+                    new Date(a.start_date).getTime() - new Date(b.start_date).getTime()
+                  );
+                  const currentIndex = sortedYears.findIndex(year => year.id === currentYear.id);
+                  const nextYear = sortedYears[currentIndex + 1];
+                  
+                  return nextYear ? (
+                    <Button onClick={() => handlePromoteStudents(nextYear)}>
+                      <ArrowUp className="w-4 h-4 mr-2" />
+                      Promote to {nextYear.year_name}
+                    </Button>
+                  ) : (
+                    <Button disabled variant="outline">
+                      <ArrowUp className="w-4 h-4 mr-2" />
+                      No Next Year Available
+                    </Button>
+                  );
+                })()}
               </div>
             </div>
           </CardContent>
@@ -247,13 +268,14 @@ export function AcademicYearManagement() {
         </AlertDialogContent>
       </AlertDialog>
 
-      {/* Student Promotion Dialog */}
+      {/* Enhanced Student Promotion Dialog */}
       {promotionTargetYear && currentYear && (
-        <StudentPromotionDialog
+        <EnhancedStudentPromotionDialog
           open={isPromotionDialogOpen}
           onOpenChange={setIsPromotionDialogOpen}
           targetAcademicYear={promotionTargetYear}
           currentAcademicYear={currentYear}
+          allAcademicYears={allAcademicYears}
         />
       )}
     </div>
