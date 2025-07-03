@@ -6,10 +6,11 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious } from "@/components/ui/pagination";
-import { Plus, Search } from "lucide-react";
+import { Plus, Search, ArrowUp } from "lucide-react";
 import { AcademicYearForm } from "./academic-year/AcademicYearForm";
 import { AcademicYearTable } from "./academic-year/AcademicYearTable";
 import { useAcademicYearData } from "./academic-year/useAcademicYearData";
+import { StudentPromotionDialog } from "./academic-year/StudentPromotionDialog";
 import { AcademicYear } from "@/types/database";
 
 export function AcademicYearManagement() {
@@ -34,6 +35,8 @@ export function AcademicYearManagement() {
   const [selectedYear, setSelectedYear] = useState<AcademicYear | null>(null);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [yearToDelete, setYearToDelete] = useState<AcademicYear | null>(null);
+  const [isPromotionDialogOpen, setIsPromotionDialogOpen] = useState(false);
+  const [promotionTargetYear, setPromotionTargetYear] = useState<AcademicYear | null>(null);
 
   const handleCreate = () => {
     setSelectedYear(null);
@@ -72,6 +75,15 @@ export function AcademicYearManagement() {
     }
   };
 
+  const handlePromoteStudents = (targetYear: AcademicYear) => {
+    if (!currentYear) {
+      alert("No current academic year set. Please set a current year first.");
+      return;
+    }
+    setPromotionTargetYear(targetYear);
+    setIsPromotionDialogOpen(true);
+  };
+
   const currentYear = allAcademicYears.find(year => year.is_current);
 
   return (
@@ -106,9 +118,24 @@ export function AcademicYearManagement() {
                   {new Date(currentYear.start_date).toLocaleDateString()} - {new Date(currentYear.end_date).toLocaleDateString()}
                 </p>
               </div>
-              <Button variant="outline" onClick={() => handleEdit(currentYear)}>
-                Edit
-              </Button>
+              <div className="flex gap-2">
+                <Button variant="outline" onClick={() => handleEdit(currentYear)}>
+                  Edit
+                </Button>
+                {allAcademicYears.some(year => !year.is_current) && (
+                  <Button onClick={() => {
+                    const nextYear = allAcademicYears.find(year => !year.is_current && new Date(year.start_date) > new Date(currentYear.end_date));
+                    if (nextYear) {
+                      handlePromoteStudents(nextYear);
+                    } else {
+                      alert("No future academic year available for promotion. Please create one first.");
+                    }
+                  }}>
+                    <ArrowUp className="w-4 h-4 mr-2" />
+                    Promote Students
+                  </Button>
+                )}
+              </div>
             </div>
           </CardContent>
         </Card>
@@ -219,6 +246,16 @@ export function AcademicYearManagement() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Student Promotion Dialog */}
+      {promotionTargetYear && currentYear && (
+        <StudentPromotionDialog
+          open={isPromotionDialogOpen}
+          onOpenChange={setIsPromotionDialogOpen}
+          targetAcademicYear={promotionTargetYear}
+          currentAcademicYear={currentYear}
+        />
+      )}
     </div>
   );
 }

@@ -1219,6 +1219,104 @@ export type Database = {
           },
         ]
       }
+      student_promotions: {
+        Row: {
+          created_at: string
+          from_academic_year_id: string
+          from_class_id: string
+          id: string
+          notes: string | null
+          promoted_by: string
+          promotion_date: string
+          promotion_type: string
+          reason: string | null
+          student_id: string
+          to_academic_year_id: string
+          to_class_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          from_academic_year_id: string
+          from_class_id: string
+          id?: string
+          notes?: string | null
+          promoted_by?: string
+          promotion_date?: string
+          promotion_type?: string
+          reason?: string | null
+          student_id: string
+          to_academic_year_id: string
+          to_class_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          from_academic_year_id?: string
+          from_class_id?: string
+          id?: string
+          notes?: string | null
+          promoted_by?: string
+          promotion_date?: string
+          promotion_type?: string
+          reason?: string | null
+          student_id?: string
+          to_academic_year_id?: string
+          to_class_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "student_promotions_from_academic_year_id_fkey"
+            columns: ["from_academic_year_id"]
+            isOneToOne: false
+            referencedRelation: "academic_years"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "student_promotions_from_class_id_fkey"
+            columns: ["from_class_id"]
+            isOneToOne: false
+            referencedRelation: "class_gender_stats"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "student_promotions_from_class_id_fkey"
+            columns: ["from_class_id"]
+            isOneToOne: false
+            referencedRelation: "classes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "student_promotions_student_id_fkey"
+            columns: ["student_id"]
+            isOneToOne: false
+            referencedRelation: "students"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "student_promotions_to_academic_year_id_fkey"
+            columns: ["to_academic_year_id"]
+            isOneToOne: false
+            referencedRelation: "academic_years"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "student_promotions_to_class_id_fkey"
+            columns: ["to_class_id"]
+            isOneToOne: false
+            referencedRelation: "class_gender_stats"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "student_promotions_to_class_id_fkey"
+            columns: ["to_class_id"]
+            isOneToOne: false
+            referencedRelation: "classes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       students: {
         Row: {
           aadhaar_number: string | null
@@ -1630,7 +1728,18 @@ export type Database = {
       }
     }
     Functions: {
-      [_ in never]: never
+      check_fee_structure_exists: {
+        Args: { target_academic_year_id: string; target_class_id: string }
+        Returns: boolean
+      }
+      promote_students_with_fees: {
+        Args: {
+          promotion_data: Json
+          target_academic_year_id: string
+          promoted_by_user: string
+        }
+        Returns: Json
+      }
     }
     Enums: {
       [_ in never]: never

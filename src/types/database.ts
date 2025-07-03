@@ -292,3 +292,20 @@ export interface TeacherSalary {
   created_at: string;
   updated_at: string;
 }
+
+// Student Promotion Management
+export interface StudentPromotion {
+  id: string;
+  student_id: string;
+  from_academic_year_id: string;
+  to_academic_year_id: string;
+  from_class_id: string;
+  to_class_id: string | null;
+  promotion_type: 'promoted' | 'repeated' | 'dropout';
+  promotion_date: string;
+  reason: string | null;
+  notes: string | null;
+  promoted_by: string;
+  created_at: string;
+  updated_at: string;
+}
