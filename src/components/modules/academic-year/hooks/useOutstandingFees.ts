@@ -46,38 +46,85 @@ export function useOutstandingFees(currentAcademicYearId: string) {
 
       if (studentsError) throw studentsError;
 
-      // Get all unpaid/partially paid fees from current academic year
-      // Using student_fee_records as primary source to match Fee Management calculation
-      const { data: feesData, error: feesError } = await supabase
-        .from('student_fee_records')
-        .select(`
-          id,
-          student_id,
-          class_id,
-          fee_type,
-          actual_fee,
-          discount_amount,
-          paid_amount,
-          due_date,
-          academic_year_id,
-          academic_years!inner(year_name, start_date)
-        `)
-        .eq('academic_year_id', currentAcademicYearId)
-        .neq('status', 'Paid')
-        .order('due_date', { ascending: true });
+      // Get all unpaid/partially paid fees from both systems
+      const [enhancedFeesResult, legacyFeesResult] = await Promise.allSettled([
+        // Enhanced system - student_fee_records
+        supabase
+          .from('student_fee_records')
+          .select(`
+            id,
+            student_id,
+            class_id,
+            fee_type,
+            actual_fee,
+            discount_amount,
+            paid_amount,
+            due_date,
+            academic_year_id,
+            academic_years!inner(year_name, start_date)
+          `)
+          .eq('academic_year_id', currentAcademicYearId)
+          .neq('status', 'Paid')
+          .order('due_date', { ascending: true }),
+        
+        // Legacy system - fees table
+        supabase
+          .from('fees')
+          .select(`
+            id,
+            student_id,
+            fee_type,
+            actual_amount,
+            discount_amount,
+            total_paid,
+            due_date,
+            academic_year_id,
+            academic_years!inner(year_name, start_date)
+          `)
+          .eq('academic_year_id', currentAcademicYearId)
+          .neq('status', 'Paid')
+          .order('due_date', { ascending: true })
+      ]);
+
+      // Combine both result sets
+      let allFeesData = [];
+      
+      if (enhancedFeesResult.status === 'fulfilled' && enhancedFeesResult.value.data) {
+        allFeesData = [...enhancedFeesResult.value.data];
+      }
+      
+      if (legacyFeesResult.status === 'fulfilled' && legacyFeesResult.value.data) {
+        // Transform legacy fees to match enhanced format
+        const transformedLegacyFees = legacyFeesResult.value.data.map((fee: any) => ({
+          id: fee.id,
+          student_id: fee.student_id,
+          class_id: null, // Legacy fees don't have class_id
+          fee_type: fee.fee_type,
+          actual_fee: fee.actual_amount,
+          discount_amount: fee.discount_amount,
+          paid_amount: fee.total_paid,
+          due_date: fee.due_date,
+          academic_year_id: fee.academic_year_id,
+          academic_years: fee.academic_years
+        }));
+        allFeesData = [...allFeesData, ...transformedLegacyFees];
+      }
 
       console.log('🔍 Outstanding fees query result:', {
         currentAcademicYearId,
-        feesFound: feesData?.length || 0,
-        error: feesError
+        enhancedFeesFound: enhancedFeesResult.status === 'fulfilled' ? enhancedFeesResult.value.data?.length || 0 : 0,
+        legacyFeesFound: legacyFeesResult.status === 'fulfilled' ? legacyFeesResult.value.data?.length || 0 : 0,
+        totalFeesFound: allFeesData.length
       });
 
-      if (feesError) throw feesError;
+      if (enhancedFeesResult.status === 'rejected' && legacyFeesResult.status === 'rejected') {
+        throw enhancedFeesResult.reason;
+      }
 
       // Group fees by student and calculate outstanding amounts
       const studentFeeMap = new Map<string, OutstandingFee>();
 
-      feesData?.forEach((fee: any) => {
+      allFeesData?.forEach((fee: any) => {
         const student = studentsData?.find(s => s.id === fee.student_id);
         if (!student) return;
 
