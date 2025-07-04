@@ -108,7 +108,7 @@ export function PaymentRecordDialog({
       const newCalculation = calculateFeeAmounts(updatedFee);
       const newStatus = newCalculation.status;
 
-      // Update fee record with explicit preservation of all discount fields
+      // Update ONLY the existing fee record, never create new ones
       const { error: feeUpdateError } = await supabase
         .from('fees')
         .update({
@@ -121,7 +121,9 @@ export function PaymentRecordDialog({
           discount_updated_by: fee.discount_updated_by,
           discount_updated_at: fee.discount_updated_at
         })
-        .eq('id', fee.id);
+        .eq('student_id', fee.student_id)
+        .eq('fee_type', fee.fee_type)
+        .eq('academic_year_id', fee.academic_year_id);
 
       if (feeUpdateError) throw feeUpdateError;
 

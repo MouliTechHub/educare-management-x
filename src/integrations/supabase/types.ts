@@ -647,6 +647,69 @@ export type Database = {
           },
         ]
       }
+      fees_backup: {
+        Row: {
+          academic_year_id: string | null
+          actual_amount: number | null
+          amount: number | null
+          created_at: string | null
+          discount_amount: number | null
+          discount_notes: string | null
+          discount_updated_at: string | null
+          discount_updated_by: string | null
+          due_date: string | null
+          fee_type: string | null
+          id: string | null
+          notes: string | null
+          payment_date: string | null
+          receipt_number: string | null
+          status: string | null
+          student_id: string | null
+          total_paid: number | null
+          updated_at: string | null
+        }
+        Insert: {
+          academic_year_id?: string | null
+          actual_amount?: number | null
+          amount?: number | null
+          created_at?: string | null
+          discount_amount?: number | null
+          discount_notes?: string | null
+          discount_updated_at?: string | null
+          discount_updated_by?: string | null
+          due_date?: string | null
+          fee_type?: string | null
+          id?: string | null
+          notes?: string | null
+          payment_date?: string | null
+          receipt_number?: string | null
+          status?: string | null
+          student_id?: string | null
+          total_paid?: number | null
+          updated_at?: string | null
+        }
+        Update: {
+          academic_year_id?: string | null
+          actual_amount?: number | null
+          amount?: number | null
+          created_at?: string | null
+          discount_amount?: number | null
+          discount_notes?: string | null
+          discount_updated_at?: string | null
+          discount_updated_by?: string | null
+          due_date?: string | null
+          fee_type?: string | null
+          id?: string | null
+          notes?: string | null
+          payment_date?: string | null
+          receipt_number?: string | null
+          status?: string | null
+          student_id?: string | null
+          total_paid?: number | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       grades: {
         Row: {
           created_at: string | null

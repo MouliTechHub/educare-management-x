@@ -244,7 +244,7 @@ export function useFeeData() {
         
         // Add legacy fees only if they don't already exist in enhanced system
         legacyFeeData?.forEach((fee: any) => {
-          const uniqueKey = `${fee.student_id}_${fee.fee_type}`;
+          const uniqueKey = `${fee.student_id}_${fee.fee_type}_${fee.academic_year_id}`;
           
           if (!uniqueFeeMap.has(uniqueKey)) {
             const totalPaidFromHistory = paymentTotalsFromHistory[fee.id] || 0;

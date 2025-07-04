@@ -91,7 +91,7 @@ export function DiscountDialog({ open, onOpenChange, selectedFee, onSuccess }: D
       const currentYear = academicYears.find(year => year.is_current);
       if (!currentYear) throw new Error('No current academic year found');
 
-      // Apply discount to both fee systems for consistency - ADD to existing discount
+      // Apply discount using UPSERT to prevent duplicates
       const currentDiscount = selectedFee.discount_amount || 0;
       const newTotalDiscount = currentDiscount + discountAmount;
       
@@ -113,46 +113,46 @@ export function DiscountDialog({ open, onOpenChange, selectedFee, onSuccess }: D
         discount_updated_at: new Date().toISOString()
       };
 
-      // Update or create in legacy fees table first to get proper fee ID for history
+      // Use UPSERT to update existing fee record without creating duplicates
       let feeId = selectedFee.id;
-      const legacyFee = existingFees.find(ef => 
-        ef.student_id === selectedFee.student_id && 
-        ef.fee_type === selectedFee.fee_type
-      );
+      
+      // Update the existing fee record directly (never create new ones)
+      const { error: feeUpdateError } = await supabase
+        .from('fees')
+        .update(discountData)
+        .eq('student_id', selectedFee.student_id)
+        .eq('fee_type', selectedFee.fee_type)
+        .eq('academic_year_id', currentYear.id);
 
-      if (legacyFee) {
-        const { error: legacyError } = await supabase
-          .from('fees')
-          .update(discountData)
-          .eq('id', legacyFee.id);
-
-        if (legacyError) throw legacyError;
-        feeId = legacyFee.id;
-      } else {
-        // Create new legacy fee record if needed
+      if (feeUpdateError) {
+        console.error('Fee update error:', feeUpdateError);
+        // If update failed, try to create a single new record
         const feeStructure = feeStructures.find(fs => 
           fs.class_id === selectedFee.student?.class_id && 
           fs.fee_type === selectedFee.fee_type
         );
 
         if (feeStructure) {
-          const { data: newFee, error: legacyInsertError } = await supabase
+          const { data: newFee, error: insertError } = await supabase
             .from('fees')
-            .insert({
+            .upsert({
               student_id: selectedFee.student_id,
               fee_type: selectedFee.fee_type,
               amount: feeStructure.amount,
               actual_amount: feeStructure.amount,
               ...discountData,
-              total_paid: 0,
+              total_paid: selectedFee.total_paid || 0,
               due_date: selectedFee.due_date,
-              status: 'Pending',
+              status: selectedFee.status || 'Pending',
               academic_year_id: currentYear.id
+            }, {
+              onConflict: 'student_id,fee_type,academic_year_id',
+              ignoreDuplicates: false
             })
             .select()
             .single();
 
-          if (legacyInsertError) throw legacyInsertError;
+          if (insertError) throw insertError;
           feeId = newFee.id;
         }
       }
