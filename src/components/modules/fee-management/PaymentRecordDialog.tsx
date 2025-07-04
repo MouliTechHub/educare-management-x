@@ -82,7 +82,7 @@ export function PaymentRecordDialog({
 
       if (paymentError) throw paymentError;
 
-      // Update fee total_paid amount
+      // Update fee total_paid amount while preserving discount
       const newTotalPaid = fee.total_paid + formData.amount;
       const newStatus = newTotalPaid >= (fee.actual_amount - fee.discount_amount) ? 'Paid' : 'Partial';
 
@@ -92,6 +92,7 @@ export function PaymentRecordDialog({
           total_paid: newTotalPaid,
           status: newStatus,
           payment_date: newStatus === 'Paid' ? new Date().toISOString().split('T')[0] : null
+          // Explicitly preserving discount_amount - NOT updating it
         })
         .eq('id', fee.id);
 

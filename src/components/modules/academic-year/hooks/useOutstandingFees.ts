@@ -15,6 +15,7 @@ export interface OutstandingFee {
     paidAmount: number;
     balanceAmount: number;
     dueDate: string;
+    classId?: string;
   }[];
 }
 
@@ -52,6 +53,7 @@ export function useOutstandingFees(currentAcademicYearId: string) {
         .select(`
           id,
           student_id,
+          class_id,
           fee_type,
           actual_fee,
           discount_amount,
@@ -113,7 +115,8 @@ export function useOutstandingFees(currentAcademicYearId: string) {
           amount: fee.actual_fee,
           paidAmount: fee.paid_amount,
           balanceAmount,
-          dueDate: fee.due_date
+          dueDate: fee.due_date,
+          classId: fee.class_id
         });
       });
 
@@ -197,16 +200,41 @@ export function useOutstandingFees(currentAcademicYearId: string) {
 
           case 'carry_forward':
             // Create new fee record in target academic year for previous year dues
-            await supabase.from('fees').insert({
+            const { error: carryForwardError } = await supabase.from('fees').insert({
               student_id: studentId,
               fee_type: 'Previous Year Dues',
               amount: student.totalOutstanding,
               actual_amount: student.totalOutstanding,
+              discount_amount: 0,
+              total_paid: 0,
               due_date: new Date(new Date().setMonth(new Date().getMonth() + 1)).toISOString().split('T')[0],
               academic_year_id: targetAcademicYearId,
               status: 'Pending',
               notes: `Carried forward from previous academic years. Details: ${student.feeDetails.map(f => `${f.academicYearName}: ₹${f.balanceAmount}`).join(', ')}`
             });
+
+            if (carryForwardError) {
+              console.error('Error creating carry forward fee:', carryForwardError);
+              throw carryForwardError;
+            }
+
+            // Also create in enhanced fee records for consistency
+            const { error: enhancedCarryForwardError } = await supabase.from('student_fee_records').insert({
+              student_id: studentId,
+              class_id: student.feeDetails[0]?.classId || null,
+              academic_year_id: targetAcademicYearId,
+              fee_type: 'Previous Year Dues',
+              actual_fee: student.totalOutstanding,
+              discount_amount: 0,
+              paid_amount: 0,
+              due_date: new Date(new Date().setMonth(new Date().getMonth() + 1)).toISOString().split('T')[0],
+              status: 'Pending'
+            });
+
+            if (enhancedCarryForwardError) {
+              console.warn('Enhanced carry forward creation failed:', enhancedCarryForwardError);
+            }
+
             results.carriedForward++;
             break;
 

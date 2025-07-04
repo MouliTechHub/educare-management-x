@@ -75,21 +75,35 @@ export function useFeeData() {
     try {
       console.log('📊 Fetching fees for academic year:', currentAcademicYear);
       
-      // Fetch payment totals from all payment systems with better error handling
+      // Fetch payment totals from all payment systems filtered by academic year
       const [paymentHistoryResult, feePaymentResult, studentPaymentResult] = await Promise.allSettled([
         supabase
           .from('payment_history')
-          .select('fee_id, amount_paid')
+          .select(`
+            fee_id, 
+            amount_paid,
+            fees!inner(academic_year_id)
+          `)
+          .eq('fees.academic_year_id', currentAcademicYear)
           .order('created_at', { ascending: true }),
         
         supabase
           .from('fee_payment_records')
-          .select('fee_record_id, amount_paid')
+          .select(`
+            fee_record_id, 
+            amount_paid,
+            student_fee_records!inner(academic_year_id)
+          `)
+          .eq('student_fee_records.academic_year_id', currentAcademicYear)
           .order('created_at', { ascending: true }),
 
         supabase
           .from('student_payments')
-          .select('*')
+          .select(`
+            *,
+            fee_structures!inner(academic_year_id)
+          `)
+          .eq('fee_structures.academic_year_id', currentAcademicYear)
           .order('created_at', { ascending: true })
       ]);
 
