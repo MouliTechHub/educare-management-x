@@ -200,7 +200,7 @@ export function EnhancedStudentPromotionDialog({
       // Step 4: Execute promotion
       const { data: result, error: promotionError } = await supabase
         .rpc('promote_students_with_fees', {
-          promotion_data: JSON.stringify(promotionData),
+          promotion_data: promotionData,
           target_academic_year_id: targetAcademicYear.id,
           promoted_by_user: 'Admin'
         });

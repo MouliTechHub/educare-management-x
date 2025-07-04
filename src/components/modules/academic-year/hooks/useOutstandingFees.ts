@@ -45,17 +45,17 @@ export function useOutstandingFees(currentAcademicYearId: string) {
 
       if (studentsError) throw studentsError;
 
-      // Get all unpaid/partially paid fees from current academic year only
+      // Get all unpaid/partially paid fees from current academic year
+      // Using student_fee_records as primary source to match Fee Management calculation
       const { data: feesData, error: feesError } = await supabase
-        .from('fees')
+        .from('student_fee_records')
         .select(`
           id,
           student_id,
           fee_type,
-          amount,
-          actual_amount,
+          actual_fee,
           discount_amount,
-          total_paid,
+          paid_amount,
           due_date,
           academic_year_id,
           academic_years!inner(year_name, start_date)
@@ -79,15 +79,15 @@ export function useOutstandingFees(currentAcademicYearId: string) {
         const student = studentsData?.find(s => s.id === fee.student_id);
         if (!student) return;
 
-        // Calculate actual balance: actual amount minus discount minus total paid
-        const balanceAmount = fee.actual_amount - fee.discount_amount - fee.total_paid;
+        // Calculate actual balance: actual fee minus discount minus paid amount (matching Fee Management)
+        const balanceAmount = fee.actual_fee - fee.discount_amount - fee.paid_amount;
         
         console.log('💰 Fee calculation for student:', {
           studentName: `${student.first_name} ${student.last_name}`,
           feeType: fee.fee_type,
-          actualAmount: fee.actual_amount,
+          actualFee: fee.actual_fee,
           discountAmount: fee.discount_amount,
-          totalPaid: fee.total_paid,
+          paidAmount: fee.paid_amount,
           calculatedBalance: balanceAmount
         });
         
@@ -110,8 +110,8 @@ export function useOutstandingFees(currentAcademicYearId: string) {
           feeId: fee.id,
           feeType: fee.fee_type,
           academicYearName: fee.academic_years.year_name,
-          amount: fee.actual_amount,
-          paidAmount: fee.total_paid,
+          amount: fee.actual_fee,
+          paidAmount: fee.paid_amount,
           balanceAmount,
           dueDate: fee.due_date
         });
