@@ -176,9 +176,11 @@ export function EnhancedStudentPromotionDialog({
       if (studentsError) throw studentsError;
 
       // Filter out blocked students
-      const blockedStudents = Array.from(feeActions.entries())
-        .filter(([_, action]) => action.action === 'block')
-        .map(([studentId]) => studentId);
+      const blockedStudents = feeActions instanceof Map 
+        ? Array.from(feeActions.entries())
+            .filter(([_, action]) => action.action === 'block')
+            .map(([studentId]) => studentId)
+        : [];
 
       const studentsToPromote = studentsData?.filter(student => 
         !blockedStudents.includes(student.id)

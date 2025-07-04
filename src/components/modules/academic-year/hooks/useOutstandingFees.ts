@@ -64,6 +64,12 @@ export function useOutstandingFees(currentAcademicYearId: string) {
         .neq('status', 'Paid')
         .order('due_date', { ascending: true });
 
+      console.log('🔍 Outstanding fees query result:', {
+        currentAcademicYearId,
+        feesFound: feesData?.length || 0,
+        error: feesError
+      });
+
       if (feesError) throw feesError;
 
       // Group fees by student and calculate outstanding amounts
@@ -75,6 +81,16 @@ export function useOutstandingFees(currentAcademicYearId: string) {
 
         // Calculate actual balance: actual amount minus discount minus total paid
         const balanceAmount = fee.actual_amount - fee.discount_amount - fee.total_paid;
+        
+        console.log('💰 Fee calculation for student:', {
+          studentName: `${student.first_name} ${student.last_name}`,
+          feeType: fee.fee_type,
+          actualAmount: fee.actual_amount,
+          discountAmount: fee.discount_amount,
+          totalPaid: fee.total_paid,
+          calculatedBalance: balanceAmount
+        });
+        
         if (balanceAmount <= 0) return; // Skip if fully paid
 
         const studentKey = fee.student_id;
@@ -158,8 +174,18 @@ export function useOutstandingFees(currentAcademicYearId: string) {
           case 'waiver':
             // Create waiver record - update fee to mark as waived
             for (const feeDetail of student.feeDetails) {
+              // Get current fee data to add to existing discount
+              const { data: currentFee } = await supabase
+                .from('fees')
+                .select('discount_amount')
+                .eq('id', feeDetail.feeId)
+                .single();
+              
+              const currentDiscount = currentFee?.discount_amount || 0;
+              const newDiscount = currentDiscount + feeDetail.balanceAmount;
+              
               await supabase.from('fees').update({
-                discount_amount: feeDetail.balanceAmount,
+                discount_amount: newDiscount,
                 discount_notes: action.waiverReason,
                 discount_updated_by: 'Admin',
                 discount_updated_at: new Date().toISOString(),
