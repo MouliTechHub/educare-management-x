@@ -3,6 +3,7 @@ import { Table, TableBody, TableHead, TableHeader, TableRow, TableFooter } from 
 import { Checkbox } from "@/components/ui/checkbox";
 import { EnhancedFeeTableRow } from "./EnhancedFeeTableRow";
 import { Fee } from "./types/feeTypes";
+import { usePreviousYearDues } from "./hooks/usePreviousYearDues";
 
 interface EnhancedFeeTableProps {
   fees: Fee[];
@@ -13,6 +14,7 @@ interface EnhancedFeeTableProps {
   onHistoryClick: (student: Fee['student']) => void;
   onNotesEdit: (feeId: string, notes: string) => void;
   onReminderClick: (fee: Fee) => void;
+  currentAcademicYear: string;
 }
 
 export function EnhancedFeeTable({ 
@@ -23,8 +25,10 @@ export function EnhancedFeeTable({
   onDiscountClick, 
   onHistoryClick,
   onNotesEdit,
-  onReminderClick 
+  onReminderClick,
+  currentAcademicYear 
 }: EnhancedFeeTableProps) {
+  const { getStudentDues, hasOutstandingDues } = usePreviousYearDues(currentAcademicYear);
   if (fees.length === 0) {
     return (
       <div className="text-center py-8 text-gray-500">
@@ -71,6 +75,7 @@ export function EnhancedFeeTable({
             <TableHead>Student</TableHead>
             <TableHead>Class</TableHead>
             <TableHead>Fee Type</TableHead>
+            <TableHead>Previous Year Dues</TableHead>
             <TableHead>Actual Fee</TableHead>
             <TableHead>Discount</TableHead>
             <TableHead>Final Fee</TableHead>
@@ -94,12 +99,15 @@ export function EnhancedFeeTable({
               onHistoryClick={onHistoryClick}
               onNotesEdit={onNotesEdit}
               onReminderClick={onReminderClick}
+              previousYearDues={getStudentDues(fee.student_id)}
+              hasOutstandingDues={hasOutstandingDues(fee.student_id)}
             />
           ))}
         </TableBody>
         <TableFooter>
           <TableRow className="bg-muted/50 font-semibold">
             <TableHead colSpan={4}>Total ({fees.length} records)</TableHead>
+            <TableHead>-</TableHead>
             <TableHead>₹{totals.actualAmount.toLocaleString()}</TableHead>
             <TableHead className="text-orange-600">₹{totals.discountAmount.toLocaleString()}</TableHead>
             <TableHead>₹{totals.finalAmount.toLocaleString()}</TableHead>

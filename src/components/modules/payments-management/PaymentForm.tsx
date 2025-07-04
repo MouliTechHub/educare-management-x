@@ -8,6 +8,9 @@ import { FeeDetailsDisplay } from "./components/FeeDetailsDisplay";
 import { PaymentInformationCard } from "./components/PaymentInformationCard";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { usePreviousYearDues } from "../fee-management/hooks/usePreviousYearDues";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { AlertTriangle } from "lucide-react";
 
 interface PaymentFormProps {
   classes: Class[];
@@ -34,6 +37,29 @@ export function PaymentForm({ classes, students, feeStructures, onSubmit, onCanc
   const feeDetails = useFeeDetails(formData.student_id, formData.fee_structure_id, feeStructures);
   const { toast } = useToast();
 
+  // Get current academic year for dues checking
+  const [currentAcademicYear, setCurrentAcademicYear] = useState("");
+  const { getStudentDues, hasOutstandingDues, logPaymentBlockage } = usePreviousYearDues(currentAcademicYear);
+
+  // Get current academic year on component mount
+  useEffect(() => {
+    const getCurrentAcademicYear = async () => {
+      const { data, error } = await supabase
+        .from("academic_years")
+        .select("id")
+        .eq("is_current", true)
+        .single();
+      
+      if (data && !error) {
+        setCurrentAcademicYear(data.id);
+      }
+    };
+    getCurrentAcademicYear();
+  }, []);
+
+  const studentDues = formData.student_id ? getStudentDues(formData.student_id) : null;
+  const isPaymentBlocked = formData.student_id ? hasOutstandingDues(formData.student_id) : false;
+
   // Reset dependent fields when class changes
   useEffect(() => {
     if (formData.class_id) {
@@ -53,6 +79,22 @@ export function PaymentForm({ classes, students, feeStructures, onSubmit, onCanc
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    // Check if payment is blocked due to previous year dues
+    if (isPaymentBlocked) {
+      await logPaymentBlockage(
+        formData.student_id,
+        parseFloat(formData.amount_paid) || 0,
+        `Attempted to pay current year fee while having ₹${studentDues?.totalDues} in previous year dues`
+      );
+      
+      toast({
+        title: 'Payment Blocked',
+        description: 'You must clear all outstanding dues from previous academic years before paying for the current year.',
+        variant: 'destructive',
+      });
+      return;
+    }
     
     if (!formData.student_id || !formData.fee_structure_id || !formData.amount_paid || !formData.payment_received_by) {
       toast({
@@ -230,6 +272,32 @@ export function PaymentForm({ classes, students, feeStructures, onSubmit, onCanc
         <FeeDetailsDisplay feeDetails={feeDetails} />
       )}
 
+      {/* Payment Blocking Warning */}
+      {isPaymentBlocked && formData.student_id && (
+        <Alert variant="destructive">
+          <AlertTriangle className="h-4 w-4" />
+          <AlertDescription>
+            <strong>Payment Blocked!</strong>
+            <br />
+            This student has ₹{studentDues?.totalDues.toLocaleString()} in outstanding dues from previous academic years.
+            <br />
+            <span className="text-sm">You must clear all previous year dues before paying current year fees.</span>
+            {studentDues && (
+              <div className="mt-2 text-xs">
+                <strong>Outstanding dues:</strong>
+                <ul className="list-disc list-inside">
+                  {studentDues.duesDetails.map((due, index) => (
+                    <li key={index}>
+                      {due.academicYear} - {due.feeType}: ₹{due.balanceAmount.toLocaleString()}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+          </AlertDescription>
+        </Alert>
+      )}
+
       <PaymentInformationCard
         formData={formData}
         feeDetails={feeDetails}
@@ -240,8 +308,8 @@ export function PaymentForm({ classes, students, feeStructures, onSubmit, onCanc
         <Button type="button" variant="outline" onClick={onCancel}>
           Cancel
         </Button>
-        <Button type="submit">
-          Record Payment
+        <Button type="submit" disabled={isPaymentBlocked}>
+          {isPaymentBlocked ? 'Payment Blocked' : 'Record Payment'}
         </Button>
       </div>
     </form>

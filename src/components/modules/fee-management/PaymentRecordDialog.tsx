@@ -13,19 +13,24 @@ import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { Fee } from "./types/feeTypes";
+import { usePreviousYearDues } from "./hooks/usePreviousYearDues";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { AlertTriangle } from "lucide-react";
 
 interface PaymentRecordDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   fee: Fee | null;
   onSuccess: () => void;
+  currentAcademicYear: string;
 }
 
 export function PaymentRecordDialog({
   open,
   onOpenChange,
   fee,
-  onSuccess
+  onSuccess,
+  currentAcademicYear
 }: PaymentRecordDialogProps) {
   const [formData, setFormData] = useState({
     amount: 0,
@@ -36,14 +41,35 @@ export function PaymentRecordDialog({
   });
   const [loading, setLoading] = useState(false);
   const { toast } = useToast();
+  const { getStudentDues, hasOutstandingDues, logPaymentBlockage } = usePreviousYearDues(currentAcademicYear);
 
   if (!fee) return null;
+
+  const studentDues = getStudentDues(fee.student_id);
+  const isCurrentYearFee = fee.fee_type !== 'Previous Year Dues';
+  const isPaymentBlocked = hasOutstandingDues(fee.student_id) && isCurrentYearFee;
 
   const balanceAmount = (fee.actual_amount - fee.discount_amount) - fee.total_paid;
   const maxPaymentAmount = Math.max(0, balanceAmount);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    // Check if payment is blocked for current year fees
+    if (isPaymentBlocked) {
+      await logPaymentBlockage(
+        fee.student_id, 
+        formData.amount, 
+        `Attempted to pay current year fee while having ₹${studentDues?.totalDues} in previous year dues`
+      );
+      
+      toast({
+        title: "Payment Blocked",
+        description: "You must clear all outstanding dues from previous academic years before paying for the current year.",
+        variant: "destructive"
+      });
+      return;
+    }
     
     if (formData.amount <= 0) {
       toast({
@@ -142,6 +168,32 @@ export function PaymentRecordDialog({
             </p>
           </div>
 
+          {/* Payment Blocking Warning */}
+          {isPaymentBlocked && (
+            <Alert variant="destructive">
+              <AlertTriangle className="h-4 w-4" />
+              <AlertDescription>
+                <strong>Payment Blocked!</strong>
+                <br />
+                This student has ₹{studentDues?.totalDues.toLocaleString()} in outstanding dues from previous academic years.
+                <br />
+                <span className="text-sm">You must clear all previous year dues before paying current year fees.</span>
+                {studentDues && (
+                  <div className="mt-2 text-xs">
+                    <strong>Outstanding dues:</strong>
+                    <ul className="list-disc list-inside">
+                      {studentDues.duesDetails.map((due, index) => (
+                        <li key={index}>
+                          {due.academicYear} - {due.feeType}: ₹{due.balanceAmount.toLocaleString()}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+              </AlertDescription>
+            </Alert>
+          )}
+
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
               <Label htmlFor="amount">Payment Amount *</Label>
@@ -225,10 +277,10 @@ export function PaymentRecordDialog({
               </Button>
               <Button
                 type="submit"
-                disabled={loading || formData.amount <= 0}
+                disabled={loading || formData.amount <= 0 || isPaymentBlocked}
                 className="flex-1"
               >
-                {loading ? 'Recording...' : 'Record Payment'}
+                {loading ? 'Recording...' : isPaymentBlocked ? 'Payment Blocked' : 'Record Payment'}
               </Button>
             </div>
           </form>

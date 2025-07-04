@@ -15,6 +15,7 @@ import {
   MessageCircle 
 } from "lucide-react";
 import { Fee } from "./types/feeTypes";
+import { PreviousYearDues } from "./hooks/usePreviousYearDues";
 
 interface EnhancedFeeTableRowProps {
   fee: Fee;
@@ -25,6 +26,8 @@ interface EnhancedFeeTableRowProps {
   onHistoryClick: (student: Fee['student']) => void;
   onNotesEdit: (feeId: string, notes: string) => void;
   onReminderClick: (fee: Fee) => void;
+  previousYearDues: PreviousYearDues | null;
+  hasOutstandingDues: boolean;
 }
 
 export function EnhancedFeeTableRow({
@@ -35,7 +38,9 @@ export function EnhancedFeeTableRow({
   onDiscountClick,
   onHistoryClick,
   onNotesEdit,
-  onReminderClick
+  onReminderClick,
+  previousYearDues,
+  hasOutstandingDues
 }: EnhancedFeeTableRowProps) {
   const [isEditingNotes, setIsEditingNotes] = useState(false);
   const [notesValue, setNotesValue] = useState(fee.notes || '');
@@ -64,9 +69,11 @@ export function EnhancedFeeTableRow({
   };
 
   const isOverdue = new Date(fee.due_date) < new Date() && balanceAmount > 0;
+  const isCurrentYearFee = fee.fee_type !== 'Previous Year Dues';
+  const isPaymentBlocked = hasOutstandingDues && isCurrentYearFee;
 
   return (
-    <TableRow className={isSelected ? 'bg-blue-50' : ''}>
+    <TableRow className={`${isSelected ? 'bg-blue-50' : ''} ${isPaymentBlocked ? 'bg-red-50' : ''}`}>
       <TableCell>
         <Checkbox
           checked={isSelected}
@@ -87,7 +94,28 @@ export function EnhancedFeeTableRow({
         {fee.student?.class_name}
         {fee.student?.section && ` - ${fee.student.section}`}
       </TableCell>
-      <TableCell>{fee.fee_type}</TableCell>
+      <TableCell>
+        <div className="flex items-center gap-2">
+          <span>{fee.fee_type}</span>
+          {isPaymentBlocked && (
+            <Badge variant="destructive" className="text-xs">
+              Blocked
+            </Badge>
+          )}
+        </div>
+      </TableCell>
+      <TableCell>
+        {previousYearDues ? (
+          <div>
+            <span className="text-red-600 font-medium">₹{previousYearDues.totalDues.toLocaleString()}</span>
+            <div className="text-xs text-gray-500">
+              {previousYearDues.duesDetails.length} overdue fee(s)
+            </div>
+          </div>
+        ) : (
+          <span className="text-green-600">₹0</span>
+        )}
+      </TableCell>
       <TableCell>₹{fee.actual_amount.toLocaleString()}</TableCell>
       <TableCell>
         {fee.discount_amount > 0 ? (
@@ -158,7 +186,9 @@ export function EnhancedFeeTableRow({
               variant="outline"
               size="sm"
               onClick={() => onPaymentClick(fee)}
-              title="Record payment"
+              title={isPaymentBlocked ? "Payment blocked - clear previous year dues first" : "Record payment"}
+              disabled={isPaymentBlocked}
+              className={isPaymentBlocked ? "opacity-50 cursor-not-allowed" : ""}
             >
               <CreditCard className="w-3 h-3" />
             </Button>
