@@ -14,6 +14,7 @@ import { PaymentHistoryErrorBoundary } from "./student-management/PaymentHistory
 import { useFeeData } from "./fee-management/useFeeData";
 import { useFeeManagement } from "./fee-management/useFeeManagement";
 import { FeeTypeValidator } from "./fee-management/FeeTypeValidator";
+import { PreviousYearDuesTable } from "./fee-management/PreviousYearDuesTable";
 
 export default function FeeManagement() {
   const {
@@ -126,6 +127,14 @@ export default function FeeManagement() {
       />
 
       <EnhancedFeeStats fees={filteredFees} filters={filters} />
+
+      {/* Show Previous Year Dues section if there are any */}
+      {filteredFees.some(fee => fee.fee_type === 'Previous Year Dues') && (
+        <PreviousYearDuesTable 
+          academicYearId={currentAcademicYear}
+          onRefresh={refetchFees}
+        />
+      )}
 
       <BulkActionsPanel
         fees={filteredFees}

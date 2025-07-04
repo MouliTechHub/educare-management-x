@@ -237,7 +237,10 @@ export function useFeeData() {
       if (legacyError) {
         console.error('Error fetching legacy fee data:', legacyError);
       } else {
-        console.log('✅ Legacy fee data fetched:', legacyFeeData?.length || 0, 'records');
+      console.log('✅ Legacy fee data fetched:', legacyFeeData?.length || 0, 'records');
+      if (legacyFeeData) {
+        console.log('🔍 Legacy fee types found:', [...new Set(legacyFeeData.map(f => f.fee_type))]);
+      }
         
         // Add legacy fees only if they don't already exist in enhanced system
         legacyFeeData?.forEach((fee: any) => {

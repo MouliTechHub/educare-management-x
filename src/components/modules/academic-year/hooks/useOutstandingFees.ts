@@ -199,6 +199,13 @@ export function useOutstandingFees(currentAcademicYearId: string) {
             break;
 
           case 'carry_forward':
+            console.log('🔄 Creating carry forward fee for student:', {
+              studentId,
+              totalOutstanding: student.totalOutstanding,
+              targetAcademicYearId,
+              feeDetails: student.feeDetails
+            });
+            
             // Create new fee record in target academic year for previous year dues
             const { error: carryForwardError } = await supabase.from('fees').insert({
               student_id: studentId,
