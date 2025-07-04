@@ -91,8 +91,9 @@ export function PaymentRecordDialog({
         .update({
           total_paid: newTotalPaid,
           status: newStatus,
-          payment_date: newStatus === 'Paid' ? new Date().toISOString().split('T')[0] : null
-          // Explicitly preserving discount_amount - NOT updating it
+          payment_date: newStatus === 'Paid' ? new Date().toISOString().split('T')[0] : null,
+          // Explicitly preserve the existing discount_amount
+          discount_amount: fee.discount_amount
         })
         .eq('id', fee.id);
 
