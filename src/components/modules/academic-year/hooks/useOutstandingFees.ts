@@ -46,7 +46,23 @@ export function useOutstandingFees(currentAcademicYearId: string) {
 
       if (studentsError) throw studentsError;
 
-      // Get all unpaid/partially paid fees from both systems
+      // Get all academic years except the current one to fetch previous year dues
+      const { data: academicYears, error: yearsError } = await supabase
+        .from('academic_years')
+        .select('id, year_name')
+        .neq('id', currentAcademicYearId)
+        .order('start_date', { ascending: false });
+
+      if (yearsError) throw yearsError;
+
+      if (!academicYears || academicYears.length === 0) {
+        setOutstandingFees([]);
+        return;
+      }
+
+      const previousYearIds = academicYears.map(year => year.id);
+
+      // Get all unpaid/partially paid fees from PREVIOUS years only
       const [enhancedFeesResult, legacyFeesResult] = await Promise.allSettled([
         // Enhanced system - student_fee_records
         supabase
@@ -63,7 +79,7 @@ export function useOutstandingFees(currentAcademicYearId: string) {
             academic_year_id,
             academic_years!inner(year_name, start_date)
           `)
-          .eq('academic_year_id', currentAcademicYearId)
+          .in('academic_year_id', previousYearIds)
           .neq('status', 'Paid')
           .order('due_date', { ascending: true }),
         
@@ -81,34 +97,44 @@ export function useOutstandingFees(currentAcademicYearId: string) {
             academic_year_id,
             academic_years!inner(year_name, start_date)
           `)
-          .eq('academic_year_id', currentAcademicYearId)
+          .in('academic_year_id', previousYearIds)
           .neq('status', 'Paid')
           .order('due_date', { ascending: true })
       ]);
 
-      // Combine both result sets
+      // Combine both result sets and deduplicate
       let allFeesData = [];
+      const uniqueFeeMap = new Map<string, any>();
       
       if (enhancedFeesResult.status === 'fulfilled' && enhancedFeesResult.value.data) {
-        allFeesData = [...enhancedFeesResult.value.data];
+        enhancedFeesResult.value.data.forEach((fee: any) => {
+          const uniqueKey = `${fee.student_id}_${fee.fee_type}_${fee.academic_year_id}`;
+          uniqueFeeMap.set(uniqueKey, fee);
+        });
       }
       
       if (legacyFeesResult.status === 'fulfilled' && legacyFeesResult.value.data) {
-        // Transform legacy fees to match enhanced format
-        const transformedLegacyFees = legacyFeesResult.value.data.map((fee: any) => ({
-          id: fee.id,
-          student_id: fee.student_id,
-          class_id: null, // Legacy fees don't have class_id
-          fee_type: fee.fee_type,
-          actual_fee: fee.actual_amount,
-          discount_amount: fee.discount_amount,
-          paid_amount: fee.total_paid,
-          due_date: fee.due_date,
-          academic_year_id: fee.academic_year_id,
-          academic_years: fee.academic_years
-        }));
-        allFeesData = [...allFeesData, ...transformedLegacyFees];
+        // Transform legacy fees to match enhanced format, but only add if not already present
+        legacyFeesResult.value.data.forEach((fee: any) => {
+          const uniqueKey = `${fee.student_id}_${fee.fee_type}_${fee.academic_year_id}`;
+          if (!uniqueFeeMap.has(uniqueKey)) {
+            uniqueFeeMap.set(uniqueKey, {
+              id: fee.id,
+              student_id: fee.student_id,
+              class_id: null, // Legacy fees don't have class_id
+              fee_type: fee.fee_type,
+              actual_fee: fee.actual_amount,
+              discount_amount: fee.discount_amount,
+              paid_amount: fee.total_paid,
+              due_date: fee.due_date,
+              academic_year_id: fee.academic_year_id,
+              academic_years: fee.academic_years
+            });
+          }
+        });
       }
+
+      allFeesData = Array.from(uniqueFeeMap.values());
 
       console.log('🔍 Outstanding fees query result:', {
         currentAcademicYearId,

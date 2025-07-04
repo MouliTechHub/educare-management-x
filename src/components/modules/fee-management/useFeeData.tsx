@@ -167,9 +167,9 @@ export function useFeeData() {
       // Process enhanced fee records first (priority system)
       if (enhancedFeeData && enhancedFeeData.length > 0) {
         enhancedFeeData.forEach((fee: any) => {
-          const uniqueKey = `${fee.student_id}_${fee.fee_type}`;
+          const uniqueKey = `${fee.student_id}_${fee.fee_type}_${fee.academic_year_id}`;
           
-          // Only add if we haven't seen this student-fee combination
+          // Only add if we haven't seen this student-fee-academic year combination
           if (!uniqueFeeMap.has(uniqueKey)) {
             const totalPaidFromRecords = paymentTotalsFromRecords[fee.id] || 0;
             const totalPaidFromHistory = paymentTotalsFromHistory[fee.id] || 0;

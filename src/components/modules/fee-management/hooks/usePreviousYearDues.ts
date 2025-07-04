@@ -71,26 +71,36 @@ export function usePreviousYearDues(currentAcademicYearId: string) {
           .neq('status', 'Paid')
       ]);
 
-      // Combine both result sets
+      // Combine both result sets and deduplicate based on student_id + fee_type + academic_year_id
       let allFeesData = [];
+      const uniqueFeeMap = new Map<string, any>();
       
       if (enhancedFeesResult.status === 'fulfilled' && enhancedFeesResult.value.data) {
-        allFeesData = [...enhancedFeesResult.value.data];
+        enhancedFeesResult.value.data.forEach((fee: any) => {
+          const uniqueKey = `${fee.student_id}_${fee.fee_type}_${fee.academic_year_id}`;
+          uniqueFeeMap.set(uniqueKey, fee);
+        });
       }
       
       if (legacyFeesResult.status === 'fulfilled' && legacyFeesResult.value.data) {
-        // Transform legacy fees to match enhanced format
-        const transformedLegacyFees = legacyFeesResult.value.data.map((fee: any) => ({
-          student_id: fee.student_id,
-          fee_type: fee.fee_type,
-          actual_fee: fee.actual_amount,
-          discount_amount: fee.discount_amount,
-          paid_amount: fee.total_paid,
-          academic_year_id: fee.academic_year_id,
-          academic_years: fee.academic_years
-        }));
-        allFeesData = [...allFeesData, ...transformedLegacyFees];
+        // Transform legacy fees to match enhanced format, but only add if not already present
+        legacyFeesResult.value.data.forEach((fee: any) => {
+          const uniqueKey = `${fee.student_id}_${fee.fee_type}_${fee.academic_year_id}`;
+          if (!uniqueFeeMap.has(uniqueKey)) {
+            uniqueFeeMap.set(uniqueKey, {
+              student_id: fee.student_id,
+              fee_type: fee.fee_type,
+              actual_fee: fee.actual_amount,
+              discount_amount: fee.discount_amount,
+              paid_amount: fee.total_paid,
+              academic_year_id: fee.academic_year_id,
+              academic_years: fee.academic_years
+            });
+          }
+        });
       }
+
+      allFeesData = Array.from(uniqueFeeMap.values());
 
       // Group dues by student
       const studentDuesMap = new Map<string, PreviousYearDues>();

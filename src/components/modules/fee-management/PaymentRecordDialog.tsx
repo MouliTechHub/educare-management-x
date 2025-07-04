@@ -108,14 +108,18 @@ export function PaymentRecordDialog({
       const newCalculation = calculateFeeAmounts(updatedFee);
       const newStatus = newCalculation.status;
 
+      // Update fee record with explicit preservation of all discount fields
       const { error: feeUpdateError } = await supabase
         .from('fees')
         .update({
           total_paid: newTotalPaid,
           status: newStatus,
           payment_date: newStatus === 'Paid' ? new Date().toISOString().split('T')[0] : null,
-          // Explicitly preserve the existing discount_amount
-          discount_amount: fee.discount_amount
+          // CRITICAL: Explicitly preserve ALL discount-related fields
+          discount_amount: fee.discount_amount,
+          discount_notes: fee.discount_notes,
+          discount_updated_by: fee.discount_updated_by,
+          discount_updated_at: fee.discount_updated_at
         })
         .eq('id', fee.id);
 

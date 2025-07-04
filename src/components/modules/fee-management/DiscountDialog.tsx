@@ -175,17 +175,30 @@ export function DiscountDialog({ open, onOpenChange, selectedFee, onSuccess }: D
         console.warn('Enhanced fee record update failed:', enhancedError);
       }
 
-      // Manually log discount history since triggers might not capture context
-      await supabase.from('discount_history').insert({
-        fee_id: feeId,
-        student_id: selectedFee.student_id,
-        discount_amount: discountAmount,
-        discount_type: data.type,
-        discount_percentage: data.type === 'Percentage' ? data.amount : null,
-        reason: data.reason,
-        notes: data.notes,
-        applied_by: 'Admin'
-      });
+      // Log discount history manually to ensure it's recorded correctly
+      // Check if this exact entry already exists to prevent duplicates
+      const { data: existingEntry } = await supabase
+        .from('discount_history')
+        .select('id')
+        .eq('fee_id', feeId)
+        .eq('student_id', selectedFee.student_id)
+        .eq('discount_amount', discountAmount)
+        .eq('reason', data.reason)
+        .gte('applied_at', new Date(Date.now() - 5000).toISOString())
+        .limit(1);
+
+      if (!existingEntry || existingEntry.length === 0) {
+        await supabase.from('discount_history').insert({
+          fee_id: feeId,
+          student_id: selectedFee.student_id,
+          discount_amount: discountAmount,
+          discount_type: data.type,
+          discount_percentage: data.type === 'Percentage' ? data.amount : null,
+          reason: data.reason,
+          notes: data.notes,
+          applied_by: 'Admin'
+        });
+      }
 
       toast({
         title: "Discount applied",
