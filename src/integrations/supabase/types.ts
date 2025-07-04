@@ -163,6 +163,63 @@ export type Database = {
           },
         ]
       }
+      discount_history: {
+        Row: {
+          applied_at: string
+          applied_by: string
+          created_at: string
+          discount_amount: number
+          discount_percentage: number | null
+          discount_type: string
+          fee_id: string | null
+          id: string
+          notes: string | null
+          reason: string
+          student_id: string | null
+        }
+        Insert: {
+          applied_at?: string
+          applied_by?: string
+          created_at?: string
+          discount_amount: number
+          discount_percentage?: number | null
+          discount_type: string
+          fee_id?: string | null
+          id?: string
+          notes?: string | null
+          reason: string
+          student_id?: string | null
+        }
+        Update: {
+          applied_at?: string
+          applied_by?: string
+          created_at?: string
+          discount_amount?: number
+          discount_percentage?: number | null
+          discount_type?: string
+          fee_id?: string | null
+          id?: string
+          notes?: string | null
+          reason?: string
+          student_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "discount_history_fee_id_fkey"
+            columns: ["fee_id"]
+            isOneToOne: false
+            referencedRelation: "fees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "discount_history_student_id_fkey"
+            columns: ["student_id"]
+            isOneToOne: false
+            referencedRelation: "students"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       exam_subject_links: {
         Row: {
           exam_id: string
@@ -716,6 +773,51 @@ export type Database = {
           updated_at?: string | null
         }
         Relationships: []
+      }
+      payment_blockage_log: {
+        Row: {
+          academic_year_id: string | null
+          blocked_amount: number
+          blocked_at: string
+          id: string
+          outstanding_dues: number
+          reason: string
+          student_id: string | null
+        }
+        Insert: {
+          academic_year_id?: string | null
+          blocked_amount: number
+          blocked_at?: string
+          id?: string
+          outstanding_dues: number
+          reason: string
+          student_id?: string | null
+        }
+        Update: {
+          academic_year_id?: string | null
+          blocked_amount?: number
+          blocked_at?: string
+          id?: string
+          outstanding_dues?: number
+          reason?: string
+          student_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "payment_blockage_log_academic_year_id_fkey"
+            columns: ["academic_year_id"]
+            isOneToOne: false
+            referencedRelation: "academic_years"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "payment_blockage_log_student_id_fkey"
+            columns: ["student_id"]
+            isOneToOne: false
+            referencedRelation: "students"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       payment_history: {
         Row: {

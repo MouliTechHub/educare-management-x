@@ -95,6 +95,17 @@ export function DiscountDialog({ open, onOpenChange, selectedFee, onSuccess }: D
       const currentDiscount = selectedFee.discount_amount || 0;
       const newTotalDiscount = currentDiscount + discountAmount;
       
+      // Validate discount doesn't exceed fee amount
+      if (newTotalDiscount > selectedFee.actual_amount) {
+        toast({
+          title: "Invalid discount amount",
+          description: `Total discount (₹${newTotalDiscount.toFixed(2)}) cannot exceed the actual fee amount (₹${selectedFee.actual_amount.toFixed(2)})`,
+          variant: "destructive",
+        });
+        setLoading(false);
+        return;
+      }
+
       const discountData = {
         discount_amount: newTotalDiscount,
         discount_notes: data.notes,
@@ -102,7 +113,8 @@ export function DiscountDialog({ open, onOpenChange, selectedFee, onSuccess }: D
         discount_updated_at: new Date().toISOString()
       };
 
-      // Update or create in legacy fees table
+      // Update or create in legacy fees table first to get proper fee ID for history
+      let feeId = selectedFee.id;
       const legacyFee = existingFees.find(ef => 
         ef.student_id === selectedFee.student_id && 
         ef.fee_type === selectedFee.fee_type
@@ -115,6 +127,7 @@ export function DiscountDialog({ open, onOpenChange, selectedFee, onSuccess }: D
           .eq('id', legacyFee.id);
 
         if (legacyError) throw legacyError;
+        feeId = legacyFee.id;
       } else {
         // Create new legacy fee record if needed
         const feeStructure = feeStructures.find(fs => 
@@ -123,7 +136,7 @@ export function DiscountDialog({ open, onOpenChange, selectedFee, onSuccess }: D
         );
 
         if (feeStructure) {
-          const { error: legacyInsertError } = await supabase
+          const { data: newFee, error: legacyInsertError } = await supabase
             .from('fees')
             .insert({
               student_id: selectedFee.student_id,
@@ -135,9 +148,12 @@ export function DiscountDialog({ open, onOpenChange, selectedFee, onSuccess }: D
               due_date: selectedFee.due_date,
               status: 'Pending',
               academic_year_id: currentYear.id
-            });
+            })
+            .select()
+            .single();
 
           if (legacyInsertError) throw legacyInsertError;
+          feeId = newFee.id;
         }
       }
 
@@ -158,6 +174,18 @@ export function DiscountDialog({ open, onOpenChange, selectedFee, onSuccess }: D
       if (enhancedError) {
         console.warn('Enhanced fee record update failed:', enhancedError);
       }
+
+      // Manually log discount history since triggers might not capture context
+      await supabase.from('discount_history').insert({
+        fee_id: feeId,
+        student_id: selectedFee.student_id,
+        discount_amount: discountAmount,
+        discount_type: data.type,
+        discount_percentage: data.type === 'Percentage' ? data.amount : null,
+        reason: data.reason,
+        notes: data.notes,
+        applied_by: 'Admin'
+      });
 
       toast({
         title: "Discount applied",

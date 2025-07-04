@@ -9,6 +9,7 @@ import { ExportButtons } from "./fee-management/ExportButtons";
 import { DiscountDialog } from "./fee-management/DiscountDialog";
 import { PaymentRecordDialog } from "./fee-management/PaymentRecordDialog";
 import { ReminderDialog } from "./fee-management/ReminderDialog";
+import { DiscountHistoryDialog } from "./fee-management/DiscountHistoryDialog";
 import { StudentPaymentHistory } from "./student-management/StudentPaymentHistory";
 import { PaymentHistoryErrorBoundary } from "./student-management/PaymentHistoryErrorBoundary";
 import { useFeeData } from "./fee-management/useFeeData";
@@ -44,6 +45,7 @@ export default function FeeManagement() {
   const [discountDialogOpen, setDiscountDialogOpen] = React.useState(false);
   const [paymentDialogOpen, setPaymentDialogOpen] = React.useState(false);
   const [reminderDialogOpen, setReminderDialogOpen] = React.useState(false);
+  const [discountHistoryDialogOpen, setDiscountHistoryDialogOpen] = React.useState(false);
   const [selectedFee, setSelectedFee] = React.useState(null);
   const [selectedFees, setSelectedFees] = React.useState<Set<string>>(new Set());
 
@@ -98,6 +100,11 @@ export default function FeeManagement() {
   const handleReminderClick = (fee) => {
     setSelectedFees(new Set([fee.id]));
     setReminderDialogOpen(true);
+  };
+
+  const handleDiscountHistoryClick = (fee) => {
+    setSelectedFee(fee);
+    setDiscountHistoryDialogOpen(true);
   };
 
   const currentYear = academicYears.find(year => year.is_current);
@@ -182,6 +189,7 @@ export default function FeeManagement() {
             }
           }}
           onReminderClick={handleReminderClick}
+          onDiscountHistoryClick={handleDiscountHistoryClick}
           currentAcademicYear={currentAcademicYear}
         />
       </div>
@@ -206,6 +214,14 @@ export default function FeeManagement() {
         onOpenChange={setReminderDialogOpen}
         fees={filteredFees.filter(f => selectedFees.has(f.id))}
         onSuccess={refetchFees}
+      />
+
+      <DiscountHistoryDialog
+        open={discountHistoryDialogOpen}
+        onOpenChange={setDiscountHistoryDialogOpen}
+        feeId={selectedFee?.id || ''}
+        studentName={selectedFee ? `${selectedFee.student?.first_name} ${selectedFee.student?.last_name}` : ''}
+        feeType={selectedFee?.fee_type || ''}
       />
 
       <PaymentHistoryErrorBoundary>

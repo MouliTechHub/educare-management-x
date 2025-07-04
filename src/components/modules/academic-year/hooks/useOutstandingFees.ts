@@ -246,48 +246,28 @@ export function useOutstandingFees(currentAcademicYearId: string) {
             break;
 
           case 'carry_forward':
-            console.log('🔄 Creating carry forward fee for student:', {
+            console.log('🔄 Logging carry forward dues for student:', {
               studentId,
               totalOutstanding: student.totalOutstanding,
               targetAcademicYearId,
               feeDetails: student.feeDetails
             });
             
-            // Create new fee record in target academic year for previous year dues
-            const { error: carryForwardError } = await supabase.from('fees').insert({
+            // Log the carry forward in payment_blockage_log for tracking
+            const { error: logError } = await supabase.from('payment_blockage_log').insert({
               student_id: studentId,
-              fee_type: 'Previous Year Dues',
-              amount: student.totalOutstanding,
-              actual_amount: student.totalOutstanding,
-              discount_amount: 0,
-              total_paid: 0,
-              due_date: new Date(new Date().setMonth(new Date().getMonth() + 1)).toISOString().split('T')[0],
-              academic_year_id: targetAcademicYearId,
-              status: 'Pending',
-              notes: `Carried forward from previous academic years. Details: ${student.feeDetails.map(f => `${f.academicYearName}: ₹${f.balanceAmount}`).join(', ')}`
+              blocked_amount: 0,
+              outstanding_dues: student.totalOutstanding,
+              reason: `Carried forward dues from previous academic years: ${student.feeDetails.map(f => `${f.academicYearName}: ₹${f.balanceAmount}`).join(', ')}`,
+              academic_year_id: targetAcademicYearId
             });
 
-            if (carryForwardError) {
-              console.error('Error creating carry forward fee:', carryForwardError);
-              throw carryForwardError;
+            if (logError) {
+              console.error('Error logging carry forward:', logError);
+              throw logError;
             }
 
-            // Also create in enhanced fee records for consistency
-            const { error: enhancedCarryForwardError } = await supabase.from('student_fee_records').insert({
-              student_id: studentId,
-              class_id: student.feeDetails[0]?.classId || null,
-              academic_year_id: targetAcademicYearId,
-              fee_type: 'Previous Year Dues',
-              actual_fee: student.totalOutstanding,
-              discount_amount: 0,
-              paid_amount: 0,
-              due_date: new Date(new Date().setMonth(new Date().getMonth() + 1)).toISOString().split('T')[0],
-              status: 'Pending'
-            });
-
-            if (enhancedCarryForwardError) {
-              console.warn('Enhanced carry forward creation failed:', enhancedCarryForwardError);
-            }
+            console.log('✅ Carry forward logged successfully for student:', studentId);
 
             results.carriedForward++;
             break;

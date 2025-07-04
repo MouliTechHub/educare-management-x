@@ -12,10 +12,12 @@ import {
   Edit, 
   Save, 
   X,
-  MessageCircle 
+  MessageCircle,
+  FileText
 } from "lucide-react";
 import { Fee } from "./types/feeTypes";
 import { PreviousYearDues } from "./hooks/usePreviousYearDues";
+import { calculateFeeAmounts } from "./utils/feeCalculations";
 
 interface EnhancedFeeTableRowProps {
   fee: Fee;
@@ -26,6 +28,7 @@ interface EnhancedFeeTableRowProps {
   onHistoryClick: (student: Fee['student']) => void;
   onNotesEdit: (feeId: string, notes: string) => void;
   onReminderClick: (fee: Fee) => void;
+  onDiscountHistoryClick: (fee: Fee) => void;
   previousYearDues: PreviousYearDues | null;
   hasOutstandingDues: boolean;
 }
@@ -39,14 +42,16 @@ export function EnhancedFeeTableRow({
   onHistoryClick,
   onNotesEdit,
   onReminderClick,
+  onDiscountHistoryClick,
   previousYearDues,
   hasOutstandingDues
 }: EnhancedFeeTableRowProps) {
   const [isEditingNotes, setIsEditingNotes] = useState(false);
   const [notesValue, setNotesValue] = useState(fee.notes || '');
 
-  const finalFee = fee.actual_amount - fee.discount_amount;
-  const balanceAmount = finalFee - fee.total_paid;
+  // Use centralized calculation for consistency
+  const feeCalculation = calculateFeeAmounts(fee);
+  const { finalAmount, balanceAmount, status } = feeCalculation;
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -123,7 +128,7 @@ export function EnhancedFeeTableRow({
           <span className="text-gray-400">₹0</span>
         )}
       </TableCell>
-      <TableCell className="font-medium">₹{finalFee.toLocaleString()}</TableCell>
+      <TableCell className="font-medium">₹{finalAmount.toLocaleString()}</TableCell>
       <TableCell className="text-blue-600">₹{fee.total_paid.toLocaleString()}</TableCell>
       <TableCell className={balanceAmount > 0 ? 'text-red-600' : 'text-green-600'}>
         ₹{balanceAmount.toLocaleString()}
@@ -134,8 +139,8 @@ export function EnhancedFeeTableRow({
         </div>
       </TableCell>
       <TableCell>
-        <Badge className={getStatusColor(fee.status)}>
-          {fee.status}
+        <Badge className={getStatusColor(status)}>
+          {status}
         </Badge>
       </TableCell>
       <TableCell>
@@ -172,14 +177,25 @@ export function EnhancedFeeTableRow({
       </TableCell>
       <TableCell>
         <div className="flex space-x-1">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => onDiscountClick(fee)}
-            title="Apply discount"
-          >
-            <Percent className="w-3 h-3" />
-          </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => onDiscountClick(fee)}
+              title="Apply discount"
+            >
+              <Percent className="w-3 h-3" />
+            </Button>
+            {fee.discount_amount > 0 && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => onDiscountHistoryClick(fee)}
+                title="View discount history"
+                className="text-orange-600 border-orange-200 hover:bg-orange-50"
+              >
+                <FileText className="w-3 h-3" />
+              </Button>
+            )}
           {balanceAmount > 0 && (
             <Button
               variant="outline"

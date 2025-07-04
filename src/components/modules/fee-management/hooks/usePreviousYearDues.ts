@@ -143,12 +143,14 @@ export function usePreviousYearDues(currentAcademicYearId: string) {
 
   const logPaymentBlockage = async (studentId: string, attemptedAmount: number, reason: string) => {
     try {
-      await supabase.from('fee_change_history').insert({
-        fee_record_id: studentId, // Using student_id as reference
-        change_type: 'payment_blocked',
-        amount: attemptedAmount,
-        changed_by: 'System',
-        notes: `Payment blocked: ${reason}`
+      const studentDues = getStudentDues(studentId);
+      
+      await supabase.from('payment_blockage_log').insert({
+        student_id: studentId,
+        blocked_amount: attemptedAmount,
+        outstanding_dues: studentDues?.totalDues || 0,
+        reason: reason,
+        academic_year_id: currentAcademicYearId || null
       });
     } catch (error) {
       console.error('Error logging payment blockage:', error);

@@ -14,6 +14,7 @@ import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { Fee } from "./types/feeTypes";
 import { usePreviousYearDues } from "./hooks/usePreviousYearDues";
+import { calculateFeeAmounts, validatePaymentAmount } from "./utils/feeCalculations";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { AlertTriangle } from "lucide-react";
 
@@ -46,11 +47,11 @@ export function PaymentRecordDialog({
   if (!fee) return null;
 
   const studentDues = getStudentDues(fee.student_id);
-  const isCurrentYearFee = fee.fee_type !== 'Previous Year Dues';
-  const isPaymentBlocked = hasOutstandingDues(fee.student_id) && isCurrentYearFee;
+  const isPaymentBlocked = hasOutstandingDues(fee.student_id);
 
-  const balanceAmount = (fee.actual_amount - fee.discount_amount) - fee.total_paid;
-  const maxPaymentAmount = Math.max(0, balanceAmount);
+  // Use the centralized calculation function for consistency
+  const feeCalculation = calculateFeeAmounts(fee);
+  const maxPaymentAmount = feeCalculation.balanceAmount;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -71,19 +72,12 @@ export function PaymentRecordDialog({
       return;
     }
     
-    if (formData.amount <= 0) {
+    // Validate payment amount using centralized validation
+    const validation = validatePaymentAmount(formData.amount, maxPaymentAmount);
+    if (!validation.isValid) {
       toast({
-        title: "Invalid Amount",
-        description: "Payment amount must be greater than 0",
-        variant: "destructive"
-      });
-      return;
-    }
-
-    if (formData.amount > maxPaymentAmount) {
-      toast({
-        title: "Amount Exceeds Balance",
-        description: `Payment amount cannot exceed balance of ₹${maxPaymentAmount.toLocaleString()}`,
+        title: "Invalid Payment Amount",
+        description: validation.error,
         variant: "destructive"
       });
       return;
@@ -108,9 +102,11 @@ export function PaymentRecordDialog({
 
       if (paymentError) throw paymentError;
 
-      // Update fee total_paid amount while preserving discount
+      // Update fee total_paid amount and recalculate status
       const newTotalPaid = fee.total_paid + formData.amount;
-      const newStatus = newTotalPaid >= (fee.actual_amount - fee.discount_amount) ? 'Paid' : 'Partial';
+      const updatedFee = { ...fee, total_paid: newTotalPaid };
+      const newCalculation = calculateFeeAmounts(updatedFee);
+      const newStatus = newCalculation.status;
 
       const { error: feeUpdateError } = await supabase
         .from('fees')

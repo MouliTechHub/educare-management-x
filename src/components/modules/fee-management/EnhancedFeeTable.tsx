@@ -14,6 +14,7 @@ interface EnhancedFeeTableProps {
   onHistoryClick: (student: Fee['student']) => void;
   onNotesEdit: (feeId: string, notes: string) => void;
   onReminderClick: (fee: Fee) => void;
+  onDiscountHistoryClick: (fee: Fee) => void;
   currentAcademicYear: string;
 }
 
@@ -26,6 +27,7 @@ export function EnhancedFeeTable({
   onHistoryClick,
   onNotesEdit,
   onReminderClick,
+  onDiscountHistoryClick,
   currentAcademicYear 
 }: EnhancedFeeTableProps) {
   const { getStudentDues, hasOutstandingDues } = usePreviousYearDues(currentAcademicYear);
@@ -99,6 +101,7 @@ export function EnhancedFeeTable({
               onHistoryClick={onHistoryClick}
               onNotesEdit={onNotesEdit}
               onReminderClick={onReminderClick}
+              onDiscountHistoryClick={onDiscountHistoryClick}
               previousYearDues={getStudentDues(fee.student_id)}
               hasOutstandingDues={hasOutstandingDues(fee.student_id)}
             />
