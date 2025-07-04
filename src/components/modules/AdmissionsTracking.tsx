@@ -96,38 +96,67 @@ export function AdmissionsTracking() {
     try {
       console.log('🔍 Fetching admission records for year:', selectedYear);
 
-      // Fetch students with their academic records
-      const { data, error } = await supabase
+      // First get the academic records
+      const { data: records, error: recordsError } = await supabase
         .from('student_academic_records')
-        .select(`
-          id,
-          student_id,
-          academic_year_id,
-          enrollment_date,
-          departure_date,
-          departure_reason,
-          status,
-          class_id,
-          students!inner(
-            first_name,
-            last_name,
-            admission_number,
-            date_of_join
-          ),
-          academic_years!inner(
-            year_name
-          ),
-          classes(
-            name,
-            section
-          )
-        `)
+        .select('*')
         .eq('academic_year_id', selectedYear);
 
-      if (error) throw error;
+      if (recordsError) throw recordsError;
 
-      console.log('📊 Admission records loaded:', data?.length || 0);
-      setAdmissionRecords(data || []);
+      if (!records || records.length === 0) {
+        setAdmissionRecords([]);
+        return;
+      }
+
+      // Get student data
+      const studentIds = records.map(r => r.student_id);
+      const { data: students, error: studentsError } = await supabase
+        .from('students')
+        .select('id, first_name, last_name, admission_number, date_of_join')
+        .in('id', studentIds);
+
+      if (studentsError) throw studentsError;
+
+      // Get academic year data
+      const { data: academicYear, error: yearError } = await supabase
+        .from('academic_years')
+        .select('id, year_name')
+        .eq('id', selectedYear)
+        .single();
+
+      if (yearError) throw yearError;
+
+      // Get class data
+      const classIds = records.map(r => r.class_id).filter(Boolean);
+      const { data: classes, error: classesError } = await supabase
+        .from('classes')
+        .select('id, name, section')
+        .in('id', classIds);
+
+      if (classesError) throw classesError;
+
+      // Combine data to match interface
+      const transformedData = records.map(record => {
+        const student = students?.find(s => s.id === record.student_id);
+        const classData = classes?.find(c => c.id === record.class_id);
+        
+        return {
+          id: record.id,
+          student_id: record.student_id,
+          academic_year_id: record.academic_year_id,
+          enrollment_date: record.enrollment_date,
+          departure_date: record.departure_date,
+          departure_reason: record.departure_reason,
+          status: record.status,
+          student: student || { first_name: '', last_name: '', admission_number: '', date_of_join: '' },
+          academic_year: academicYear,
+          class: classData || { name: 'N/A', section: null }
+        };
+      });
+
+      console.log('📊 Admission records loaded:', transformedData.length);
+      setAdmissionRecords(transformedData);
 
     } catch (error: any) {
       console.error('❌ Error fetching admission records:', error);
@@ -169,7 +198,7 @@ export function AdmissionsTracking() {
 
       toast({
         title: "Student Marked as Dropout",
-        description: `${selectedStudent.students.first_name} ${selectedStudent.students.last_name} has been marked as dropout`,
+        description: `${selectedStudent.student.first_name} ${selectedStudent.student.last_name} has been marked as dropout`,
       });
 
       setDropoutDialog(false);
@@ -201,9 +230,9 @@ export function AdmissionsTracking() {
     if (!searchTerm) return true;
     const searchLower = searchTerm.toLowerCase();
     return (
-      record.students.first_name.toLowerCase().includes(searchLower) ||
-      record.students.last_name.toLowerCase().includes(searchLower) ||
-      record.students.admission_number.toLowerCase().includes(searchLower)
+      record.student.first_name.toLowerCase().includes(searchLower) ||
+      record.student.last_name.toLowerCase().includes(searchLower) ||
+      record.student.admission_number.toLowerCase().includes(searchLower)
     );
   });
 
@@ -330,11 +359,11 @@ export function AdmissionsTracking() {
                 {filteredRecords.map((record) => (
                   <TableRow key={record.id}>
                     <TableCell className="font-medium">
-                      {record.students.first_name} {record.students.last_name}
+                      {record.student.first_name} {record.student.last_name}
                     </TableCell>
-                    <TableCell>{record.students.admission_number}</TableCell>
+                    <TableCell>{record.student.admission_number}</TableCell>
                     <TableCell>
-                      {record.classes ? `${record.classes.name}${record.classes.section ? ` ${record.classes.section}` : ''}` : 'N/A'}
+                      {record.class ? `${record.class.name}${record.class.section ? ` ${record.class.section}` : ''}` : 'N/A'}
                     </TableCell>
                     <TableCell>
                       {record.enrollment_date ? new Date(record.enrollment_date).toLocaleDateString() : 'N/A'}
@@ -384,10 +413,10 @@ export function AdmissionsTracking() {
             <div className="space-y-4">
               <div className="bg-muted p-3 rounded">
                 <h4 className="font-medium">
-                  {selectedStudent.students.first_name} {selectedStudent.students.last_name}
+                  {selectedStudent.student.first_name} {selectedStudent.student.last_name}
                 </h4>
                 <p className="text-sm text-muted-foreground">
-                  Admission Number: {selectedStudent.students.admission_number}
+                  Admission Number: {selectedStudent.student.admission_number}
                 </p>
               </div>
 
