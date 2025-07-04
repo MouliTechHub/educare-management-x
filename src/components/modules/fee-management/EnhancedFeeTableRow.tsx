@@ -69,8 +69,7 @@ export function EnhancedFeeTableRow({
   };
 
   const isOverdue = new Date(fee.due_date) < new Date() && balanceAmount > 0;
-  const isCurrentYearFee = fee.fee_type !== 'Previous Year Dues';
-  const isPaymentBlocked = hasOutstandingDues && isCurrentYearFee;
+  const isPaymentBlocked = hasOutstandingDues;
 
   return (
     <TableRow className={`${isSelected ? 'bg-blue-50' : ''} ${isPaymentBlocked ? 'bg-red-50' : ''}`}>

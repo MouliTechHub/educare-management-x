@@ -19,7 +19,7 @@ export function BlockedStudentsReport({ fees, currentAcademicYear }: BlockedStud
 
   // Get unique students who have current year fees and previous year dues
   const blockedStudents = fees
-    .filter(fee => fee.fee_type !== 'Previous Year Dues' && hasOutstandingDues(fee.student_id))
+    .filter(fee => hasOutstandingDues(fee.student_id))
     .reduce((acc, fee) => {
       if (!acc.find(s => s.studentId === fee.student_id)) {
         const dues = getStudentDues(fee.student_id);
@@ -32,7 +32,7 @@ export function BlockedStudentsReport({ fees, currentAcademicYear }: BlockedStud
             section: fee.student?.section || '',
             totalDues: dues.totalDues,
             duesDetails: dues.duesDetails,
-            currentYearFees: fees.filter(f => f.student_id === fee.student_id && f.fee_type !== 'Previous Year Dues')
+            currentYearFees: fees.filter(f => f.student_id === fee.student_id)
           });
         }
       }
@@ -164,7 +164,7 @@ export function BlockedStudentsReport({ fees, currentAcademicYear }: BlockedStud
 
         <div className="text-sm text-orange-700 bg-orange-100 p-3 rounded">
           <strong>Note:</strong> These students cannot pay current year fees until their previous year dues are cleared.
-          Use the "Previous Year Dues" fee type to collect outstanding amounts first.
+          Previous year dues are calculated automatically from unpaid balances in prior academic years.
         </div>
       </CardContent>
     </Card>

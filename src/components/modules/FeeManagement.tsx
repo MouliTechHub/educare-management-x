@@ -135,13 +135,6 @@ export default function FeeManagement() {
         currentAcademicYear={currentAcademicYear}
       />
 
-      {/* Show Previous Year Dues section if there are any */}
-      {filteredFees.some(fee => fee.fee_type === 'Previous Year Dues') && (
-        <PreviousYearDuesTable 
-          academicYearId={currentAcademicYear}
-          onRefresh={refetchFees}
-        />
-      )}
 
       <BulkActionsPanel
         fees={filteredFees}
