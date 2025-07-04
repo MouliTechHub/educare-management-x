@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -40,6 +39,8 @@ export function Reports({ userRole }: ReportsProps) {
   const fetchReportData = async () => {
     setLoading(true);
     try {
+      console.log('🔄 Starting report data fetch...');
+      
       // Fetch basic counts
       const [studentsResponse, teachersResponse, classesResponse] = await Promise.all([
         supabase.from("students").select("*", { count: "exact", head: true }),
@@ -47,30 +48,55 @@ export function Reports({ userRole }: ReportsProps) {
         supabase.from("classes").select("*", { count: "exact", head: true })
       ]);
 
-      // Fetch attendance data
-      const { data: attendanceData } = await supabase
+      // Fetch limited data to prevent hanging
+      const oneYearAgo = new Date(Date.now() - 365 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+      
+      // Fetch attendance data with recent date filter
+      const { data: attendanceData, error: attendanceError } = await supabase
         .from("attendance")
         .select("date, status")
-        .order("date");
+        .gte('date', oneYearAgo)
+        .order("date")
+        .limit(1000);
 
-      // Fetch fee data
-      const { data: feeData } = await supabase
+      if (attendanceError) {
+        console.warn('Attendance fetch error:', attendanceError);
+      }
+
+      // Fetch fee data with recent date filter  
+      const { data: feeData, error: feeError } = await supabase
         .from("fees")
-        .select("amount, status, created_at");
+        .select("amount, status, created_at")
+        .gte('created_at', new Date(Date.now() - 365 * 24 * 60 * 60 * 1000).toISOString())
+        .limit(1000);
+
+      if (feeError) {
+        console.warn('Fee fetch error:', feeError);
+      }
 
       // Fetch grade data
-      const { data: gradeData } = await supabase
+      const { data: gradeData, error: gradeError } = await supabase
         .from("grades")
-        .select("grade");
+        .select("grade")
+        .limit(1000);
+
+      if (gradeError) {
+        console.warn('Grade fetch error:', gradeError);
+      }
 
       // Fetch class strength data
-      const { data: classStrengthData } = await supabase
+      const { data: classStrengthData, error: classError } = await supabase
         .from("students")
         .select(`
           class_id,
           classes(name, section)
         `)
-        .eq("status", "Active");
+        .eq("status", "Active")
+        .limit(1000);
+
+      if (classError) {
+        console.warn('Class strength fetch error:', classError);
+      }
 
       // Process data
       const totalStudents = studentsResponse.count || 0;
@@ -83,8 +109,8 @@ export function Reports({ userRole }: ReportsProps) {
       const attendanceRate = totalAttendance > 0 ? (presentCount / totalAttendance) * 100 : 0;
 
       // Calculate fee collection rate
-      const totalFees = feeData?.reduce((sum, fee) => sum + fee.amount, 0) || 0;
-      const collectedFees = feeData?.filter(f => f.status === "Paid").reduce((sum, fee) => sum + fee.amount, 0) || 0;
+      const totalFees = feeData?.reduce((sum, fee) => sum + (fee.amount || 0), 0) || 0;
+      const collectedFees = feeData?.filter(f => f.status === "Paid").reduce((sum, fee) => sum + (fee.amount || 0), 0) || 0;
       const feeCollectionRate = totalFees > 0 ? (collectedFees / totalFees) * 100 : 0;
 
       // Process monthly attendance data
@@ -111,10 +137,12 @@ export function Reports({ userRole }: ReportsProps) {
         classStrength
       });
 
+      console.log('✅ Report data loaded successfully');
     } catch (error: any) {
+      console.error('❌ Report data fetch error:', error);
       toast({
-        title: "Error fetching report data",
-        description: error.message,
+        title: "Error loading reports",
+        description: error.message || "Failed to load report data",
         variant: "destructive",
       });
     } finally {
@@ -127,10 +155,14 @@ export function Reports({ userRole }: ReportsProps) {
     const monthlyData = months.map(month => ({ month, total: 0, present: 0 }));
 
     data.forEach(record => {
-      const monthIndex = new Date(record.date).getMonth();
-      monthlyData[monthIndex].total++;
-      if (record.status === "Present") {
-        monthlyData[monthIndex].present++;
+      if (record.date) {
+        const monthIndex = new Date(record.date).getMonth();
+        if (monthIndex >= 0 && monthIndex < 12) {
+          monthlyData[monthIndex].total++;
+          if (record.status === "Present") {
+            monthlyData[monthIndex].present++;
+          }
+        }
       }
     });
 
@@ -145,11 +177,15 @@ export function Reports({ userRole }: ReportsProps) {
     const monthlyData = months.map(month => ({ month, collected: 0, pending: 0 }));
 
     data.forEach(fee => {
-      const monthIndex = new Date(fee.created_at).getMonth();
-      if (fee.status === "Paid") {
-        monthlyData[monthIndex].collected += fee.amount;
-      } else {
-        monthlyData[monthIndex].pending += fee.amount;
+      if (fee.created_at && fee.amount) {
+        const monthIndex = new Date(fee.created_at).getMonth();
+        if (monthIndex >= 0 && monthIndex < 12) {
+          if (fee.status === "Paid") {
+            monthlyData[monthIndex].collected += fee.amount;
+          } else {
+            monthlyData[monthIndex].pending += fee.amount;
+          }
+        }
       }
     });
 
@@ -192,7 +228,11 @@ export function Reports({ userRole }: ReportsProps) {
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+        <div className="ml-4">
+          <p className="text-lg font-medium">Loading Reports...</p>
+          <p className="text-sm text-muted-foreground">This may take a moment</p>
+        </div>
       </div>
     );
   }
@@ -200,7 +240,10 @@ export function Reports({ userRole }: ReportsProps) {
   if (!reportData) {
     return (
       <div className="text-center py-8">
-        <p className="text-gray-500">No report data available</p>
+        <p className="text-muted-foreground">No report data available</p>
+        <Button onClick={fetchReportData} className="mt-4">
+          Retry Loading
+        </Button>
       </div>
     );
   }
@@ -209,8 +252,8 @@ export function Reports({ userRole }: ReportsProps) {
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">Reports & Analytics</h1>
-          <p className="text-gray-600 mt-2">Comprehensive insights and statistics</p>
+          <h1 className="text-3xl font-bold">Reports & Analytics</h1>
+          <p className="text-muted-foreground mt-2">Comprehensive insights and statistics</p>
         </div>
         <div className="flex items-center space-x-4">
           <Select value={selectedPeriod} onValueChange={setSelectedPeriod}>

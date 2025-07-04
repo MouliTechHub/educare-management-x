@@ -341,7 +341,7 @@ export function ReportsManagement() {
                       <SelectValue placeholder="Select class" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="">All Classes</SelectItem>
+                      <SelectItem value="all">All Classes</SelectItem>
                       {classes.map((cls: any) => (
                         <SelectItem key={cls.id} value={cls.id}>
                           {cls.name} {cls.section && `- Section ${cls.section}`}
@@ -361,7 +361,7 @@ export function ReportsManagement() {
                       <SelectValue placeholder="Select fee type" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="">All Fee Types</SelectItem>
+                      <SelectItem value="all">All Fee Types</SelectItem>
                       <SelectItem value="Tuition Fee">Tuition Fee</SelectItem>
                       <SelectItem value="Transport Fee">Transport Fee</SelectItem>
                       <SelectItem value="Exam Fee">Exam Fee</SelectItem>
@@ -401,7 +401,7 @@ export function ReportsManagement() {
                       <SelectValue placeholder="Select status" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="">All Status</SelectItem>
+                      <SelectItem value="all">All Status</SelectItem>
                       <SelectItem value="Active">Active</SelectItem>
                       <SelectItem value="Pending">Pending</SelectItem>
                       <SelectItem value="Paid">Paid</SelectItem>

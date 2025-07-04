@@ -91,9 +91,12 @@ export function DiscountDialog({ open, onOpenChange, selectedFee, onSuccess }: D
       const currentYear = academicYears.find(year => year.is_current);
       if (!currentYear) throw new Error('No current academic year found');
 
-      // Apply discount to both fee systems for consistency
+      // Apply discount to both fee systems for consistency - ADD to existing discount
+      const currentDiscount = selectedFee.discount_amount || 0;
+      const newTotalDiscount = currentDiscount + discountAmount;
+      
       const discountData = {
-        discount_amount: discountAmount,
+        discount_amount: newTotalDiscount,
         discount_notes: data.notes,
         discount_updated_by: 'Admin',
         discount_updated_at: new Date().toISOString()
@@ -142,7 +145,7 @@ export function DiscountDialog({ open, onOpenChange, selectedFee, onSuccess }: D
       const { error: enhancedError } = await supabase
         .from('student_fee_records')
         .update({
-          discount_amount: discountAmount,
+          discount_amount: newTotalDiscount,
           discount_notes: data.notes,
           discount_updated_by: 'Admin',
           discount_updated_at: new Date().toISOString()
@@ -158,7 +161,7 @@ export function DiscountDialog({ open, onOpenChange, selectedFee, onSuccess }: D
 
       toast({
         title: "Discount applied",
-        description: `Discount of ₹${discountAmount.toFixed(2)} applied successfully`
+        description: `Additional discount of ₹${discountAmount.toFixed(2)} applied. Total discount: ₹${newTotalDiscount.toFixed(2)}`
       });
 
       onOpenChange(false);
