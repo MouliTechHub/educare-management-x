@@ -66,15 +66,6 @@ export function DiscountDialog({ open, onOpenChange, selectedFee, onSuccess }: D
       
       if (data.type === 'Fixed Amount') {
         discountAmount = data.amount;
-        if (discountAmount > selectedFee.actual_amount) {
-          toast({
-            title: "Invalid discount amount",
-            description: "Discount cannot exceed the actual fee amount",
-            variant: "destructive",
-          });
-          setLoading(false);
-          return;
-        }
       } else if (data.type === 'Percentage') {
         if (data.amount > 100) {
           toast({
@@ -91,34 +82,18 @@ export function DiscountDialog({ open, onOpenChange, selectedFee, onSuccess }: D
       const currentYear = academicYears.find(year => year.is_current);
       if (!currentYear) throw new Error('No current academic year found');
 
-      // Get current discount amount and calculate new total
-      const currentDiscount = selectedFee.discount_amount || 0;
-      const newTotalDiscount = currentDiscount + discountAmount;
-      
-      // Validate discount doesn't exceed fee amount
-      if (newTotalDiscount > selectedFee.actual_amount) {
-        toast({
-          title: "Invalid discount amount",
-          description: `Total discount (₹${newTotalDiscount.toFixed(2)}) cannot exceed the actual fee amount (₹${selectedFee.actual_amount.toFixed(2)})`,
-          variant: "destructive",
-        });
-        setLoading(false);
-        return;
-      }
-
-      console.log('🔍 Applying discount:', {
+      console.log('🔍 Starting discount application for:', {
         studentId: selectedFee.student_id,
         feeType: selectedFee.fee_type,
-        currentDiscount,
+        selectedFeeId: selectedFee.id,
         newDiscountAmount: discountAmount,
-        newTotalDiscount,
         academicYear: currentYear.id
       });
 
-      // First, find the correct fee record ID from the main fees table
+      // First, get the main fee record to check current state
       const { data: mainFeeRecord, error: mainFeeError } = await supabase
         .from('fees')
-        .select('id, discount_amount, actual_amount, total_paid')
+        .select('*')
         .eq('student_id', selectedFee.student_id)
         .eq('fee_type', selectedFee.fee_type)
         .eq('academic_year_id', currentYear.id)
@@ -130,14 +105,14 @@ export function DiscountDialog({ open, onOpenChange, selectedFee, onSuccess }: D
       }
 
       let feeRecordId;
-      let currentMainDiscount = 0;
+      let currentDiscount = 0;
 
       if (mainFeeRecord) {
         feeRecordId = mainFeeRecord.id;
-        currentMainDiscount = mainFeeRecord.discount_amount || 0;
+        currentDiscount = mainFeeRecord.discount_amount || 0;
         console.log('✅ Found existing main fee record:', {
           id: feeRecordId,
-          currentDiscount: currentMainDiscount
+          currentDiscount
         });
       } else {
         // Create fee record in main fees table if it doesn't exist
@@ -163,7 +138,7 @@ export function DiscountDialog({ open, onOpenChange, selectedFee, onSuccess }: D
             status: 'Pending',
             academic_year_id: currentYear.id
           })
-          .select('id')
+          .select('*')
           .single();
 
         if (createMainFeeError) {
@@ -172,17 +147,36 @@ export function DiscountDialog({ open, onOpenChange, selectedFee, onSuccess }: D
         }
 
         feeRecordId = newMainFee.id;
+        currentDiscount = 0;
+        mainFeeRecord = newMainFee;
         console.log('✅ Created new main fee record:', feeRecordId);
       }
 
-      // Calculate the new total discount for the main fees table
-      const newMainTotalDiscount = currentMainDiscount + discountAmount;
+      // Calculate the new total discount (cumulative)
+      const newTotalDiscount = currentDiscount + discountAmount;
+
+      // Validate total discount doesn't exceed actual amount
+      if (newTotalDiscount > mainFeeRecord.actual_amount) {
+        toast({
+          title: "Invalid discount amount",
+          description: `Total discount (₹${newTotalDiscount.toFixed(2)}) cannot exceed the actual fee amount (₹${mainFeeRecord.actual_amount.toFixed(2)})`,
+          variant: "destructive",
+        });
+        setLoading(false);
+        return;
+      }
+
+      console.log('💰 Applying cumulative discount:', {
+        currentDiscount,
+        newDiscountAmount: discountAmount,
+        newTotalDiscount
+      });
 
       // Update the main fees table with the new cumulative discount
       const { error: mainUpdateError } = await supabase
         .from('fees')
         .update({
-          discount_amount: newMainTotalDiscount,
+          discount_amount: newTotalDiscount,
           discount_notes: data.notes,
           discount_updated_by: 'Admin',
           discount_updated_at: new Date().toISOString()
@@ -194,31 +188,35 @@ export function DiscountDialog({ open, onOpenChange, selectedFee, onSuccess }: D
         throw mainUpdateError;
       }
 
-      console.log('✅ Updated main fee record with discount:', newMainTotalDiscount);
+      console.log('✅ Updated main fee record with total discount:', newTotalDiscount);
 
       // Also update the enhanced fee system for consistency
-      await supabase
+      const { error: enhancedUpdateError } = await supabase
         .from('student_fee_records')
         .upsert({
           student_id: selectedFee.student_id,
           class_id: selectedFee.student?.class_id,
           academic_year_id: currentYear.id,
           fee_type: selectedFee.fee_type,
-          actual_fee: selectedFee.actual_amount,
-          discount_amount: newMainTotalDiscount,
+          actual_fee: mainFeeRecord.actual_amount,
+          discount_amount: newTotalDiscount,
           discount_notes: data.notes,
           discount_updated_by: 'Admin',
           discount_updated_at: new Date().toISOString(),
-          due_date: selectedFee.due_date,
-          status: selectedFee.status
+          due_date: mainFeeRecord.due_date,
+          status: mainFeeRecord.status
         }, {
           onConflict: 'student_id,fee_type,academic_year_id',
           ignoreDuplicates: false
         });
 
-      console.log('✅ Updated enhanced fee record');
+      if (enhancedUpdateError) {
+        console.error('Error updating enhanced fee record:', enhancedUpdateError);
+      } else {
+        console.log('✅ Updated enhanced fee record');
+      }
 
-      // Log the discount in history with the correct fee_id
+      // Log the discount in history (log only the new discount amount being added)
       const { error: historyError } = await supabase
         .from('discount_history')
         .insert({
@@ -234,13 +232,14 @@ export function DiscountDialog({ open, onOpenChange, selectedFee, onSuccess }: D
 
       if (historyError) {
         console.error('Error logging discount history:', historyError);
+        // Don't throw here, just log the error
       } else {
-        console.log('✅ Logged discount history');
+        console.log('✅ Logged discount history for amount:', discountAmount);
       }
 
       toast({
         title: "Discount applied successfully",
-        description: `Additional discount of ₹${discountAmount.toFixed(2)} applied. Total discount: ₹${newMainTotalDiscount.toFixed(2)}`
+        description: `Additional discount of ₹${discountAmount.toFixed(2)} applied. Total discount: ₹${newTotalDiscount.toFixed(2)}`
       });
 
       onOpenChange(false);
@@ -250,7 +249,7 @@ export function DiscountDialog({ open, onOpenChange, selectedFee, onSuccess }: D
       console.error('❌ Error applying discount:', error);
       toast({
         title: "Error applying discount",
-        description: error.message,
+        description: error.message || "Failed to apply discount. Please try again.",
         variant: "destructive",
       });
     } finally {
@@ -269,6 +268,11 @@ export function DiscountDialog({ open, onOpenChange, selectedFee, onSuccess }: D
           <DialogTitle>Apply Discount</DialogTitle>
           <p className="text-sm text-gray-500">
             Apply discount for {selectedFee?.student?.first_name} {selectedFee?.student?.last_name} - {selectedFee?.fee_type}
+            {selectedFee?.discount_amount > 0 && (
+              <span className="block text-green-600 font-medium mt-1">
+                Current discount: ₹{selectedFee.discount_amount.toLocaleString()}
+              </span>
+            )}
           </p>
         </DialogHeader>
         
