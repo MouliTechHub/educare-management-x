@@ -124,6 +124,22 @@ export function PaymentForm({ classes, students, feeStructures, onSubmit, onCanc
       return;
     }
 
+    // Fix date validation - parse the date correctly
+    const paymentDate = new Date(formData.payment_date);
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    paymentDate.setHours(0, 0, 0, 0);
+    
+    // Allow today's date and future dates, but not past dates
+    if (paymentDate < today) {
+      toast({
+        title: 'Validation Error',
+        description: 'Payment date cannot be in the past',
+        variant: 'destructive',
+      });
+      return;
+    }
+
     try {
       // Get current academic year
       const { data: currentYear, error: yearError } = await supabase
@@ -268,6 +284,26 @@ export function PaymentForm({ classes, students, feeStructures, onSubmit, onCanc
 
       if (historyError) {
         console.error("Error recording payment history:", historyError);
+      }
+
+      // Also record in student_payments for legacy support and payments page display
+      const { error: legacyPaymentError } = await supabase
+        .from("student_payments")
+        .insert({
+          student_id: formData.student_id,
+          fee_structure_id: formData.fee_structure_id,
+          amount_paid: amountPaid,
+          payment_date: formData.payment_date,
+          payment_method: formData.payment_method,
+          late_fee: parseFloat(formData.late_fee) || 0,
+          reference_number: receiptNumber,
+          payment_received_by: formData.payment_received_by,
+          notes: formData.notes || null,
+        });
+
+      if (legacyPaymentError) {
+        console.error("Error recording legacy payment:", legacyPaymentError);
+        // Don't throw here as the main payment is already recorded
       }
 
       // Call original onSubmit to maintain existing functionality
