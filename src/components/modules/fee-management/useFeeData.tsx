@@ -13,7 +13,7 @@ export interface Fee {
   total_paid: number;
   due_date: string;
   payment_date: string | null;
-  status: string;
+  status: 'Pending' | 'Paid' | 'Overdue' | 'Partial';
   notes?: string;
   academic_year_id: string;
   receipt_number: string | null;
