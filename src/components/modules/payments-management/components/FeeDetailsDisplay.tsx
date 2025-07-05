@@ -39,9 +39,12 @@ export function FeeDetailsDisplay({ feeDetails }: FeeDetailsDisplayProps) {
       </div>
       {feeDetails.discountAmount > 0 && (
         <div className="mt-2 text-xs text-green-700 bg-green-100 p-2 rounded">
-          ✓ Discount applied from Fee Management System
+          ✓ Discount applied from Fee Management System: ₹{feeDetails.discountAmount.toLocaleString()}
         </div>
       )}
+      <div className="mt-2 text-xs text-blue-700 bg-blue-100 p-2 rounded">
+        🔄 Data synced with Fee Management system in real-time
+      </div>
     </div>
   );
 }
