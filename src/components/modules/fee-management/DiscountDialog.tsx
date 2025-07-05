@@ -106,10 +106,11 @@ export function DiscountDialog({ open, onOpenChange, selectedFee, onSuccess }: D
 
       let feeRecordId;
       let currentDiscount = 0;
+      let updatedMainFeeRecord = mainFeeRecord;
 
-      if (mainFeeRecord) {
-        feeRecordId = mainFeeRecord.id;
-        currentDiscount = mainFeeRecord.discount_amount || 0;
+      if (updatedMainFeeRecord) {
+        feeRecordId = updatedMainFeeRecord.id;
+        currentDiscount = updatedMainFeeRecord.discount_amount || 0;
         console.log('✅ Found existing main fee record:', {
           id: feeRecordId,
           currentDiscount
@@ -148,7 +149,7 @@ export function DiscountDialog({ open, onOpenChange, selectedFee, onSuccess }: D
 
         feeRecordId = newMainFee.id;
         currentDiscount = 0;
-        mainFeeRecord = newMainFee;
+        updatedMainFeeRecord = newMainFee;
         console.log('✅ Created new main fee record:', feeRecordId);
       }
 
@@ -156,10 +157,10 @@ export function DiscountDialog({ open, onOpenChange, selectedFee, onSuccess }: D
       const newTotalDiscount = currentDiscount + discountAmount;
 
       // Validate total discount doesn't exceed actual amount
-      if (newTotalDiscount > mainFeeRecord.actual_amount) {
+      if (newTotalDiscount > updatedMainFeeRecord.actual_amount) {
         toast({
           title: "Invalid discount amount",
-          description: `Total discount (₹${newTotalDiscount.toFixed(2)}) cannot exceed the actual fee amount (₹${mainFeeRecord.actual_amount.toFixed(2)})`,
+          description: `Total discount (₹${newTotalDiscount.toFixed(2)}) cannot exceed the actual fee amount (₹${updatedMainFeeRecord.actual_amount.toFixed(2)})`,
           variant: "destructive",
         });
         setLoading(false);
@@ -198,13 +199,13 @@ export function DiscountDialog({ open, onOpenChange, selectedFee, onSuccess }: D
           class_id: selectedFee.student?.class_id,
           academic_year_id: currentYear.id,
           fee_type: selectedFee.fee_type,
-          actual_fee: mainFeeRecord.actual_amount,
+          actual_fee: updatedMainFeeRecord.actual_amount,
           discount_amount: newTotalDiscount,
           discount_notes: data.notes,
           discount_updated_by: 'Admin',
           discount_updated_at: new Date().toISOString(),
-          due_date: mainFeeRecord.due_date,
-          status: mainFeeRecord.status
+          due_date: updatedMainFeeRecord.due_date,
+          status: updatedMainFeeRecord.status
         }, {
           onConflict: 'student_id,fee_type,academic_year_id',
           ignoreDuplicates: false

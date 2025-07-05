@@ -7,13 +7,18 @@ export interface Fee {
   id: string;
   student_id: string;
   fee_type: string;
+  amount: number;
   actual_amount: number;
   discount_amount: number;
   total_paid: number;
   due_date: string;
+  payment_date: string | null;
   status: string;
   notes?: string;
   academic_year_id: string;
+  receipt_number: string | null;
+  created_at: string;
+  updated_at: string;
   student?: {
     id: string;
     first_name: string;
@@ -30,7 +35,7 @@ export const useFeeData = () => {
   const [academicYears, setAcademicYears] = useState<any[]>([]);
   const [currentAcademicYear, setCurrentAcademicYear] = useState<string>('');
   const [loading, setLoading] = useState(true);
-  const { assignFeesToNewStudents } = useAutoFeeAssignment();
+  const { assignFeesToStudents } = useAutoFeeAssignment();
 
   const fetchAcademicYears = async () => {
     const { data, error } = await supabase
@@ -55,7 +60,7 @@ export const useFeeData = () => {
     if (!academicYearId) return;
 
     console.log('🔄 Auto-assigning fees before fetching data...');
-    await assignFeesToNewStudents(academicYearId);
+    await assignFeesToStudents(academicYearId);
 
     console.log('📊 Fetching fees for academic year:', academicYearId);
 
@@ -73,6 +78,8 @@ export const useFeeData = () => {
           due_date,
           status,
           academic_year_id,
+          created_at,
+          updated_at,
           students!inner (
             id,
             first_name,
@@ -102,13 +109,18 @@ export const useFeeData = () => {
           id,
           student_id,
           fee_type,
+          amount,
           actual_amount,
           discount_amount,
           total_paid,
           due_date,
+          payment_date,
           status,
           notes,
           academic_year_id,
+          receipt_number,
+          created_at,
+          updated_at,
           students!inner (
             id,
             first_name,
@@ -145,13 +157,18 @@ export const useFeeData = () => {
               id: fee.id,
               student_id: fee.student_id,
               fee_type: fee.fee_type,
+              amount: fee.amount,
               actual_amount: fee.actual_amount,
               discount_amount: fee.discount_amount,
               total_paid: fee.total_paid,
               due_date: fee.due_date,
+              payment_date: fee.payment_date,
               status: fee.status,
               notes: fee.notes,
               academic_year_id: fee.academic_year_id,
+              receipt_number: fee.receipt_number,
+              created_at: fee.created_at,
+              updated_at: fee.updated_at,
               student: {
                 id: fee.students.id,
                 first_name: fee.students.first_name,
@@ -176,13 +193,18 @@ export const useFeeData = () => {
               id: fee.id,
               student_id: fee.student_id,
               fee_type: fee.fee_type,
+              amount: fee.actual_fee,
               actual_amount: fee.actual_fee,
               discount_amount: fee.discount_amount,
               total_paid: fee.paid_amount,
               due_date: fee.due_date,
+              payment_date: null,
               status: fee.status,
               notes: '',
               academic_year_id: fee.academic_year_id,
+              receipt_number: null,
+              created_at: fee.created_at,
+              updated_at: fee.updated_at,
               student: {
                 id: fee.students.id,
                 first_name: fee.students.first_name,
