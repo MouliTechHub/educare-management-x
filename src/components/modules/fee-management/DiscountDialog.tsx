@@ -113,48 +113,59 @@ export function DiscountDialog({ open, onOpenChange, selectedFee, onSuccess }: D
         discount_updated_at: new Date().toISOString()
       };
 
-      // Use UPSERT to update existing fee record without creating duplicates
+      // First, ensure we have a valid fee record to work with
       let feeId = selectedFee.id;
-      
-      // Update the existing fee record directly (never create new ones)
-      const { error: feeUpdateError } = await supabase
+      let updatedFeeRecord = null;
+
+      // Try to update existing fee record first
+      const { data: updatedFee, error: feeUpdateError } = await supabase
         .from('fees')
         .update(discountData)
         .eq('student_id', selectedFee.student_id)
         .eq('fee_type', selectedFee.fee_type)
-        .eq('academic_year_id', currentYear.id);
+        .eq('academic_year_id', currentYear.id)
+        .select()
+        .maybeSingle();
 
-      if (feeUpdateError) {
-        console.error('Fee update error:', feeUpdateError);
-        // If update failed, try to create a single new record
+      if (feeUpdateError || !updatedFee) {
+        console.log('Fee update failed, creating/upserting record:', feeUpdateError);
+        
+        // Get fee structure for creating new record
         const feeStructure = feeStructures.find(fs => 
           fs.class_id === selectedFee.student?.class_id && 
           fs.fee_type === selectedFee.fee_type
         );
 
-        if (feeStructure) {
-          const { data: newFee, error: insertError } = await supabase
-            .from('fees')
-            .upsert({
-              student_id: selectedFee.student_id,
-              fee_type: selectedFee.fee_type,
-              amount: feeStructure.amount,
-              actual_amount: feeStructure.amount,
-              ...discountData,
-              total_paid: selectedFee.total_paid || 0,
-              due_date: selectedFee.due_date,
-              status: selectedFee.status || 'Pending',
-              academic_year_id: currentYear.id
-            }, {
-              onConflict: 'student_id,fee_type,academic_year_id',
-              ignoreDuplicates: false
-            })
-            .select()
-            .single();
-
-          if (insertError) throw insertError;
-          feeId = newFee.id;
+        if (!feeStructure) {
+          throw new Error('Fee structure not found for this class and fee type');
         }
+
+        // Create or update fee record using UPSERT
+        const { data: newFee, error: insertError } = await supabase
+          .from('fees')
+          .upsert({
+            student_id: selectedFee.student_id,
+            fee_type: selectedFee.fee_type,
+            amount: feeStructure.amount,
+            actual_amount: feeStructure.amount,
+            ...discountData,
+            total_paid: selectedFee.total_paid || 0,
+            due_date: selectedFee.due_date || new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+            status: selectedFee.status || 'Pending',
+            academic_year_id: currentYear.id
+          }, {
+            onConflict: 'student_id,fee_type,academic_year_id',
+            ignoreDuplicates: false
+          })
+          .select()
+          .single();
+
+        if (insertError) throw insertError;
+        
+        feeId = newFee.id;
+        updatedFeeRecord = newFee;
+      } else {
+        updatedFeeRecord = updatedFee;
       }
 
       // Update enhanced fee records table if the record exists there
