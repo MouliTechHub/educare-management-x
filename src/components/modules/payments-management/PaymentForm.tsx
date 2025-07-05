@@ -142,9 +142,49 @@ export function PaymentForm({ classes, students, feeStructures, onSubmit, onCanc
         throw new Error("Fee structure not found");
       }
 
-      // Get or create fee record in the main fees table (not student_fee_records)
-      let feeRecord;
-      const { data: existingFeeRecord, error: feeRecordError } = await supabase
+      // Get or create enhanced fee record first (student_fee_records)
+      let enhancedFeeRecord;
+      const { data: existingEnhancedRecord, error: enhancedRecordError } = await supabase
+        .from("student_fee_records")
+        .select("*")
+        .eq("student_id", formData.student_id)
+        .eq("academic_year_id", currentYear.id)
+        .eq("fee_type", selectedStructure.fee_type)
+        .maybeSingle();
+
+      if (enhancedRecordError && enhancedRecordError.code !== 'PGRST116') {
+        console.error("Error checking enhanced fee record:", enhancedRecordError);
+      }
+
+      if (existingEnhancedRecord) {
+        enhancedFeeRecord = existingEnhancedRecord;
+      } else {
+        // Create new enhanced fee record
+        const { data: newEnhancedRecord, error: createEnhancedError } = await supabase
+          .from("student_fee_records")
+          .insert({
+            student_id: formData.student_id,
+            class_id: formData.class_id,
+            academic_year_id: currentYear.id,
+            fee_type: selectedStructure.fee_type,
+            actual_fee: selectedStructure.amount,
+            discount_amount: 0,
+            due_date: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+            status: 'Pending'
+          })
+          .select()
+          .single();
+
+        if (createEnhancedError) {
+          console.error("Error creating enhanced fee record:", createEnhancedError);
+          throw createEnhancedError;
+        }
+        enhancedFeeRecord = newEnhancedRecord;
+      }
+
+      // Get or create main fee record for consistency
+      let mainFeeRecord;
+      const { data: existingMainRecord, error: mainRecordError } = await supabase
         .from("fees")
         .select("*")
         .eq("student_id", formData.student_id)
@@ -152,15 +192,15 @@ export function PaymentForm({ classes, students, feeStructures, onSubmit, onCanc
         .eq("fee_type", selectedStructure.fee_type)
         .maybeSingle();
 
-      if (feeRecordError && feeRecordError.code !== 'PGRST116') {
-        console.error("Error checking fee record:", feeRecordError);
+      if (mainRecordError && mainRecordError.code !== 'PGRST116') {
+        console.error("Error checking main fee record:", mainRecordError);
       }
 
-      if (existingFeeRecord) {
-        feeRecord = existingFeeRecord;
+      if (existingMainRecord) {
+        mainFeeRecord = existingMainRecord;
       } else {
-        // Create new fee record in main fees table
-        const { data: newFeeRecord, error: createError } = await supabase
+        // Create new main fee record
+        const { data: newMainRecord, error: createMainError } = await supabase
           .from("fees")
           .insert({
             student_id: formData.student_id,
@@ -176,41 +216,21 @@ export function PaymentForm({ classes, students, feeStructures, onSubmit, onCanc
           .select()
           .single();
 
-        if (createError) {
-          console.error("Error creating fee record:", createError);
-          throw createError;
+        if (createMainError) {
+          console.error("Error creating main fee record:", createMainError);
+          throw createMainError;
         }
-        feeRecord = newFeeRecord;
+        mainFeeRecord = newMainRecord;
       }
-
-      // Also update/create enhanced fee record for consistency
-      await supabase
-        .from("student_fee_records")
-        .upsert({
-          student_id: formData.student_id,
-          class_id: formData.class_id,
-          academic_year_id: currentYear.id,
-          fee_type: selectedStructure.fee_type,
-          actual_fee: selectedStructure.amount,
-          discount_amount: feeRecord.discount_amount || 0,
-          discount_notes: feeRecord.discount_notes,
-          discount_updated_by: feeRecord.discount_updated_by,
-          discount_updated_at: feeRecord.discount_updated_at,
-          due_date: feeRecord.due_date,
-          status: feeRecord.status
-        }, {
-          onConflict: 'student_id,fee_type,academic_year_id',
-          ignoreDuplicates: false
-        });
 
       // Generate receipt number if not provided
       const receiptNumber = formData.reference_number || `RCP-${Date.now()}-${Math.random().toString(36).substr(2, 4).toUpperCase()}`;
 
-      // Record payment in enhanced system first (fee_payment_records)
+      // Record payment in enhanced system (fee_payment_records) - use enhanced fee record ID
       const { error: feePaymentError } = await supabase
         .from("fee_payment_records")
         .insert({
-          fee_record_id: feeRecord.id,
+          fee_record_id: enhancedFeeRecord.id, // Use the enhanced fee record ID
           student_id: formData.student_id,
           amount_paid: amountPaid,
           payment_date: formData.payment_date,
@@ -227,14 +247,14 @@ export function PaymentForm({ classes, students, feeStructures, onSubmit, onCanc
         throw feePaymentError;
       }
 
-      // Also record in payment_history for timeline tracking
+      // Also record in payment_history for timeline tracking (use main fee record ID)
       const currentTime = new Date();
       const paymentTime = currentTime.toTimeString().split(' ')[0]; // HH:MM:SS format
 
       const { error: historyError } = await supabase
         .from("payment_history")
         .insert({
-          fee_id: feeRecord.id,
+          fee_id: mainFeeRecord.id, // Use the main fee record ID
           student_id: formData.student_id,
           amount_paid: amountPaid,
           payment_date: formData.payment_date,
