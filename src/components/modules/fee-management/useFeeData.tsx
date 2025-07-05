@@ -14,7 +14,7 @@ export interface Fee {
   due_date: string;
   payment_date: string | null;
   status: 'Pending' | 'Paid' | 'Overdue' | 'Partial';
-  notes?: string;
+  notes: string | null;
   academic_year_id: string;
   receipt_number: string | null;
   created_at: string;
@@ -172,7 +172,7 @@ export const useFeeData = () => {
               total_paid: fee.total_paid,
               due_date: fee.due_date,
               payment_date: fee.payment_date,
-              status: fee.status,
+              status: fee.status as 'Pending' | 'Paid' | 'Overdue' | 'Partial',
               notes: fee.notes,
               academic_year_id: fee.academic_year_id,
               receipt_number: fee.receipt_number,
@@ -211,8 +211,8 @@ export const useFeeData = () => {
               total_paid: fee.paid_amount,
               due_date: fee.due_date,
               payment_date: null,
-              status: fee.status,
-              notes: '',
+              status: fee.status as 'Pending' | 'Paid' | 'Overdue' | 'Partial',
+              notes: null,
               academic_year_id: fee.academic_year_id,
               receipt_number: null,
               created_at: fee.created_at,
