@@ -1,37 +1,7 @@
-
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAutoFeeAssignment } from './hooks/useAutoFeeAssignment';
-
-export interface Fee {
-  id: string;
-  student_id: string;
-  fee_type: string;
-  amount: number;
-  actual_amount: number;
-  discount_amount: number;
-  total_paid: number;
-  due_date: string;
-  payment_date: string | null;
-  status: 'Pending' | 'Paid' | 'Overdue' | 'Partial';
-  notes: string | null;
-  academic_year_id: string;
-  receipt_number: string | null;
-  created_at: string;
-  updated_at: string;
-  discount_notes: string | null;
-  discount_updated_by: string | null;
-  discount_updated_at: string | null;
-  student?: {
-    id: string;
-    first_name: string;
-    last_name: string;
-    admission_number: string;
-    class_id: string;
-    class_name?: string;
-    section?: string;
-  };
-}
+import { Fee } from './types/feeTypes';
 
 export const useFeeData = () => {
   const [fees, setFees] = useState<Fee[]>([]);
@@ -156,6 +126,12 @@ export const useFeeData = () => {
       const processedFees: Fee[] = [];
       const seenCombinations = new Set();
 
+      // Helper function to normalize status
+      const normalizeStatus = (status: string): 'Pending' | 'Paid' | 'Overdue' | 'Partial' => {
+        const validStatuses = ['Pending', 'Paid', 'Overdue', 'Partial'];
+        return validStatuses.includes(status) ? status as 'Pending' | 'Paid' | 'Overdue' | 'Partial' : 'Pending';
+      };
+
       // Process main fees first (they are the primary source)
       if (mainFees) {
         for (const fee of mainFees) {
@@ -165,30 +141,34 @@ export const useFeeData = () => {
             processedFees.push({
               id: fee.id,
               student_id: fee.student_id,
-              fee_type: fee.fee_type,
               amount: fee.amount,
               actual_amount: fee.actual_amount,
               discount_amount: fee.discount_amount,
               total_paid: fee.total_paid,
+              fee_type: fee.fee_type,
               due_date: fee.due_date,
               payment_date: fee.payment_date,
-              status: fee.status as 'Pending' | 'Paid' | 'Overdue' | 'Partial',
-              notes: fee.notes,
-              academic_year_id: fee.academic_year_id,
+              status: normalizeStatus(fee.status),
               receipt_number: fee.receipt_number,
               created_at: fee.created_at,
               updated_at: fee.updated_at,
               discount_notes: fee.discount_notes,
               discount_updated_by: fee.discount_updated_by,
               discount_updated_at: fee.discount_updated_at,
+              academic_year_id: fee.academic_year_id,
+              notes: fee.notes,
               student: {
                 id: fee.students.id,
                 first_name: fee.students.first_name,
                 last_name: fee.students.last_name,
                 admission_number: fee.students.admission_number,
-                class_id: fee.students.class_id,
                 class_name: fee.students.classes.name,
                 section: fee.students.classes.section,
+                class_id: fee.students.class_id,
+                gender: undefined,
+                status: undefined,
+                parent_phone: undefined,
+                parent_email: undefined
               }
             });
           }
@@ -204,30 +184,34 @@ export const useFeeData = () => {
             processedFees.push({
               id: fee.id,
               student_id: fee.student_id,
-              fee_type: fee.fee_type,
               amount: fee.actual_fee,
               actual_amount: fee.actual_fee,
               discount_amount: fee.discount_amount,
               total_paid: fee.paid_amount,
+              fee_type: fee.fee_type,
               due_date: fee.due_date,
               payment_date: null,
-              status: fee.status as 'Pending' | 'Paid' | 'Overdue' | 'Partial',
-              notes: null,
-              academic_year_id: fee.academic_year_id,
+              status: normalizeStatus(fee.status),
               receipt_number: null,
               created_at: fee.created_at,
               updated_at: fee.updated_at,
               discount_notes: fee.discount_notes,
               discount_updated_by: fee.discount_updated_by,
               discount_updated_at: fee.discount_updated_at,
+              academic_year_id: fee.academic_year_id,
+              notes: null,
               student: {
                 id: fee.students.id,
                 first_name: fee.students.first_name,
                 last_name: fee.students.last_name,
                 admission_number: fee.students.admission_number,
-                class_id: fee.students.class_id,
                 class_name: fee.students.classes.name,
                 section: fee.students.classes.section,
+                class_id: fee.students.class_id,
+                gender: undefined,
+                status: undefined,
+                parent_phone: undefined,
+                parent_email: undefined
               }
             });
           }
