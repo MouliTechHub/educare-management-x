@@ -142,10 +142,10 @@ export function PaymentForm({ classes, students, feeStructures, onSubmit, onCanc
         throw new Error("Fee structure not found");
       }
 
-      // Check if enhanced fee record exists, if not create it preserving discount info
+      // Get or create fee record in the main fees table (not student_fee_records)
       let feeRecord;
       const { data: existingFeeRecord, error: feeRecordError } = await supabase
-        .from("student_fee_records")
+        .from("fees")
         .select("*")
         .eq("student_id", formData.student_id)
         .eq("academic_year_id", currentYear.id)
@@ -159,29 +159,18 @@ export function PaymentForm({ classes, students, feeStructures, onSubmit, onCanc
       if (existingFeeRecord) {
         feeRecord = existingFeeRecord;
       } else {
-        // Check for existing discount information in legacy fees table
-        const { data: legacyFeeRecord } = await supabase
-          .from("fees")
-          .select("discount_amount, discount_notes, discount_updated_by, discount_updated_at")
-          .eq("student_id", formData.student_id)
-          .eq("academic_year_id", currentYear.id)
-          .eq("fee_type", selectedStructure.fee_type)
-          .maybeSingle();
-
-        // Create new fee record in enhanced system, preserving discount info
+        // Create new fee record in main fees table
         const { data: newFeeRecord, error: createError } = await supabase
-          .from("student_fee_records")
+          .from("fees")
           .insert({
             student_id: formData.student_id,
-            class_id: formData.class_id,
-            academic_year_id: currentYear.id,
             fee_type: selectedStructure.fee_type,
-            actual_fee: selectedStructure.amount,
-            discount_amount: legacyFeeRecord?.discount_amount || 0,
-            discount_notes: legacyFeeRecord?.discount_notes,
-            discount_updated_by: legacyFeeRecord?.discount_updated_by,
-            discount_updated_at: legacyFeeRecord?.discount_updated_at,
-            due_date: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0], // 30 days from now
+            amount: selectedStructure.amount,
+            actual_amount: selectedStructure.amount,
+            discount_amount: 0,
+            total_paid: 0,
+            due_date: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+            academic_year_id: currentYear.id,
             status: 'Pending'
           })
           .select()
@@ -193,6 +182,26 @@ export function PaymentForm({ classes, students, feeStructures, onSubmit, onCanc
         }
         feeRecord = newFeeRecord;
       }
+
+      // Also update/create enhanced fee record for consistency
+      await supabase
+        .from("student_fee_records")
+        .upsert({
+          student_id: formData.student_id,
+          class_id: formData.class_id,
+          academic_year_id: currentYear.id,
+          fee_type: selectedStructure.fee_type,
+          actual_fee: selectedStructure.amount,
+          discount_amount: feeRecord.discount_amount || 0,
+          discount_notes: feeRecord.discount_notes,
+          discount_updated_by: feeRecord.discount_updated_by,
+          discount_updated_at: feeRecord.discount_updated_at,
+          due_date: feeRecord.due_date,
+          status: feeRecord.status
+        }, {
+          onConflict: 'student_id,fee_type,academic_year_id',
+          ignoreDuplicates: false
+        });
 
       // Generate receipt number if not provided
       const receiptNumber = formData.reference_number || `RCP-${Date.now()}-${Math.random().toString(36).substr(2, 4).toUpperCase()}`;

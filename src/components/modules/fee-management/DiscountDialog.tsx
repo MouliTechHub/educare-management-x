@@ -168,23 +168,25 @@ export function DiscountDialog({ open, onOpenChange, selectedFee, onSuccess }: D
         updatedFeeRecord = updatedFee;
       }
 
-      // Update enhanced fee records table if the record exists there
-      const { error: enhancedError } = await supabase
+      // Ensure both systems are synchronized - update enhanced fee records table
+      await supabase
         .from('student_fee_records')
-        .update({
+        .upsert({
+          student_id: selectedFee.student_id,
+          class_id: selectedFee.student?.class_id,
+          academic_year_id: currentYear.id,
+          fee_type: selectedFee.fee_type,
+          actual_fee: updatedFeeRecord.actual_amount,
           discount_amount: newTotalDiscount,
           discount_notes: data.notes,
           discount_updated_by: 'Admin',
-          discount_updated_at: new Date().toISOString()
-        })
-        .eq('student_id', selectedFee.student_id)
-        .eq('fee_type', selectedFee.fee_type)
-        .eq('academic_year_id', currentYear.id);
-
-      // Don't throw error if no enhanced record exists, as it's optional
-      if (enhancedError) {
-        console.warn('Enhanced fee record update failed:', enhancedError);
-      }
+          discount_updated_at: new Date().toISOString(),
+          due_date: updatedFeeRecord.due_date,
+          status: updatedFeeRecord.status
+        }, {
+          onConflict: 'student_id,fee_type,academic_year_id',
+          ignoreDuplicates: false
+        });
 
       // Log discount history manually to ensure it's recorded correctly
       // Check if this exact entry already exists to prevent duplicates
