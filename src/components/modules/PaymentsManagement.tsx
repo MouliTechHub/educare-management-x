@@ -29,6 +29,7 @@ export function PaymentsManagement() {
   const fetchData = async () => {
     try {
       setLoading(true);
+      console.log('🔄 Fetching payments data...');
       
       // Fetch payments with related data
       const { data: paymentsData, error: paymentsError } = await supabase
@@ -40,7 +41,12 @@ export function PaymentsManagement() {
         `)
         .order("created_at", { ascending: false });
 
-      if (paymentsError) throw paymentsError;
+      if (paymentsError) {
+        console.error('❌ Error fetching payments:', paymentsError);
+        throw paymentsError;
+      }
+
+      console.log('✅ Payments data fetched:', paymentsData?.length || 0, 'records');
 
       // Fetch classes
       const { data: classesData, error: classesError } = await supabase
@@ -102,6 +108,7 @@ export function PaymentsManagement() {
       setStudents(transformedStudents);
       setFeeStructures(transformedStructures);
     } catch (error: any) {
+      console.error('❌ Error in fetchData:', error);
       toast({
         title: "Error fetching data",
         description: error.message,
@@ -114,46 +121,18 @@ export function PaymentsManagement() {
 
   const handleSubmit = async (data: any) => {
     try {
-      // Validate payment date is not in the past
-      const paymentDate = new Date(data.payment_date);
-      const today = new Date();
-      today.setHours(0, 0, 0, 0);
+      console.log('✅ Payment recorded successfully, refreshing data...');
       
-      if (paymentDate < today) {
-        throw new Error("Payment date cannot be in the past");
-      }
-
-      // Record payment in student_payments table (legacy support)
-      const { error: legacyPaymentError } = await supabase
-        .from("student_payments")
-        .insert([{
-          student_id: data.student_id,
-          fee_structure_id: data.fee_structure_id,
-          amount_paid: parseFloat(data.amount_paid),
-          payment_date: data.payment_date,
-          payment_method: data.payment_method,
-          late_fee: parseFloat(data.late_fee) || 0,
-          reference_number: data.reference_number,
-          payment_received_by: data.payment_received_by,
-          notes: data.notes || null,
-        }]);
-
-      if (legacyPaymentError) {
-        console.error("Error recording legacy payment:", legacyPaymentError);
-        throw legacyPaymentError;
-      }
-
-      toast({ 
-        title: "Payment recorded successfully",
-        description: `Payment of ₹${parseFloat(data.amount_paid).toLocaleString()} has been recorded successfully.`
-      });
-      
+      // Close dialog first
       setDialogOpen(false);
-      fetchData(); // Refresh the data to show the new payment
+      
+      // Refresh the payments data
+      await fetchData();
+      
     } catch (error: any) {
       console.error("Error in handleSubmit:", error);
       toast({
-        title: "Error recording payment",
+        title: "Error refreshing data",
         description: error.message,
         variant: "destructive",
       });

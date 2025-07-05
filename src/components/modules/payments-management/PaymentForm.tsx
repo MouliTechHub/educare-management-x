@@ -124,13 +124,12 @@ export function PaymentForm({ classes, students, feeStructures, onSubmit, onCanc
       return;
     }
 
-    // Fix date validation - parse the date correctly
+    // Allow payment for current and future dates only
     const paymentDate = new Date(formData.payment_date);
     const today = new Date();
     today.setHours(0, 0, 0, 0);
     paymentDate.setHours(0, 0, 0, 0);
     
-    // Allow today's date and future dates, but not past dates
     if (paymentDate < today) {
       toast({
         title: 'Validation Error',
@@ -158,7 +157,30 @@ export function PaymentForm({ classes, students, feeStructures, onSubmit, onCanc
         throw new Error("Fee structure not found");
       }
 
-      // Get or create enhanced fee record first (student_fee_records)
+      // Generate receipt number if not provided
+      const receiptNumber = formData.reference_number || `RCP-${Date.now()}-${Math.random().toString(36).substr(2, 4).toUpperCase()}`;
+
+      // Record payment in student_payments table first (this is what PaymentsManagement displays)
+      const { error: paymentError } = await supabase
+        .from("student_payments")
+        .insert({
+          student_id: formData.student_id,
+          fee_structure_id: formData.fee_structure_id,
+          amount_paid: amountPaid,
+          payment_date: formData.payment_date,
+          payment_method: formData.payment_method,
+          late_fee: parseFloat(formData.late_fee) || 0,
+          reference_number: receiptNumber,
+          payment_received_by: formData.payment_received_by,
+          notes: formData.notes || null,
+        });
+
+      if (paymentError) {
+        console.error("Error recording student payment:", paymentError);
+        throw paymentError;
+      }
+
+      // Also handle the enhanced fee system records for fee management integration
       let enhancedFeeRecord;
       const { data: existingEnhancedRecord, error: enhancedRecordError } = await supabase
         .from("student_fee_records")
@@ -193,120 +215,40 @@ export function PaymentForm({ classes, students, feeStructures, onSubmit, onCanc
 
         if (createEnhancedError) {
           console.error("Error creating enhanced fee record:", createEnhancedError);
-          throw createEnhancedError;
+        } else {
+          enhancedFeeRecord = newEnhancedRecord;
         }
-        enhancedFeeRecord = newEnhancedRecord;
       }
 
-      // Get or create main fee record for consistency
-      let mainFeeRecord;
-      const { data: existingMainRecord, error: mainRecordError } = await supabase
-        .from("fees")
-        .select("*")
-        .eq("student_id", formData.student_id)
-        .eq("academic_year_id", currentYear.id)
-        .eq("fee_type", selectedStructure.fee_type)
-        .maybeSingle();
-
-      if (mainRecordError && mainRecordError.code !== 'PGRST116') {
-        console.error("Error checking main fee record:", mainRecordError);
-      }
-
-      if (existingMainRecord) {
-        mainFeeRecord = existingMainRecord;
-      } else {
-        // Create new main fee record
-        const { data: newMainRecord, error: createMainError } = await supabase
-          .from("fees")
+      // Record payment in enhanced system if we have the fee record
+      if (enhancedFeeRecord) {
+        const { error: feePaymentError } = await supabase
+          .from("fee_payment_records")
           .insert({
+            fee_record_id: enhancedFeeRecord.id,
             student_id: formData.student_id,
-            fee_type: selectedStructure.fee_type,
-            amount: selectedStructure.amount,
-            actual_amount: selectedStructure.amount,
-            discount_amount: 0,
-            total_paid: 0,
-            due_date: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-            academic_year_id: currentYear.id,
-            status: 'Pending'
-          })
-          .select()
-          .single();
+            amount_paid: amountPaid,
+            payment_date: formData.payment_date,
+            payment_method: formData.payment_method,
+            late_fee: parseFloat(formData.late_fee) || 0,
+            receipt_number: receiptNumber,
+            payment_receiver: formData.payment_received_by,
+            notes: formData.notes || null,
+            created_by: formData.payment_received_by
+          });
 
-        if (createMainError) {
-          console.error("Error creating main fee record:", createMainError);
-          throw createMainError;
+        if (feePaymentError) {
+          console.error("Error recording fee payment:", feePaymentError);
         }
-        mainFeeRecord = newMainRecord;
       }
 
-      // Generate receipt number if not provided
-      const receiptNumber = formData.reference_number || `RCP-${Date.now()}-${Math.random().toString(36).substr(2, 4).toUpperCase()}`;
+      // Show success message
+      toast({
+        title: "Payment recorded successfully",
+        description: `Payment of ₹${amountPaid.toLocaleString()} recorded successfully. Receipt: ${receiptNumber}`,
+      });
 
-      // Record payment in enhanced system (fee_payment_records) - use enhanced fee record ID
-      const { error: feePaymentError } = await supabase
-        .from("fee_payment_records")
-        .insert({
-          fee_record_id: enhancedFeeRecord.id, // Use the enhanced fee record ID
-          student_id: formData.student_id,
-          amount_paid: amountPaid,
-          payment_date: formData.payment_date,
-          payment_method: formData.payment_method,
-          late_fee: parseFloat(formData.late_fee) || 0,
-          receipt_number: receiptNumber,
-          payment_receiver: formData.payment_received_by,
-          notes: formData.notes || null,
-          created_by: formData.payment_received_by
-        });
-
-      if (feePaymentError) {
-        console.error("Error recording fee payment:", feePaymentError);
-        throw feePaymentError;
-      }
-
-      // Also record in payment_history for timeline tracking (use main fee record ID)
-      const currentTime = new Date();
-      const paymentTime = currentTime.toTimeString().split(' ')[0]; // HH:MM:SS format
-
-      const { error: historyError } = await supabase
-        .from("payment_history")
-        .insert({
-          fee_id: mainFeeRecord.id, // Use the main fee record ID
-          student_id: formData.student_id,
-          amount_paid: amountPaid,
-          payment_date: formData.payment_date,
-          payment_time: paymentTime,
-          receipt_number: receiptNumber,
-          payment_receiver: formData.payment_received_by,
-          payment_method: formData.payment_method,
-          notes: formData.notes || null,
-          fee_type: selectedStructure.fee_type
-        });
-
-      if (historyError) {
-        console.error("Error recording payment history:", historyError);
-      }
-
-      // Also record in student_payments for legacy support and payments page display
-      const { error: legacyPaymentError } = await supabase
-        .from("student_payments")
-        .insert({
-          student_id: formData.student_id,
-          fee_structure_id: formData.fee_structure_id,
-          amount_paid: amountPaid,
-          payment_date: formData.payment_date,
-          payment_method: formData.payment_method,
-          late_fee: parseFloat(formData.late_fee) || 0,
-          reference_number: receiptNumber,
-          payment_received_by: formData.payment_received_by,
-          notes: formData.notes || null,
-        });
-
-      if (legacyPaymentError) {
-        console.error("Error recording legacy payment:", legacyPaymentError);
-        // Don't throw here as the main payment is already recorded
-      }
-
-      // Call original onSubmit to maintain existing functionality
+      // Call the parent onSubmit callback to refresh data and close dialog
       const formDataWithReceipt = {
         ...formData,
         reference_number: receiptNumber,
@@ -314,11 +256,6 @@ export function PaymentForm({ classes, students, feeStructures, onSubmit, onCanc
       };
 
       onSubmit(formDataWithReceipt);
-
-      toast({
-        title: "Payment recorded successfully",
-        description: `Payment of ₹${amountPaid.toLocaleString()} recorded successfully. Receipt: ${receiptNumber}`,
-      });
 
     } catch (error: any) {
       console.error("Error recording payment:", error);
