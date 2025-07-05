@@ -19,6 +19,9 @@ export interface Fee {
   receipt_number: string | null;
   created_at: string;
   updated_at: string;
+  discount_notes: string | null;
+  discount_updated_by: string | null;
+  discount_updated_at: string | null;
   student?: {
     id: string;
     first_name: string;
@@ -80,6 +83,9 @@ export const useFeeData = () => {
           academic_year_id,
           created_at,
           updated_at,
+          discount_notes,
+          discount_updated_by,
+          discount_updated_at,
           students!inner (
             id,
             first_name,
@@ -121,6 +127,9 @@ export const useFeeData = () => {
           receipt_number,
           created_at,
           updated_at,
+          discount_notes,
+          discount_updated_by,
+          discount_updated_at,
           students!inner (
             id,
             first_name,
@@ -169,6 +178,9 @@ export const useFeeData = () => {
               receipt_number: fee.receipt_number,
               created_at: fee.created_at,
               updated_at: fee.updated_at,
+              discount_notes: fee.discount_notes,
+              discount_updated_by: fee.discount_updated_by,
+              discount_updated_at: fee.discount_updated_at,
               student: {
                 id: fee.students.id,
                 first_name: fee.students.first_name,
@@ -205,6 +217,9 @@ export const useFeeData = () => {
               receipt_number: null,
               created_at: fee.created_at,
               updated_at: fee.updated_at,
+              discount_notes: fee.discount_notes,
+              discount_updated_by: fee.discount_updated_by,
+              discount_updated_at: fee.discount_updated_at,
               student: {
                 id: fee.students.id,
                 first_name: fee.students.first_name,
