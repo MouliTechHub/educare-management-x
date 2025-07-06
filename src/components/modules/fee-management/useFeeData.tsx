@@ -5,7 +5,7 @@ import { useAutoFeeAssignment } from './hooks/useAutoFeeAssignment';
 import { Fee, StudentFeeRecord } from './types/feeTypes';
 import { useQuery } from '@tanstack/react-query';
 
-// Function to transform StudentFeeRecord to Fee
+// Function to transform StudentFeeRecord to Fe
 function transformToFee(record: StudentFeeRecord): Fee {
   // Ensure status is one of the allowed values, default to 'Pending'
   const validStatuses: Array<'Pending' | 'Paid' | 'Overdue' | 'Partial'> = ['Pending', 'Paid', 'Overdue', 'Partial'];
@@ -104,7 +104,7 @@ export function useFeeData() {
       
       return transformedFees;
     },
-    enabled: !!currentAcademicYear?.id
+    enabled: !!currentAcademicYear?.id && typeof currentAcademicYear.id === 'string'
   });
 
   // Set current academic year when academic years are loaded
@@ -116,10 +116,13 @@ export function useFeeData() {
     }
   }, [academicYears, currentAcademicYear]);
 
-  // Update loading state
+  // Update loading state based on both queries
   useEffect(() => {
-    setLoading(false);
-  }, [fees, academicYears]);
+    const isAcademicYearsLoading = academicYears.length === 0;
+    const isFeesLoading = currentAcademicYear?.id && fees.length === 0 && !feesError;
+    
+    setLoading(isAcademicYearsLoading || isFeesLoading);
+  }, [fees, academicYears, currentAcademicYear, feesError]);
 
   if (yearError) {
     console.error('❌ Academic year error:', yearError);

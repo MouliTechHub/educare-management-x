@@ -1,3 +1,4 @@
+
 import React from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { FeeManagementHeader } from "./fee-management/FeeManagementHeader";
@@ -48,8 +49,8 @@ export default function FeeManagement() {
   const [selectedFee, setSelectedFee] = React.useState<Fee | null>(null);
   const [selectedFees, setSelectedFees] = React.useState<Set<string>>(new Set());
 
-  // Apply filters to fees - ensure we're working with Fee[] type
-  const filteredFees: Fee[] = applyFilters(fees as Fee[]).filter(fee => {
+  // Apply filters to fees - ensure we're working with Fee[] type and handle loading state
+  const filteredFees: Fee[] = loading ? [] : applyFilters(fees as Fee[]).filter(fee => {
     if (!searchTerm) return true;
     
     const searchLower = searchTerm.toLowerCase();
@@ -122,6 +123,18 @@ export default function FeeManagement() {
     );
   }
 
+  // Show message if no academic year is selected
+  if (!currentAcademicYear) {
+    return (
+      <div className="p-6">
+        <div className="text-center py-12">
+          <h2 className="text-xl font-semibold mb-4">No Academic Year Found</h2>
+          <p className="text-gray-600">Please create an academic year first to manage fees.</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="p-6 space-y-6">
       <FeeManagementHeader
@@ -188,6 +201,19 @@ export default function FeeManagement() {
           currentAcademicYear={currentAcademicYear?.id || ''}
         />
       </div>
+
+      {/* Show message if no fee records found */}
+      {!loading && filteredFees.length === 0 && (
+        <div className="text-center py-12 bg-gray-50 rounded-lg">
+          <h3 className="text-lg font-semibold mb-2">No Fee Records Found</h3>
+          <p className="text-gray-600 mb-4">
+            There are no fee records for the current academic year ({currentAcademicYear.year_name}).
+          </p>
+          <p className="text-sm text-gray-500">
+            Fee records are created automatically when students are added or you can create them manually.
+          </p>
+        </div>
+      )}
 
       <DiscountDialog
         open={discountDialogOpen}
