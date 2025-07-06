@@ -10,7 +10,7 @@ export function useClassData() {
     try {
       const { data, error } = await supabase
         .from("classes")
-        .select("id, name, section")
+        .select("id, name, section, homeroom_teacher_id, created_at, updated_at")
         .order("name");
 
       if (error) throw error;

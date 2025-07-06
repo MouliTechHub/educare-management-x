@@ -1,3 +1,4 @@
+
 import React, { useState } from "react";
 import {
   Dialog,
@@ -73,11 +74,11 @@ export function PaymentRecordDialog({
     }
     
     // Validate payment amount using centralized validation
-    const validation = validatePaymentAmount(formData.amount, maxPaymentAmount);
+    const validation = validatePaymentAmount(fee, formData.amount);
     if (!validation.isValid) {
       toast({
         title: "Invalid Payment Amount",
-        description: validation.error,
+        description: validation.message,
         variant: "destructive"
       });
       return;
@@ -87,9 +88,9 @@ export function PaymentRecordDialog({
     try {
       // Record payment in payment_history table
       const { error: paymentError } = await supabase
-        .from('payment_history')
+        .from('fee_payment_records')
         .insert({
-          fee_id: fee.id,
+          fee_record_id: fee.id,
           student_id: fee.student_id,
           amount_paid: formData.amount,
           payment_date: new Date().toISOString().split('T')[0],
@@ -97,33 +98,31 @@ export function PaymentRecordDialog({
           receipt_number: formData.receiptNumber || `RCP-${Date.now()}`,
           payment_receiver: formData.paymentReceiver,
           notes: formData.notes,
-          fee_type: fee.fee_type
+          created_by: 'Admin'
         });
 
       if (paymentError) throw paymentError;
 
-      // Update fee total_paid amount and recalculate status
-      const newTotalPaid = fee.total_paid + formData.amount;
-      const updatedFee = { ...fee, total_paid: newTotalPaid };
+      // Update fee paid_amount amount and recalculate status
+      const newTotalPaid = fee.paid_amount + formData.amount;
+      const updatedFee = { ...fee, paid_amount: newTotalPaid };
       const newCalculation = calculateFeeAmounts(updatedFee);
       const newStatus = newCalculation.status;
 
       // Update ONLY the existing fee record, never create new ones
       const { error: feeUpdateError } = await supabase
-        .from('fees')
+        .from('student_fee_records')
         .update({
-          total_paid: newTotalPaid,
+          paid_amount: newTotalPaid,
           status: newStatus,
-          payment_date: newStatus === 'Paid' ? new Date().toISOString().split('T')[0] : null,
+          updated_at: new Date().toISOString(),
           // CRITICAL: Explicitly preserve ALL discount-related fields
           discount_amount: fee.discount_amount,
           discount_notes: fee.discount_notes,
           discount_updated_by: fee.discount_updated_by,
           discount_updated_at: fee.discount_updated_at
         })
-        .eq('student_id', fee.student_id)
-        .eq('fee_type', fee.fee_type)
-        .eq('academic_year_id', fee.academic_year_id);
+        .eq('id', fee.id);
 
       if (feeUpdateError) throw feeUpdateError;
 
