@@ -14,6 +14,7 @@ import { StudentPaymentHistory } from "./student-management/StudentPaymentHistor
 import { PaymentHistoryErrorBoundary } from "./student-management/PaymentHistoryErrorBoundary";
 import { useFeeData } from "./fee-management/useFeeData";
 import { useFeeManagement } from "./fee-management/useFeeManagement";
+import { usePreviousYearDues } from "./fee-management/hooks/usePreviousYearDues";
 import { BlockedStudentsReport } from "./fee-management/BlockedStudentsReport";
 import { Fee } from "./fee-management/types/feeTypes";
 
@@ -41,6 +42,8 @@ export default function FeeManagement() {
     applyFilters
   } = useFeeManagement();
 
+  const { getStudentDues, hasOutstandingDues, logPaymentBlockage } = usePreviousYearDues(currentAcademicYear?.id || '');
+
   const [discountDialogOpen, setDiscountDialogOpen] = React.useState(false);
   const [paymentDialogOpen, setPaymentDialogOpen] = React.useState(false);
   const [reminderDialogOpen, setReminderDialogOpen] = React.useState(false);
@@ -49,17 +52,21 @@ export default function FeeManagement() {
   const [selectedFees, setSelectedFees] = React.useState<Set<string>>(new Set());
 
   // Apply filters to fees - ensure we're working with Fee[] type and handle loading state
-  const filteredFees: Fee[] = loading ? [] : applyFilters(fees as Fee[]).filter(fee => {
-    if (!searchTerm) return true;
+  const filteredFees: Fee[] = React.useMemo(() => {
+    if (loading || !fees) return [];
     
-    const searchLower = searchTerm.toLowerCase();
-    return (
-      fee.student?.first_name?.toLowerCase().includes(searchLower) ||
-      fee.student?.last_name?.toLowerCase().includes(searchLower) ||
-      fee.student?.admission_number?.toLowerCase().includes(searchLower) ||
-      fee.fee_type?.toLowerCase().includes(searchLower)
-    );
-  });
+    return applyFilters(fees as Fee[]).filter(fee => {
+      if (!searchTerm) return true;
+      
+      const searchLower = searchTerm.toLowerCase();
+      return (
+        fee.student?.first_name?.toLowerCase().includes(searchLower) ||
+        fee.student?.last_name?.toLowerCase().includes(searchLower) ||
+        fee.student?.admission_number?.toLowerCase().includes(searchLower) ||
+        fee.fee_type?.toLowerCase().includes(searchLower)
+      );
+    });
+  }, [loading, fees, searchTerm, applyFilters]);
 
   const handleDiscountClick = (fee: Fee) => {
     setSelectedFee(fee);

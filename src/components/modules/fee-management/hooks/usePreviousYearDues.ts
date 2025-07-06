@@ -13,17 +13,18 @@ export interface PreviousYearDues {
   }[];
 }
 
-export function usePreviousYearDues(currentAcademicYearId: string) {
+export function usePreviousYearDues(currentAcademicYearId: string | any) {
   const [previousYearDues, setPreviousYearDues] = useState<Map<string, PreviousYearDues>>(new Map());
   const [loading, setLoading] = useState(false);
   const { toast } = useToast();
 
+  // Stabilize the currentAcademicYearId to prevent infinite re-renders
+  const stableYearId = typeof currentAcademicYearId === 'string' 
+    ? currentAcademicYearId 
+    : (currentAcademicYearId as any)?.id || '';
+
   const fetchPreviousYearDues = async () => {
-    // Ensure we have a valid string ID, not an object
-    const yearId = typeof currentAcademicYearId === 'string' ? currentAcademicYearId : 
-                   (currentAcademicYearId as any)?.id || '';
-    
-    if (!yearId || yearId === 'undefined') {
+    if (!stableYearId || stableYearId === 'undefined') {
       console.log('⚠️ No valid current academic year ID provided');
       setPreviousYearDues(new Map());
       return;
@@ -31,13 +32,13 @@ export function usePreviousYearDues(currentAcademicYearId: string) {
     
     setLoading(true);
     try {
-      console.log('📅 Fetching previous year dues for current year:', yearId);
+      console.log('📅 Fetching previous year dues for current year:', stableYearId);
       
       // Get all academic years except current
       const { data: academicYears, error: yearsError } = await supabase
         .from('academic_years')
         .select('id, year_name')
-        .neq('id', yearId)
+        .neq('id', stableYearId)
         .order('start_date', { ascending: false });
 
       if (yearsError) {
@@ -132,15 +133,13 @@ export function usePreviousYearDues(currentAcademicYearId: string) {
   const logPaymentBlockage = async (studentId: string, attemptedAmount: number, reason: string) => {
     try {
       const studentDues = getStudentDues(studentId);
-      const yearId = typeof currentAcademicYearId === 'string' ? currentAcademicYearId : 
-                     (currentAcademicYearId as any)?.id || null;
       
       await supabase.from('payment_blockage_log').insert({
         student_id: studentId,
         blocked_amount: attemptedAmount,
         outstanding_dues: studentDues?.totalDues || 0,
         reason: reason,
-        academic_year_id: yearId
+        academic_year_id: stableYearId
       });
     } catch (error) {
       console.error('Error logging payment blockage:', error);
@@ -148,8 +147,10 @@ export function usePreviousYearDues(currentAcademicYearId: string) {
   };
 
   useEffect(() => {
-    fetchPreviousYearDues();
-  }, [currentAcademicYearId]);
+    if (stableYearId) {
+      fetchPreviousYearDues();
+    }
+  }, [stableYearId]);
 
   return {
     previousYearDues: Array.from(previousYearDues.values()),
