@@ -52,7 +52,7 @@ export function BulkActionsPanel({
   const { toast } = useToast();
 
   const selectedFeesData = fees.filter(fee => selectedFees.has(fee.id));
-  const totalAmount = selectedFeesData.reduce((sum, fee) => sum + (fee.actual_amount - fee.discount_amount), 0);
+  const totalAmount = selectedFeesData.reduce((sum, fee) => sum + (fee.actual_fee - fee.discount_amount), 0);
 
   const handleSelectAll = () => {
     if (selectedFees.size === fees.length) {
@@ -80,7 +80,7 @@ export function BulkActionsPanel({
         if (discountType === 'Fixed Amount') {
           discountAmountValue = parseFloat(discountAmount);
         } else if (discountType === 'Percentage') {
-          discountAmountValue = (fee.actual_amount * parseFloat(discountAmount)) / 100;
+          discountAmountValue = (fee.actual_fee * parseFloat(discountAmount)) / 100;
         }
 
         const discountData = {
@@ -90,18 +90,11 @@ export function BulkActionsPanel({
           discount_updated_at: new Date().toISOString()
         };
 
-        // Update fees table
-        await supabase
-          .from('fees')
-          .update(discountData)
-          .eq('id', fee.id);
-
-        // Update student_fee_records table if exists
+        // Update student_fee_records table
         await supabase
           .from('student_fee_records')
           .update(discountData)
-          .eq('student_id', fee.student_id)
-          .eq('fee_type', fee.fee_type);
+          .eq('id', fee.id);
       }
 
       toast({

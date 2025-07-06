@@ -1,3 +1,4 @@
+
 import React from "react";
 import { Button } from "@/components/ui/button";
 import { FileText, Download } from "lucide-react";
@@ -33,8 +34,8 @@ export function ExportButtons({ fees, filters, className }: ExportButtonsProps) 
       ];
 
       const rows = fees.map(fee => {
-        const finalFee = fee.actual_amount - fee.discount_amount;
-        const balanceAmount = finalFee - fee.total_paid;
+        const finalFee = fee.actual_fee - fee.discount_amount;
+        const balanceAmount = finalFee - fee.paid_amount;
         
         return [
           `${fee.student?.first_name || ''} ${fee.student?.last_name || ''}`.trim(),
@@ -42,10 +43,10 @@ export function ExportButtons({ fees, filters, className }: ExportButtonsProps) 
           fee.student?.class_name || '',
           fee.student?.section || '',
           fee.fee_type,
-          fee.actual_amount,
+          fee.actual_fee,
           fee.discount_amount,
           finalFee,
-          fee.total_paid,
+          fee.paid_amount,
           balanceAmount,
           fee.due_date,
           fee.status,
@@ -107,8 +108,8 @@ export function ExportButtons({ fees, filters, className }: ExportButtonsProps) 
           <div class="summary">
             <h3>Summary</h3>
             <p>Total Records: ${fees.length}</p>
-            <p>Total Amount: ₹${fees.reduce((sum, fee) => sum + (fee.actual_amount - fee.discount_amount), 0).toLocaleString()}</p>
-            <p>Total Collected: ₹${fees.reduce((sum, fee) => sum + fee.total_paid, 0).toLocaleString()}</p>
+            <p>Total Amount: ₹${fees.reduce((sum, fee) => sum + (fee.actual_fee - fee.discount_amount), 0).toLocaleString()}</p>
+            <p>Total Collected: ₹${fees.reduce((sum, fee) => sum + fee.paid_amount, 0).toLocaleString()}</p>
             <p>Total Discount: ₹${fees.reduce((sum, fee) => sum + fee.discount_amount, 0).toLocaleString()}</p>
           </div>
 
@@ -128,17 +129,17 @@ export function ExportButtons({ fees, filters, className }: ExportButtonsProps) 
             </thead>
             <tbody>
               ${fees.map(fee => {
-                const finalFee = fee.actual_amount - fee.discount_amount;
-                const balanceAmount = finalFee - fee.total_paid;
+                const finalFee = fee.actual_fee - fee.discount_amount;
+                const balanceAmount = finalFee - fee.paid_amount;
                 return `
                   <tr>
                     <td>${fee.student?.first_name || ''} ${fee.student?.last_name || ''}</td>
                     <td>${fee.student?.class_name || ''} ${fee.student?.section || ''}</td>
                     <td>${fee.fee_type}</td>
-                    <td>₹${fee.actual_amount.toLocaleString()}</td>
+                    <td>₹${fee.actual_fee.toLocaleString()}</td>
                     <td>₹${fee.discount_amount.toLocaleString()}</td>
                     <td>₹${finalFee.toLocaleString()}</td>
-                    <td>₹${fee.total_paid.toLocaleString()}</td>
+                    <td>₹${fee.paid_amount.toLocaleString()}</td>
                     <td>₹${balanceAmount.toLocaleString()}</td>
                     <td>${fee.status}</td>
                   </tr>

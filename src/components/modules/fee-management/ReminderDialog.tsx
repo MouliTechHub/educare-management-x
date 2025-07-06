@@ -62,7 +62,7 @@ SchoolMaster Team`;
     try {
       // Simulate sending reminders (replace with actual API calls)
       const promises = fees.map(async (fee) => {
-        const balanceAmount = (fee.actual_amount - fee.discount_amount) - fee.total_paid;
+        const balanceAmount = (fee.actual_fee - fee.discount_amount) - fee.paid_amount;
         
         if (balanceAmount <= 0) return;
 

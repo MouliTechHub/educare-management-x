@@ -35,3 +35,17 @@ export const calculateFeeAmounts = (fee: Fee): FeeCalculation => {
     status
   };
 };
+
+export const validatePaymentAmount = (fee: Fee, paymentAmount: number): { isValid: boolean; message?: string } => {
+  const balanceAmount = (fee.actual_fee - fee.discount_amount) - fee.paid_amount;
+  
+  if (paymentAmount <= 0) {
+    return { isValid: false, message: "Payment amount must be greater than 0" };
+  }
+  
+  if (paymentAmount > balanceAmount) {
+    return { isValid: false, message: `Payment amount cannot exceed balance amount of ₹${balanceAmount.toLocaleString()}` };
+  }
+  
+  return { isValid: true };
+};

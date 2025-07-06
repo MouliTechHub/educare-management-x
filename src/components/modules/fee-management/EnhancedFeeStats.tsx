@@ -9,9 +9,9 @@ interface EnhancedFeeStatsProps {
 
 export function EnhancedFeeStats({ fees, filters }: EnhancedFeeStatsProps) {
   const stats = {
-    total: fees.reduce((sum, fee) => sum + (fee.actual_amount - fee.discount_amount), 0),
-    collected: fees.reduce((sum, fee) => sum + fee.total_paid, 0),
-    pending: fees.filter(fee => fee.status === 'Pending').reduce((sum, fee) => sum + (fee.actual_amount - fee.discount_amount - fee.total_paid), 0),
+    total: fees.reduce((sum, fee) => sum + (fee.actual_fee - fee.discount_amount), 0),
+    collected: fees.reduce((sum, fee) => sum + fee.paid_amount, 0),
+    pending: fees.filter(fee => fee.status === 'Pending').reduce((sum, fee) => sum + (fee.actual_fee - fee.discount_amount - fee.paid_amount), 0),
     overdue: fees.filter(fee => fee.status === 'Overdue').length,
     totalDiscount: fees.reduce((sum, fee) => sum + fee.discount_amount, 0),
     totalStudents: new Set(fees.map(fee => fee.student_id)).size,

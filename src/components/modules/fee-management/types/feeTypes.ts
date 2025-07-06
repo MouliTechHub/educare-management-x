@@ -45,3 +45,34 @@ export interface PaymentRecord {
   notes?: string;
   created_at: string;
 }
+
+export interface Class {
+  id: string;
+  name: string;
+  section?: string;
+  homeroom_teacher_id?: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface AcademicYear {
+  id: string;
+  year_name: string;
+  start_date: string;
+  end_date: string;
+  is_current: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface FilterState {
+  class_id: string;
+  section: string;
+  status: string;
+  fee_type: string;
+  due_date_from: string;
+  due_date_to: string;
+  has_discount: string;
+  payment_status: string;
+  search_parent: string;
+}

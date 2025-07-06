@@ -1,3 +1,4 @@
+
 import { TableCell, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -21,8 +22,8 @@ export function FeeTableRow({
   onChangeHistoryClick,
   showPaymentActions
 }: FeeTableRowProps) {
-  const finalFee = fee.actual_amount - fee.discount_amount;
-  const balanceAmount = finalFee - fee.total_paid;
+  const finalFee = fee.actual_fee - fee.discount_amount;
+  const balanceAmount = finalFee - fee.paid_amount;
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -51,7 +52,7 @@ export function FeeTableRow({
         {fee.student?.section && ` - ${fee.student.section}`}
       </TableCell>
       <TableCell>{fee.fee_type}</TableCell>
-      <TableCell>₹{fee.actual_amount.toLocaleString()}</TableCell>
+      <TableCell>₹{fee.actual_fee.toLocaleString()}</TableCell>
       <TableCell>
         {fee.discount_amount > 0 ? (
           <span className="text-green-600">₹{fee.discount_amount.toLocaleString()}</span>
@@ -60,7 +61,7 @@ export function FeeTableRow({
         )}
       </TableCell>
       <TableCell className="font-medium">₹{finalFee.toLocaleString()}</TableCell>
-      <TableCell className="text-blue-600">₹{fee.total_paid.toLocaleString()}</TableCell>
+      <TableCell className="text-blue-600">₹{fee.paid_amount.toLocaleString()}</TableCell>
       <TableCell className={balanceAmount > 0 ? 'text-red-600' : 'text-green-600'}>
         ₹{balanceAmount.toLocaleString()}
       </TableCell>

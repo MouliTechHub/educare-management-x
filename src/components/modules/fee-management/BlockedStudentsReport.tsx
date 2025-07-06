@@ -1,3 +1,4 @@
+
 import React, { useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -145,7 +146,7 @@ export function BlockedStudentsReport({ fees, currentAcademicYear }: BlockedStud
                                       {fee.fee_type}
                                     </Badge>
                                     <span className="ml-1">
-                                      ₹{(fee.actual_amount - fee.discount_amount - fee.total_paid).toLocaleString()}
+                                      ₹{(fee.actual_fee - fee.discount_amount - fee.paid_amount).toLocaleString()}
                                     </span>
                                   </div>
                                 ))}
