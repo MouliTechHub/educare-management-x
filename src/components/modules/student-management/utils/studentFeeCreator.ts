@@ -39,19 +39,19 @@ export const createDefaultFeeRecords = async (studentId: string, classId: string
 
       return {
         student_id: studentId,
-        amount: structure.amount,
-        actual_amount: structure.amount,
+        class_id: classId,
+        academic_year_id: currentYear.id,
+        actual_fee: structure.amount,
         discount_amount: 0,
-        total_paid: 0,
+        paid_amount: 0,
         fee_type: structure.fee_type,
         due_date: dueDate.toISOString().split('T')[0],
-        status: 'Pending',
-        academic_year_id: currentYear.id
+        status: 'Pending'
       };
     });
 
     const { error: insertError } = await supabase
-      .from("fees")
+      .from("student_fee_records")
       .insert(feeRecords);
 
     if (insertError) throw insertError;

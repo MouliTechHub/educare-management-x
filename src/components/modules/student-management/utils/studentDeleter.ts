@@ -11,15 +11,26 @@ export const useStudentDeleter = () => {
     try {
       console.log('Deleting student and associated records:', id);
       
-      // Delete associated fees first
-      const { error: feesError } = await supabase
-        .from("fees")
+      // Delete fee payment records first
+      const { error: feePaymentError } = await supabase
+        .from("fee_payment_records")
         .delete()
         .eq("student_id", id);
 
-      if (feesError) {
-        console.error('Error deleting fees:', feesError);
-        throw feesError;
+      if (feePaymentError) {
+        console.error('Error deleting fee payment records:', feePaymentError);
+        throw feePaymentError;
+      }
+
+      // Delete student fee records
+      const { error: studentFeeError } = await supabase
+        .from("student_fee_records")
+        .delete()
+        .eq("student_id", id);
+
+      if (studentFeeError) {
+        console.error('Error deleting student fee records:', studentFeeError);
+        throw studentFeeError;
       }
 
       // Delete parent links

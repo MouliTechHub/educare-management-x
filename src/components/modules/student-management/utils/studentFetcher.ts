@@ -24,19 +24,16 @@ export const useStudentFetcher = () => {
               email
             )
           ),
-          fees(
+          student_fee_records(
             id,
             fee_type,
-            amount,
-            actual_amount,
+            actual_fee,
             discount_amount,
-            total_paid,
+            paid_amount,
             discount_notes,
             discount_updated_by,
             discount_updated_at,
             due_date,
-            payment_date,
-            receipt_number,
             status,
             academic_year_id,
             created_at,
@@ -50,19 +47,40 @@ export const useStudentFetcher = () => {
         throw error;
       }
       
-      console.log('Fetched students with parents and fees:', data);
+      console.log('Fetched students with parents and fee records:', data);
       
       // Transform the data to include parents array and financial calculations
       const typedStudents = (data || []).map(student => {
-        const fees = student.fees || [];
-        const totalPaid = fees
-          .reduce((sum, fee) => sum + Number(fee.total_paid || 0), 0);
-        const totalPending = fees
+        const feeRecords = student.student_fee_records || [];
+        const totalPaid = feeRecords
+          .reduce((sum, fee) => sum + Number(fee.paid_amount || 0), 0);
+        const totalPending = feeRecords
           .reduce((sum, fee) => {
-            const finalFee = Number(fee.actual_amount || fee.amount) - Number(fee.discount_amount || 0);
-            const balance = finalFee - Number(fee.total_paid || 0);
+            const finalFee = Number(fee.actual_fee || 0) - Number(fee.discount_amount || 0);
+            const balance = finalFee - Number(fee.paid_amount || 0);
             return sum + Math.max(0, balance);
           }, 0);
+
+        // Convert student_fee_records to fees format for backward compatibility
+        const fees = feeRecords.map(feeRecord => ({
+          id: feeRecord.id,
+          student_id: student.id,
+          fee_type: feeRecord.fee_type,
+          amount: feeRecord.actual_fee,
+          actual_amount: feeRecord.actual_fee,
+          discount_amount: feeRecord.discount_amount || 0,
+          total_paid: feeRecord.paid_amount || 0,
+          discount_notes: feeRecord.discount_notes || null,
+          discount_updated_by: feeRecord.discount_updated_by || null,
+          discount_updated_at: feeRecord.discount_updated_at || null,
+          due_date: feeRecord.due_date || '',
+          payment_date: null, // This would come from payment records
+          receipt_number: null, // This would come from payment records
+          status: feeRecord.status as 'Pending' | 'Paid' | 'Overdue',
+          academic_year_id: feeRecord.academic_year_id,
+          created_at: feeRecord.created_at,
+          updated_at: feeRecord.updated_at
+        }));
 
         return {
           ...student,
@@ -78,18 +96,7 @@ export const useStudentFetcher = () => {
           })).filter(Boolean) || [],
           total_paid: totalPaid,
           total_pending: totalPending,
-          fees: fees.map(fee => ({
-            ...fee,
-            student_id: student.id,
-            status: fee.status as 'Pending' | 'Paid' | 'Overdue',
-            actual_amount: fee.actual_amount || fee.amount,
-            discount_amount: fee.discount_amount || 0,
-            total_paid: fee.total_paid || 0,
-            discount_notes: fee.discount_notes || null,
-            discount_updated_by: fee.discount_updated_by || null,
-            discount_updated_at: fee.discount_updated_at || null,
-            academic_year_id: fee.academic_year_id
-          }))
+          fees: fees
         };
       });
       
