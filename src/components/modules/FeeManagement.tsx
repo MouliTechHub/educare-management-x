@@ -1,3 +1,4 @@
+
 import React from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { FeeManagementHeader } from "./fee-management/FeeManagementHeader";
@@ -14,8 +15,6 @@ import { StudentPaymentHistory } from "./student-management/StudentPaymentHistor
 import { PaymentHistoryErrorBoundary } from "./student-management/PaymentHistoryErrorBoundary";
 import { useFeeData } from "./fee-management/useFeeData";
 import { useFeeManagement } from "./fee-management/useFeeManagement";
-import { FeeTypeValidator } from "./fee-management/FeeTypeValidator";
-import { PreviousYearDuesTable } from "./fee-management/PreviousYearDuesTable";
 import { BlockedStudentsReport } from "./fee-management/BlockedStudentsReport";
 
 export default function FeeManagement() {
@@ -107,8 +106,6 @@ export default function FeeManagement() {
     setDiscountHistoryDialogOpen(true);
   };
 
-  const currentYear = academicYears.find(year => year.is_current);
-
   if (loading) {
     return (
       <div className="p-6">
@@ -136,12 +133,10 @@ export default function FeeManagement() {
 
       <EnhancedFeeStats fees={filteredFees} filters={filters} />
 
-      {/* Show blocked students report */}
       <BlockedStudentsReport 
         fees={filteredFees}
         currentAcademicYear={currentAcademicYear}
       />
-
 
       <BulkActionsPanel
         fees={filteredFees}
@@ -178,8 +173,8 @@ export default function FeeManagement() {
           onNotesEdit={async (feeId, notes) => {
             try {
               const { error } = await supabase
-                .from('fees')
-                .update({ notes } as any)
+                .from('student_fee_records')
+                .update({ discount_notes: notes } as any)
                 .eq('id', feeId);
                 
               if (error) throw error;

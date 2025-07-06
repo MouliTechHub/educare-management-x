@@ -1,3 +1,4 @@
+
 import React, { useState } from "react";
 import { TableCell, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
@@ -12,12 +13,10 @@ import {
   Edit, 
   Save, 
   X,
-  MessageCircle,
   FileText
 } from "lucide-react";
 import { Fee } from "./types/feeTypes";
 import { PreviousYearDues } from "./hooks/usePreviousYearDues";
-import { calculateFeeAmounts } from "./utils/feeCalculations";
 
 interface EnhancedFeeTableRowProps {
   fee: Fee;
@@ -47,11 +46,7 @@ export function EnhancedFeeTableRow({
   hasOutstandingDues
 }: EnhancedFeeTableRowProps) {
   const [isEditingNotes, setIsEditingNotes] = useState(false);
-  const [notesValue, setNotesValue] = useState(fee.notes || '');
-
-  // Use centralized calculation for consistency
-  const feeCalculation = calculateFeeAmounts(fee);
-  const { finalAmount, balanceAmount, status } = feeCalculation;
+  const [notesValue, setNotesValue] = useState(fee.discount_notes || '');
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -69,11 +64,11 @@ export function EnhancedFeeTableRow({
   };
 
   const handleCancelNotes = () => {
-    setNotesValue(fee.notes || '');
+    setNotesValue(fee.discount_notes || '');
     setIsEditingNotes(false);
   };
 
-  const isOverdue = new Date(fee.due_date) < new Date() && balanceAmount > 0;
+  const isOverdue = new Date(fee.due_date) < new Date() && fee.balance_fee > 0;
   const isPaymentBlocked = hasOutstandingDues;
 
   return (
@@ -120,7 +115,7 @@ export function EnhancedFeeTableRow({
           <span className="text-green-600">₹0</span>
         )}
       </TableCell>
-      <TableCell>₹{fee.actual_amount.toLocaleString()}</TableCell>
+      <TableCell>₹{fee.actual_fee.toLocaleString()}</TableCell>
       <TableCell>
         {fee.discount_amount > 0 ? (
           <span className="text-green-600">₹{fee.discount_amount.toLocaleString()}</span>
@@ -128,10 +123,10 @@ export function EnhancedFeeTableRow({
           <span className="text-gray-400">₹0</span>
         )}
       </TableCell>
-      <TableCell className="font-medium">₹{finalAmount.toLocaleString()}</TableCell>
-      <TableCell className="text-blue-600">₹{fee.total_paid.toLocaleString()}</TableCell>
-      <TableCell className={balanceAmount > 0 ? 'text-red-600' : 'text-green-600'}>
-        ₹{balanceAmount.toLocaleString()}
+      <TableCell className="font-medium">₹{fee.final_fee.toLocaleString()}</TableCell>
+      <TableCell className="text-blue-600">₹{fee.paid_amount.toLocaleString()}</TableCell>
+      <TableCell className={fee.balance_fee > 0 ? 'text-red-600' : 'text-green-600'}>
+        ₹{fee.balance_fee.toLocaleString()}
       </TableCell>
       <TableCell>
         <div className={isOverdue ? 'text-red-600 font-medium' : ''}>
@@ -139,8 +134,8 @@ export function EnhancedFeeTableRow({
         </div>
       </TableCell>
       <TableCell>
-        <Badge className={getStatusColor(status)}>
-          {status}
+        <Badge className={getStatusColor(fee.status)}>
+          {fee.status}
         </Badge>
       </TableCell>
       <TableCell>
@@ -162,7 +157,7 @@ export function EnhancedFeeTableRow({
         ) : (
           <div className="flex items-center gap-1">
             <span className="text-xs text-gray-600 max-w-20 truncate">
-              {fee.notes || 'Add notes...'}
+              {fee.discount_notes || 'Add notes...'}
             </span>
             <Button 
               size="sm" 
@@ -177,26 +172,26 @@ export function EnhancedFeeTableRow({
       </TableCell>
       <TableCell>
         <div className="flex space-x-1">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => onDiscountClick(fee)}
+            title="Apply discount"
+          >
+            <Percent className="w-3 h-3" />
+          </Button>
+          {fee.discount_amount > 0 && (
             <Button
               variant="outline"
               size="sm"
-              onClick={() => onDiscountClick(fee)}
-              title="Apply discount"
+              onClick={() => onDiscountHistoryClick(fee)}
+              title="View discount history"
+              className="text-orange-600 border-orange-200 hover:bg-orange-50"
             >
-              <Percent className="w-3 h-3" />
+              <FileText className="w-3 h-3" />
             </Button>
-            {fee.discount_amount > 0 && (
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => onDiscountHistoryClick(fee)}
-                title="View discount history"
-                className="text-orange-600 border-orange-200 hover:bg-orange-50"
-              >
-                <FileText className="w-3 h-3" />
-              </Button>
-            )}
-          {balanceAmount > 0 && (
+          )}
+          {fee.balance_fee > 0 && (
             <Button
               variant="outline"
               size="sm"

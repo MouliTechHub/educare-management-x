@@ -1,3 +1,4 @@
+
 import React from "react";
 import { Table, TableBody, TableHead, TableHeader, TableRow, TableFooter } from "@/components/ui/table";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -31,6 +32,7 @@ export function EnhancedFeeTable({
   currentAcademicYear 
 }: EnhancedFeeTableProps) {
   const { getStudentDues, hasOutstandingDues } = usePreviousYearDues(currentAcademicYear);
+  
   if (fees.length === 0) {
     return (
       <div className="text-center py-8 text-gray-500">
@@ -50,11 +52,11 @@ export function EnhancedFeeTable({
   };
 
   const totals = {
-    actualAmount: fees.reduce((sum, fee) => sum + fee.actual_amount, 0),
+    actualAmount: fees.reduce((sum, fee) => sum + fee.actual_fee, 0),
     discountAmount: fees.reduce((sum, fee) => sum + fee.discount_amount, 0),
-    finalAmount: fees.reduce((sum, fee) => sum + (fee.actual_amount - fee.discount_amount), 0),
-    paidAmount: fees.reduce((sum, fee) => sum + fee.total_paid, 0),
-    balanceAmount: fees.reduce((sum, fee) => sum + (fee.actual_amount - fee.discount_amount - fee.total_paid), 0)
+    finalAmount: fees.reduce((sum, fee) => sum + fee.final_fee, 0),
+    paidAmount: fees.reduce((sum, fee) => sum + fee.paid_amount, 0),
+    balanceAmount: fees.reduce((sum, fee) => sum + fee.balance_fee, 0)
   };
 
   return (

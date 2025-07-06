@@ -1,93 +1,37 @@
-// Utility functions for fee calculations to ensure consistency across the app
+
+import { Fee } from '../types/feeTypes';
 
 export interface FeeCalculation {
   actualAmount: number;
   discountAmount: number;
   finalAmount: number;
-  totalPaid: number;
   balanceAmount: number;
-  status: 'Paid' | 'Partial' | 'Pending' | 'Overdue';
+  status: 'Pending' | 'Paid' | 'Overdue' | 'Partial';
 }
 
-export function calculateFeeAmounts(fee: {
-  actual_amount: number;
-  discount_amount: number;
-  total_paid: number;
-  due_date?: string;
-}): FeeCalculation {
-  const actualAmount = fee.actual_amount || 0;
-  const discountAmount = fee.discount_amount || 0;
-  const totalPaid = fee.total_paid || 0;
-  
-  // Calculate final amount after discount
+export const calculateFeeAmounts = (fee: Fee): FeeCalculation => {
+  const actualAmount = fee.actual_fee;
+  const discountAmount = fee.discount_amount;
+  const paidAmount = fee.paid_amount;
   const finalAmount = actualAmount - discountAmount;
+  const balanceAmount = Math.max(0, finalAmount - paidAmount);
+
+  // Determine status based on amounts and due date
+  let status: 'Pending' | 'Paid' | 'Overdue' | 'Partial' = 'Pending';
   
-  // Calculate balance (what's still owed)
-  const balanceAmount = Math.max(0, finalAmount - totalPaid);
-  
-  // Determine status
-  let status: 'Paid' | 'Partial' | 'Pending' | 'Overdue' = 'Pending';
-  
-  if (balanceAmount <= 0) {
+  if (balanceAmount === 0) {
     status = 'Paid';
-  } else if (totalPaid > 0) {
+  } else if (paidAmount > 0) {
     status = 'Partial';
-  } else if (fee.due_date && new Date(fee.due_date) < new Date()) {
+  } else if (new Date(fee.due_date) < new Date()) {
     status = 'Overdue';
-  } else {
-    status = 'Pending';
   }
-  
+
   return {
     actualAmount,
     discountAmount,
     finalAmount,
-    totalPaid,
     balanceAmount,
     status
   };
-}
-
-export function validatePaymentAmount(paymentAmount: number, balanceAmount: number): {
-  isValid: boolean;
-  error?: string;
-} {
-  if (paymentAmount <= 0) {
-    return {
-      isValid: false,
-      error: 'Payment amount must be greater than 0'
-    };
-  }
-  
-  if (paymentAmount > balanceAmount) {
-    return {
-      isValid: false,
-      error: `Payment amount (₹${paymentAmount.toLocaleString()}) cannot exceed balance amount (₹${balanceAmount.toLocaleString()})`
-    };
-  }
-  
-  return { isValid: true };
-}
-
-export function validateDiscountAmount(discountAmount: number, actualAmount: number, currentDiscount: number = 0): {
-  isValid: boolean;
-  error?: string;
-} {
-  if (discountAmount <= 0) {
-    return {
-      isValid: false,
-      error: 'Discount amount must be greater than 0'
-    };
-  }
-  
-  const totalDiscount = currentDiscount + discountAmount;
-  
-  if (totalDiscount > actualAmount) {
-    return {
-      isValid: false,
-      error: `Total discount (₹${totalDiscount.toFixed(2)}) cannot exceed actual fee amount (₹${actualAmount.toFixed(2)})`
-    };
-  }
-  
-  return { isValid: true };
-}
+};

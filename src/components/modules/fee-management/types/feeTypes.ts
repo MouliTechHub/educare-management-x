@@ -1,60 +1,47 @@
 
-export interface Class {
-  id: string;
-  name: string;
-  section: string | null;
-}
-
-export interface FilterState {
-  class_id: string;
-  section: string;
-  status: string;
-  fee_type: string;
-  due_date_from: string;
-  due_date_to: string;
-  has_discount: string;
-  payment_status: string;
-  search_parent: string;
-}
-
 export interface Fee {
   id: string;
   student_id: string;
-  amount: number;
-  actual_amount: number;
-  discount_amount: number;
-  total_paid: number;
   fee_type: string;
+  actual_fee: number;
+  discount_amount: number;
+  paid_amount: number;
+  final_fee: number;
+  balance_fee: number;
   due_date: string;
-  payment_date: string | null;
   status: 'Pending' | 'Paid' | 'Overdue' | 'Partial';
-  receipt_number: string | null;
   created_at: string;
   updated_at: string;
-  discount_notes: string | null;
-  discount_updated_by: string | null;
-  discount_updated_at: string | null;
+  discount_notes?: string;
+  discount_updated_by?: string;
+  discount_updated_at?: string;
   academic_year_id: string;
-  notes: string | null;
+  class_id: string;
   student?: {
     id: string;
     first_name: string;
     last_name: string;
     admission_number: string;
-    class_name?: string;
+    class_name: string;
     section?: string;
+    class_id: string;
+    gender?: string;
+    status?: string;
     parent_phone?: string;
     parent_email?: string;
-    class_id?: string;
-    gender?: 'Male' | 'Female' | 'Other';
-    status?: 'Active' | 'Inactive' | 'Alumni';
   };
 }
 
-export interface AcademicYear {
+export interface PaymentRecord {
   id: string;
-  year_name: string;
-  start_date: string;
-  end_date: string;
-  is_current: boolean;
+  fee_record_id: string;
+  student_id: string;
+  amount_paid: number;
+  payment_date: string;
+  payment_time?: string;
+  payment_method: string;
+  receipt_number: string;
+  payment_receiver: string;
+  notes?: string;
+  created_at: string;
 }
