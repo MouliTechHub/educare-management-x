@@ -152,10 +152,11 @@ export function ReportsManagement() {
     setLoading(true);
     try {
       let query = supabase
-        .from("payment_history")
+        .from("fee_payment_records")
         .select(`
           *,
-          students(first_name, last_name, admission_number)
+          students(first_name, last_name, admission_number),
+          student_fee_records!fee_record_id(fee_type)
         `);
 
       if (filters.dateFrom) {
@@ -164,10 +165,6 @@ export function ReportsManagement() {
 
       if (filters.dateTo) {
         query = query.lte("payment_date", filters.dateTo);
-      }
-
-      if (filters.feeType) {
-        query = query.eq("fee_type", filters.feeType);
       }
 
       const { data, error } = await query.order("payment_date", { ascending: false });
@@ -259,7 +256,7 @@ export function ReportsManagement() {
     const rows = payments.map(payment => [
       payment.students ? `${payment.students.first_name} ${payment.students.last_name}` : '',
       payment.students?.admission_number || '',
-      payment.fee_type,
+      payment.student_fee_records?.fee_type || '',
       payment.amount_paid,
       payment.payment_date,
       payment.payment_method,

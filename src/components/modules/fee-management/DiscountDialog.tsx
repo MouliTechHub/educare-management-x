@@ -76,7 +76,7 @@ export function DiscountDialog({ open, onOpenChange, selectedFee, onSuccess }: D
           setLoading(false);
           return;
         }
-        discountAmount = (selectedFee.actual_amount * data.amount) / 100;
+        discountAmount = (selectedFee.actual_fee * data.amount) / 100;
       }
 
       const currentYear = academicYears.find(year => year.is_current);
@@ -90,77 +90,15 @@ export function DiscountDialog({ open, onOpenChange, selectedFee, onSuccess }: D
         academicYear: currentYear.id
       });
 
-      // First, get the main fee record to check current state
-      const { data: mainFeeRecord, error: mainFeeError } = await supabase
-        .from('fees')
-        .select('*')
-        .eq('student_id', selectedFee.student_id)
-        .eq('fee_type', selectedFee.fee_type)
-        .eq('academic_year_id', currentYear.id)
-        .maybeSingle();
-
-      if (mainFeeError) {
-        console.error('Error fetching main fee record:', mainFeeError);
-        throw mainFeeError;
-      }
-
-      let feeRecordId;
-      let currentDiscount = 0;
-      let updatedMainFeeRecord = mainFeeRecord;
-
-      if (updatedMainFeeRecord) {
-        feeRecordId = updatedMainFeeRecord.id;
-        currentDiscount = updatedMainFeeRecord.discount_amount || 0;
-        console.log('✅ Found existing main fee record:', {
-          id: feeRecordId,
-          currentDiscount
-        });
-      } else {
-        // Create fee record in main fees table if it doesn't exist
-        const feeStructure = feeStructures.find(fs => 
-          fs.class_id === selectedFee.student?.class_id && 
-          fs.fee_type === selectedFee.fee_type
-        );
-
-        if (!feeStructure) {
-          throw new Error('Fee structure not found for this class and fee type');
-        }
-
-        const { data: newMainFee, error: createMainFeeError } = await supabase
-          .from('fees')
-          .insert({
-            student_id: selectedFee.student_id,
-            fee_type: selectedFee.fee_type,
-            amount: feeStructure.amount,
-            actual_amount: feeStructure.amount,
-            discount_amount: 0,
-            total_paid: 0,
-            due_date: selectedFee.due_date || new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-            status: 'Pending',
-            academic_year_id: currentYear.id
-          })
-          .select('*')
-          .single();
-
-        if (createMainFeeError) {
-          console.error('Error creating main fee record:', createMainFeeError);
-          throw createMainFeeError;
-        }
-
-        feeRecordId = newMainFee.id;
-        currentDiscount = 0;
-        updatedMainFeeRecord = newMainFee;
-        console.log('✅ Created new main fee record:', feeRecordId);
-      }
-
-      // Calculate the new total discount (cumulative)
+      // Get current discount amount from student_fee_records
+      const currentDiscount = selectedFee.discount_amount || 0;
       const newTotalDiscount = currentDiscount + discountAmount;
 
       // Validate total discount doesn't exceed actual amount
-      if (newTotalDiscount > updatedMainFeeRecord.actual_amount) {
+      if (newTotalDiscount > selectedFee.actual_fee) {
         toast({
           title: "Invalid discount amount",
-          description: `Total discount (₹${newTotalDiscount.toFixed(2)}) cannot exceed the actual fee amount (₹${updatedMainFeeRecord.actual_amount.toFixed(2)})`,
+          description: `Total discount (₹${newTotalDiscount.toFixed(2)}) cannot exceed the actual fee amount (₹${selectedFee.actual_fee.toFixed(2)})`,
           variant: "destructive",
         });
         setLoading(false);
@@ -173,55 +111,32 @@ export function DiscountDialog({ open, onOpenChange, selectedFee, onSuccess }: D
         newTotalDiscount
       });
 
-      // Update the main fees table with the new cumulative discount
-      const { error: mainUpdateError } = await supabase
-        .from('fees')
+      // Update the student_fee_records with the new cumulative discount
+      const { error: updateError } = await supabase
+        .from('student_fee_records')
         .update({
           discount_amount: newTotalDiscount,
+          final_fee: selectedFee.actual_fee - newTotalDiscount,
+          balance_fee: selectedFee.actual_fee - newTotalDiscount - (selectedFee.paid_amount || 0),
           discount_notes: data.notes,
           discount_updated_by: 'Admin',
           discount_updated_at: new Date().toISOString()
         })
-        .eq('id', feeRecordId);
+        .eq('id', selectedFee.id);
 
-      if (mainUpdateError) {
-        console.error('Error updating main fee record:', mainUpdateError);
-        throw mainUpdateError;
+      if (updateError) {
+        console.error('Error updating student fee record:', updateError);
+        throw updateError;
       }
 
-      console.log('✅ Updated main fee record with total discount:', newTotalDiscount);
-
-      // Also update the enhanced fee system for consistency
-      const { error: enhancedUpdateError } = await supabase
-        .from('student_fee_records')
-        .upsert({
-          student_id: selectedFee.student_id,
-          class_id: selectedFee.student?.class_id,
-          academic_year_id: currentYear.id,
-          fee_type: selectedFee.fee_type,
-          actual_fee: updatedMainFeeRecord.actual_amount,
-          discount_amount: newTotalDiscount,
-          discount_notes: data.notes,
-          discount_updated_by: 'Admin',
-          discount_updated_at: new Date().toISOString(),
-          due_date: updatedMainFeeRecord.due_date,
-          status: updatedMainFeeRecord.status
-        }, {
-          onConflict: 'student_id,fee_type,academic_year_id',
-          ignoreDuplicates: false
-        });
-
-      if (enhancedUpdateError) {
-        console.error('Error updating enhanced fee record:', enhancedUpdateError);
-      } else {
-        console.log('✅ Updated enhanced fee record');
-      }
+      console.log('✅ Updated student fee record with total discount:', newTotalDiscount);
 
       // Log the discount in history (log only the new discount amount being added)
       const { error: historyError } = await supabase
         .from('discount_history')
         .insert({
-          fee_id: feeRecordId,
+          source_fee_id: selectedFee.id,
+          source_table: 'student_fee_records',
           student_id: selectedFee.student_id,
           discount_amount: discountAmount, // This is the new discount amount being added
           discount_type: data.type,

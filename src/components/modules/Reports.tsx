@@ -63,10 +63,10 @@ export function Reports({ userRole }: ReportsProps) {
         console.warn('Attendance fetch error:', attendanceError);
       }
 
-      // Fetch fee data with recent date filter  
+      // Fetch fee data from student_fee_records with recent date filter  
       const { data: feeData, error: feeError } = await supabase
-        .from("fees")
-        .select("amount, status, created_at")
+        .from("student_fee_records")
+        .select("actual_fee, status, created_at")
         .gte('created_at', new Date(Date.now() - 365 * 24 * 60 * 60 * 1000).toISOString())
         .limit(1000);
 
@@ -108,9 +108,9 @@ export function Reports({ userRole }: ReportsProps) {
       const presentCount = attendanceData?.filter(a => a.status === "Present").length || 0;
       const attendanceRate = totalAttendance > 0 ? (presentCount / totalAttendance) * 100 : 0;
 
-      // Calculate fee collection rate
-      const totalFees = feeData?.reduce((sum, fee) => sum + (fee.amount || 0), 0) || 0;
-      const collectedFees = feeData?.filter(f => f.status === "Paid").reduce((sum, fee) => sum + (fee.amount || 0), 0) || 0;
+      // Calculate fee collection rate using student_fee_records
+      const totalFees = feeData?.reduce((sum, fee) => sum + (fee.actual_fee || 0), 0) || 0;
+      const collectedFees = feeData?.filter(f => f.status === "Paid").reduce((sum, fee) => sum + (fee.actual_fee || 0), 0) || 0;
       const feeCollectionRate = totalFees > 0 ? (collectedFees / totalFees) * 100 : 0;
 
       // Process monthly attendance data
@@ -177,13 +177,13 @@ export function Reports({ userRole }: ReportsProps) {
     const monthlyData = months.map(month => ({ month, collected: 0, pending: 0 }));
 
     data.forEach(fee => {
-      if (fee.created_at && fee.amount) {
+      if (fee.created_at && fee.actual_fee) {
         const monthIndex = new Date(fee.created_at).getMonth();
         if (monthIndex >= 0 && monthIndex < 12) {
           if (fee.status === "Paid") {
-            monthlyData[monthIndex].collected += fee.amount;
+            monthlyData[monthIndex].collected += fee.actual_fee;
           } else {
-            monthlyData[monthIndex].pending += fee.amount;
+            monthlyData[monthIndex].pending += fee.actual_fee;
           }
         }
       }
