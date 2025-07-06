@@ -175,6 +175,8 @@ export type Database = {
           id: string
           notes: string | null
           reason: string
+          source_fee_id: string | null
+          source_table: string | null
           student_id: string | null
         }
         Insert: {
@@ -188,6 +190,8 @@ export type Database = {
           id?: string
           notes?: string | null
           reason: string
+          source_fee_id?: string | null
+          source_table?: string | null
           student_id?: string | null
         }
         Update: {
@@ -201,6 +205,8 @@ export type Database = {
           id?: string
           notes?: string | null
           reason?: string
+          source_fee_id?: string | null
+          source_table?: string | null
           student_id?: string | null
         }
         Relationships: [
