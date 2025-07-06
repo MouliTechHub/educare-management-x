@@ -2,8 +2,40 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAutoFeeAssignment } from './hooks/useAutoFeeAssignment';
-import { Fee } from './types/feeTypes';
+import { Fee, StudentFeeRecord } from './types/feeTypes';
 import { useQuery } from '@tanstack/react-query';
+
+// Function to transform StudentFeeRecord to Fee
+function transformToFee(record: StudentFeeRecord): Fee {
+  return {
+    id: record.id,
+    student_id: record.student_id,
+    fee_type: record.fee_type,
+    actual_fee: record.actual_fee,
+    discount_amount: record.discount_amount,
+    paid_amount: record.paid_amount,
+    final_fee: record.final_fee || (record.actual_fee - record.discount_amount),
+    balance_fee: record.balance_fee || ((record.actual_fee - record.discount_amount) - record.paid_amount),
+    due_date: record.due_date || '',
+    status: (record.status as 'Pending' | 'Paid' | 'Overdue' | 'Partial') || 'Pending',
+    created_at: record.created_at,
+    updated_at: record.updated_at,
+    discount_notes: record.discount_notes || undefined,
+    discount_updated_by: record.discount_updated_by || undefined,
+    discount_updated_at: record.discount_updated_at || undefined,
+    academic_year_id: record.academic_year_id,
+    class_id: record.class_id,
+    student: record.student ? {
+      id: record.student.id,
+      first_name: record.student.first_name,
+      last_name: record.student.last_name,
+      admission_number: record.student.admission_number,
+      class_name: record.student.classes?.name || '',
+      section: record.student.classes?.section || undefined,
+      class_id: record.student.class_id,
+    } : undefined
+  };
+}
 
 export function useFeeData() {
   const [currentAcademicYear, setCurrentAcademicYear] = useState<any>(null);
@@ -28,7 +60,7 @@ export function useFeeData() {
     }
   });
 
-  // Fetch fees from student_fee_records ONLY - no references to fees table
+  // Fetch fees from student_fee_records and transform to Fee type
   const { data: fees = [], error: feesError, refetch: refetchFees } = useQuery({
     queryKey: ['student-fee-records', currentAcademicYear?.id],
     queryFn: async () => {
@@ -39,7 +71,6 @@ export function useFeeData() {
 
       console.log('💰 Fetching fees from student_fee_records for year:', currentAcademicYear.id);
       
-      // ONLY query student_fee_records table - no fees table references
       const { data, error } = await supabase
         .from('student_fee_records')
         .select(`
@@ -62,7 +93,12 @@ export function useFeeData() {
       }
       
       console.log('✅ Student fee records fetched successfully:', data?.length || 0);
-      return data || [];
+      
+      // Transform the records to Fee type
+      const transformedFees = (data || []).map(transformToFee);
+      console.log('🔄 Transformed records to Fee type:', transformedFees.length);
+      
+      return transformedFees;
     },
     enabled: !!currentAcademicYear
   });

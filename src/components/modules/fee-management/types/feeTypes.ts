@@ -32,6 +32,39 @@ export interface Fee {
   };
 }
 
+// Add a specific type for student fee records from database
+export interface StudentFeeRecord {
+  id: string;
+  student_id: string;
+  class_id: string;
+  academic_year_id: string;
+  fee_type: string;
+  actual_fee: number;
+  discount_amount: number;
+  paid_amount: number;
+  final_fee: number | null;
+  balance_fee: number | null;
+  due_date: string | null;
+  status: string; // This comes as generic string from database
+  created_at: string;
+  updated_at: string;
+  discount_notes?: string | null;
+  discount_updated_by?: string | null;
+  discount_updated_at?: string | null;
+  discount_percentage?: number | null;
+  student?: {
+    id: string;
+    first_name: string;
+    last_name: string;
+    admission_number: string;
+    class_id: string;
+    classes?: {
+      name: string;
+      section: string | null;
+    } | null;
+  } | null;
+}
+
 export interface PaymentRecord {
   id: string;
   fee_record_id: string;
