@@ -38,7 +38,12 @@ export function PaymentsManagement() {
           *,
           student_fee_records!fee_record_id(
             fee_type,
-            students!student_id(first_name, last_name, admission_number)
+            students!student_id(
+              first_name, 
+              last_name, 
+              admission_number,
+              classes(name, section)
+            )
           )
         `)
         .order("created_at", { ascending: false });

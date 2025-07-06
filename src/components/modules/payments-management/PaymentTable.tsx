@@ -52,18 +52,18 @@ export function PaymentTable({ payments }: PaymentTableProps) {
           {payments.map((payment) => (
             <TableRow key={payment.id}>
               <TableCell className="font-medium">
-                {payment.students?.first_name} {payment.students?.last_name}
+                {payment.student_fee_records?.students?.first_name} {payment.student_fee_records?.students?.last_name}
                 <div className="text-sm text-gray-500">
-                  {payment.students?.admission_number}
+                  {payment.student_fee_records?.students?.admission_number}
                 </div>
               </TableCell>
               <TableCell>
-                {payment.fee_structures?.classes?.name} 
-                {payment.fee_structures?.classes?.section && ` - ${payment.fee_structures?.classes?.section}`}
+                {payment.student_fee_records?.students?.classes?.name} 
+                {payment.student_fee_records?.students?.classes?.section && ` - ${payment.student_fee_records?.students?.classes?.section}`}
               </TableCell>
               <TableCell>
                 <Badge variant="outline">
-                  {payment.fee_structures?.fee_type}
+                  {payment.student_fee_records?.fee_type}
                 </Badge>
               </TableCell>
               <TableCell className="font-medium">
@@ -79,9 +79,9 @@ export function PaymentTable({ payments }: PaymentTableProps) {
                 </Badge>
               </TableCell>
               <TableCell className="max-w-xs truncate">
-                {payment.reference_number || '-'}
+                {payment.receipt_number || '-'}
               </TableCell>
-              <TableCell>{payment.payment_received_by}</TableCell>
+              <TableCell>{payment.payment_receiver}</TableCell>
             </TableRow>
           ))}
         </TableBody>
