@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -13,7 +14,7 @@ import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { AcademicYear } from "@/types/database";
-import { AlertTriangle, CheckCircle, Users, ArrowUp, IndianRupee, Clock, FileText } from "lucide-react";
+import { AlertTriangle, CheckCircle, Users, ArrowUp, IndianRupee, Clock, FileText, RefreshCw } from "lucide-react";
 import { useOutstandingFees, OutstandingFee, FeeAction } from "./hooks/useOutstandingFees";
 
 interface EnhancedStudentPromotionDialogProps {
@@ -49,7 +50,8 @@ export function EnhancedStudentPromotionDialog({
     loading: feesLoading,
     feeActions,
     setFeeAction,
-    processOutstandingFees
+    processOutstandingFees,
+    refetch: refetchOutstandingFees
   } = useOutstandingFees(currentAcademicYear.id);
 
   useEffect(() => {
@@ -361,6 +363,14 @@ export function EnhancedStudentPromotionDialog({
                 <CardTitle className="flex items-center gap-2">
                   <IndianRupee className="w-5 h-5" />
                   Outstanding Fee Management
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    onClick={refetchOutstandingFees}
+                    disabled={feesLoading}
+                  >
+                    <RefreshCw className={`w-4 h-4 ${feesLoading ? 'animate-spin' : ''}`} />
+                  </Button>
                 </CardTitle>
                 <CardDescription>
                   {outstandingFees.length > 0 
@@ -376,6 +386,16 @@ export function EnhancedStudentPromotionDialog({
                   </div>
                 ) : outstandingFees.length > 0 ? (
                   <div className="space-y-4">
+                    <Alert>
+                      <AlertTriangle className="h-4 w-4" />
+                      <AlertDescription>
+                        <div className="font-medium">Outstanding Fees Detected</div>
+                        <div className="mt-1">
+                          {outstandingFees.length} students have outstanding fee balances that need to be resolved before promotion.
+                        </div>
+                      </AlertDescription>
+                    </Alert>
+
                     <Table>
                       <TableHeader>
                         <TableRow>
@@ -403,12 +423,13 @@ export function EnhancedStudentPromotionDialog({
                               <div className="space-y-1">
                                 {student.feeDetails.slice(0, 2).map((fee, index) => (
                                   <div key={index} className="text-sm">
-                                    {fee.academicYearName}: ₹{fee.balanceAmount.toFixed(2)}
+                                    <span className="font-medium">{fee.feeType}</span> ({fee.academicYearName}): 
+                                    <span className="text-red-600 ml-1">₹{fee.balanceAmount.toFixed(2)}</span>
                                   </div>
                                 ))}
                                 {student.feeDetails.length > 2 && (
                                   <div className="text-xs text-muted-foreground">
-                                    +{student.feeDetails.length - 2} more
+                                    +{student.feeDetails.length - 2} more fees
                                   </div>
                                 )}
                               </div>
