@@ -12,15 +12,12 @@ import { PaymentConfirmation } from "./PaymentConfirmation";
 interface Fee {
   id: string;
   student_id: string;
-  amount: number;
-  actual_amount: number;
+  actual_fee: number;
   discount_amount: number;
-  total_paid: number;
+  paid_amount: number;
   fee_type: string;
   due_date: string;
-  payment_date: string | null;
   status: 'Pending' | 'Paid' | 'Overdue';
-  receipt_number: string | null;
   created_at: string;
   updated_at: string;
   discount_notes: string | null;
@@ -88,8 +85,8 @@ export function PaymentDialog({
 
     try {
       const amountPaid = Number(data.amount_paid);
-      const finalFee = fee.actual_amount - fee.discount_amount;
-      const currentBalance = finalFee - fee.total_paid;
+      const finalFee = fee.actual_fee - fee.discount_amount;
+      const currentBalance = finalFee - fee.paid_amount;
       
       // Validate payment amount
       if (amountPaid <= 0) {
@@ -110,7 +107,7 @@ export function PaymentDialog({
         return;
       }
 
-      const newTotalPaid = fee.total_paid + amountPaid;
+      const newTotalPaid = fee.paid_amount + amountPaid;
       const newBalance = finalFee - newTotalPaid;
       
       // Determine if fee is fully paid
@@ -126,14 +123,14 @@ export function PaymentDialog({
         academicYear: academicYearName
       });
 
-      // Create payment history record with exact timestamp
+      // Create payment record with exact timestamp
       const currentTime = new Date();
       const paymentTime = currentTime.toTimeString().split(' ')[0]; // HH:MM:SS format
 
-      const { error: historyError } = await supabase
-        .from('payment_history')
+      const { error: paymentError } = await supabase
+        .from('fee_payment_records')
         .insert({
-          fee_id: fee.id,
+          fee_record_id: fee.id,
           student_id: fee.student_id,
           amount_paid: amountPaid,
           payment_date: data.payment_date,
@@ -142,32 +139,28 @@ export function PaymentDialog({
           payment_receiver: data.payment_receiver,
           payment_method: data.payment_method,
           notes: data.notes || null,
-          fee_type: fee.fee_type
+          created_by: 'Admin'
         });
 
-      if (historyError) {
-        console.error('Payment history insert error:', historyError);
-        throw new Error(`Failed to record payment: ${historyError.message}`);
+      if (paymentError) {
+        console.error('Payment record insert error:', paymentError);
+        throw new Error(`Failed to record payment: ${paymentError.message}`);
       }
 
-      // Update the fee record status and payment info if fully paid
-      const feeUpdateData: any = {
-        status: newStatus
-      };
-
-      if (newStatus === "Paid") {
-        feeUpdateData.payment_date = data.payment_date;
-        feeUpdateData.receipt_number = data.receipt_number;
-      }
-
-      const { error: feeError } = await supabase
-        .from("fees")
-        .update(feeUpdateData)
+      // Update the student fee record
+      const { error: feeUpdateError } = await supabase
+        .from("student_fee_records")
+        .update({
+          paid_amount: newTotalPaid,
+          balance_fee: newBalance,
+          status: newStatus,
+          updated_at: new Date().toISOString()
+        })
         .eq("id", fee.id);
 
-      if (feeError) {
-        console.error('Fee update error:', feeError);
-        throw new Error(`Failed to update fee status: ${feeError.message}`);
+      if (feeUpdateError) {
+        console.error('Fee update error:', feeUpdateError);
+        throw new Error(`Failed to update fee status: ${feeUpdateError.message}`);
       }
 
       toast({ 
@@ -193,8 +186,8 @@ export function PaymentDialog({
   // Reset form when fee changes
   React.useEffect(() => {
     if (fee && open) {
-      const finalFee = fee.actual_amount - fee.discount_amount;
-      const balanceAmount = finalFee - fee.total_paid;
+      const finalFee = fee.actual_fee - fee.discount_amount;
+      const balanceAmount = finalFee - fee.paid_amount;
       
       paymentForm.reset({
         payment_date: new Date().toISOString().split('T')[0],
@@ -210,8 +203,8 @@ export function PaymentDialog({
 
   if (!fee) return null;
 
-  const finalFee = fee.actual_amount - fee.discount_amount;
-  const balanceAmount = finalFee - fee.total_paid;
+  const finalFee = fee.actual_fee - fee.discount_amount;
+  const balanceAmount = finalFee - fee.paid_amount;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -235,7 +228,7 @@ export function PaymentDialog({
                 </Badge>
               )}
               <div className="text-sm space-y-1">
-                <span className="font-medium">Actual Fee: ₹{fee.actual_amount.toLocaleString()}</span>
+                <span className="font-medium">Actual Fee: ₹{fee.actual_fee.toLocaleString()}</span>
                 <br />
                 {fee.discount_amount > 0 && (
                   <>
@@ -245,7 +238,7 @@ export function PaymentDialog({
                 )}
                 <span className="font-medium">Final Fee: ₹{finalFee.toLocaleString()}</span>
                 <br />
-                <span className="font-medium">Paid: ₹{fee.total_paid.toLocaleString()}</span>
+                <span className="font-medium">Paid: ₹{fee.paid_amount.toLocaleString()}</span>
                 <br />
                 <span className="font-medium text-red-600">Balance: ₹{balanceAmount.toLocaleString()}</span>
               </div>

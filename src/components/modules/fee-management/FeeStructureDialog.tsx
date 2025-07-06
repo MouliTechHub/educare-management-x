@@ -1,118 +1,177 @@
 
-import { useState } from "react";
-import { Button } from "@/components/ui/button";
+import React, { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Textarea } from "@/components/ui/textarea";
 import { useForm } from "react-hook-form";
-import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { supabase } from "@/integrations/supabase/client";
+import { Class, AcademicYear } from "@/types/database";
 
-interface Fee {
-  id: string;
-  student_id: string;
-  amount: number;
-  actual_amount: number;
-  discount_amount: number;
-  total_paid: number;
-  fee_type: string;
-  due_date: string;
-  payment_date: string | null;
-  status: 'Pending' | 'Paid' | 'Overdue';
-  receipt_number: string | null;
-  created_at: string;
-  updated_at: string;
-  discount_notes: string | null;
-  discount_updated_by: string | null;
-  discount_updated_at: string | null;
+interface FeeStructureFormData {
+  class_id: string;
   academic_year_id: string;
-  student?: {
-    id: string;
-    first_name: string;
-    last_name: string;
-    admission_number: string;
-    class_name?: string;
-    section?: string;
-    parent_phone?: string;
-    parent_email?: string;
-    class_id?: string;
-  };
-}
-
-interface DiscountFormData {
-  type: string;
+  fee_type: string;
   amount: number;
-  reason: string;
-  notes: string;
+  frequency: string;
+  description: string;
 }
 
 interface FeeStructureDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  fee: Fee | null;
-  onDiscountApplied: () => void;
-  academicYearName?: string;
+  onSuccess: () => void;
+  classes: Class[];
+  academicYears: AcademicYear[];
 }
+
+const FEE_TYPES = [
+  'Tuition Fee',
+  'Transport Fee', 
+  'Meals Fee',
+  'Books Fee',
+  'Uniform Fee',
+  'Activities Fee',
+  'Laboratory Fee',
+  'Library Fee',
+  'Sports Fee',
+  'Development Fee',
+  'Exam Fee',
+  'Other Fee'
+];
+
+const FREQUENCIES = [
+  'Monthly',
+  'Quarterly', 
+  'Annually',
+  'One Time'
+];
 
 export function FeeStructureDialog({ 
   open, 
   onOpenChange, 
-  fee, 
-  onDiscountApplied, 
-  academicYearName 
+  onSuccess, 
+  classes,
+  academicYears 
 }: FeeStructureDialogProps) {
-  const [loading, setLoading] = useState(false);
   const { toast } = useToast();
+  const [loading, setLoading] = useState(false);
 
-  const form = useForm<DiscountFormData>({
+  const form = useForm<FeeStructureFormData>({
     defaultValues: {
-      type: "Fixed Amount",
+      class_id: "",
+      academic_year_id: "",
+      fee_type: "Tuition Fee",
       amount: 0,
-      reason: "",
-      notes: "",
+      frequency: "Monthly",
+      description: "",
     },
   });
 
-  const onSubmit = async (data: DiscountFormData) => {
-    if (!fee) return;
-
+  const onSubmit = async (data: FeeStructureFormData) => {
     setLoading(true);
     try {
-      let discountAmount = 0;
-      
-      if (data.type === 'Fixed Amount') {
-        discountAmount = data.amount;
-      } else if (data.type === 'Percentage') {
-        discountAmount = (fee.actual_amount * data.amount) / 100;
+      // Check if fee structure already exists
+      const { data: existing, error: checkError } = await supabase
+        .from('fee_structures')
+        .select('id')
+        .eq('class_id', data.class_id)
+        .eq('academic_year_id', data.academic_year_id)
+        .eq('fee_type', data.fee_type)
+        .eq('is_active', true)
+        .maybeSingle();
+
+      if (checkError) throw checkError;
+
+      if (existing) {
+        toast({
+          title: "Fee structure already exists",
+          description: "A fee structure for this class, academic year, and fee type already exists.",
+          variant: "destructive",
+        });
+        setLoading(false);
+        return;
       }
 
+      // Create new fee structure
       const { error } = await supabase
-        .from('fees')
-        .update({
-          discount_amount: discountAmount,
-          discount_notes: data.notes,
-          discount_updated_by: 'Admin',
-          discount_updated_at: new Date().toISOString()
-        })
-        .eq('id', fee.id);
+        .from('fee_structures')
+        .insert({
+          class_id: data.class_id,
+          academic_year_id: data.academic_year_id,
+          fee_type: data.fee_type,
+          amount: data.amount,
+          frequency: data.frequency,
+          description: data.description || null,
+          is_active: true
+        });
 
       if (error) throw error;
 
+      // Auto-assign fees to students in this class for this academic year
+      const { data: students, error: studentsError } = await supabase
+        .from('students')
+        .select('id')
+        .eq('class_id', data.class_id)
+        .eq('status', 'Active');
+
+      if (studentsError) {
+        console.warn('Could not fetch students for auto-assignment:', studentsError);
+      } else if (students && students.length > 0) {
+        // Check which students already have this fee type assigned
+        const { data: existingFees, error: existingError } = await supabase
+          .from('student_fee_records')
+          .select('student_id')
+          .eq('class_id', data.class_id)
+          .eq('academic_year_id', data.academic_year_id)
+          .eq('fee_type', data.fee_type);
+
+        if (existingError) {
+          console.warn('Error checking existing fees:', existingError);
+        } else {
+          const existingStudentIds = new Set(existingFees?.map(fee => fee.student_id) || []);
+          const newStudentFees = students
+            .filter(student => !existingStudentIds.has(student.id))
+            .map(student => ({
+              student_id: student.id,
+              class_id: data.class_id,
+              academic_year_id: data.academic_year_id,
+              fee_type: data.fee_type,
+              actual_fee: data.amount,
+              discount_amount: 0,
+              paid_amount: 0,
+              due_date: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0], // 30 days from now
+              status: 'Pending'
+            }));
+
+          if (newStudentFees.length > 0) {
+            const { error: assignError } = await supabase
+              .from('student_fee_records')
+              .insert(newStudentFees);
+
+            if (assignError) {
+              console.warn('Error auto-assigning fees to students:', assignError);
+            }
+          }
+        }
+      }
+
       toast({
-        title: "Discount applied",
-        description: `Discount of ₹${discountAmount.toFixed(2)} applied successfully`
+        title: "Fee structure created successfully",
+        description: `Fee structure created and assigned to ${students?.length || 0} students.`,
       });
 
-      onDiscountApplied();
+      onSuccess();
       onOpenChange(false);
       form.reset();
     } catch (error: any) {
-      console.error('Error applying discount:', error);
+      console.error('Error creating fee structure:', error);
       toast({
-        title: "Error applying discount",
-        description: error.message,
+        title: "Error creating fee structure",
+        description: error.message || "Failed to create fee structure. Please try again.",
         variant: "destructive",
       });
     } finally {
@@ -120,130 +179,126 @@ export function FeeStructureDialog({
     }
   };
 
-  if (!fee) return null;
-
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-md">
         <DialogHeader>
-          <DialogTitle>Apply Discount</DialogTitle>
+          <DialogTitle>Create Fee Structure</DialogTitle>
           <DialogDescription>
-            Apply discount for {fee.student?.first_name} {fee.student?.last_name} - {fee.fee_type}
+            Create a new fee structure for a class and academic year
           </DialogDescription>
         </DialogHeader>
         
-        <div className="space-y-6">
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <p className="text-sm font-medium text-gray-700">Actual Amount</p>
-              <div className="text-xl font-bold">₹{fee.actual_amount.toLocaleString()}</div>
-            </div>
-            <div>
-              <p className="text-sm font-medium text-gray-700">Current Discount</p>
-              <div className="text-xl font-bold text-green-600">₹{fee.discount_amount.toLocaleString()}</div>
-            </div>
+        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+          <div>
+            <Label htmlFor="class_id">Class</Label>
+            <Select
+              value={form.watch('class_id')}
+              onValueChange={(value) => form.setValue('class_id', value)}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Select class" />
+              </SelectTrigger>
+              <SelectContent>
+                {classes.map((cls) => (
+                  <SelectItem key={cls.id} value={cls.id}>
+                    {cls.name} {cls.section && `- ${cls.section}`}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
 
-          <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-              <FormField
-                control={form.control}
-                name="type"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Discount Type</FormLabel>
-                    <Select onValueChange={field.onChange} value={field.value}>
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        <SelectItem value="Fixed Amount">Fixed Amount</SelectItem>
-                        <SelectItem value="Percentage">Percentage</SelectItem>
-                      </SelectContent>
-                    </Select>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+          <div>
+            <Label htmlFor="academic_year_id">Academic Year</Label>
+            <Select
+              value={form.watch('academic_year_id')}
+              onValueChange={(value) => form.setValue('academic_year_id', value)}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Select academic year" />
+              </SelectTrigger>
+              <SelectContent>
+                {academicYears.map((year) => (
+                  <SelectItem key={year.id} value={year.id}>
+                    {year.year_name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
 
-              <FormField
-                control={form.control}
-                name="amount"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>
-                      Amount {form.watch('type') === 'Percentage' ? '(%)' : '(₹)'}
-                    </FormLabel>
-                    <FormControl>
-                      <Input
-                        {...field}
-                        type="number"
-                        step="0.01"
-                        min="0"
-                        max={form.watch('type') === 'Fixed Amount' ? fee.actual_amount : 100}
-                        onChange={(e) => field.onChange(parseFloat(e.target.value) || 0)}
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+          <div>
+            <Label htmlFor="fee_type">Fee Type</Label>
+            <Select
+              value={form.watch('fee_type')}
+              onValueChange={(value) => form.setValue('fee_type', value)}
+            >
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {FEE_TYPES.map((type) => (
+                  <SelectItem key={type} value={type}>
+                    {type}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
 
-              <FormField
-                control={form.control}
-                name="reason"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Reason for Discount</FormLabel>
-                    <Select onValueChange={field.onChange} value={field.value}>
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select reason" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        <SelectItem value="Scholarship">Scholarship</SelectItem>
-                        <SelectItem value="Financial Hardship">Financial Hardship</SelectItem>
-                        <SelectItem value="Sibling Discount">Sibling Discount</SelectItem>
-                        <SelectItem value="Merit Based">Merit Based</SelectItem>
-                        <SelectItem value="Staff Quota">Staff Quota</SelectItem>
-                        <SelectItem value="Other">Other</SelectItem>
-                      </SelectContent>
-                    </Select>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+          <div>
+            <Label htmlFor="amount">Amount (₹)</Label>
+            <Input
+              id="amount"
+              type="number"
+              min="0"
+              step="0.01"
+              {...form.register('amount', { valueAsNumber: true })}
+            />
+          </div>
 
-              <FormField
-                control={form.control}
-                name="notes"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Additional Notes</FormLabel>
-                    <FormControl>
-                      <Textarea
-                        {...field}
-                        rows={3}
-                        placeholder="Enter any additional notes about this discount..."
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+          <div>
+            <Label htmlFor="frequency">Frequency</Label>
+            <Select
+              value={form.watch('frequency')}
+              onValueChange={(value) => form.setValue('frequency', value)}
+            >
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {FREQUENCIES.map((freq) => (
+                  <SelectItem key={freq} value={freq}>
+                    {freq}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
 
-              <div className="flex justify-end space-x-2">
-                <Button variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
-                <Button type="submit" disabled={loading}>
-                  {loading ? "Applying..." : "Apply Discount"}
-                </Button>
-              </div>
-            </form>
-          </Form>
-        </div>
+          <div>
+            <Label htmlFor="description">Description (Optional)</Label>
+            <Textarea
+              id="description"
+              {...form.register('description')}
+              placeholder="Optional description for this fee structure"
+            />
+          </div>
+
+          <div className="flex justify-end space-x-2">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => onOpenChange(false)}
+            >
+              Cancel
+            </Button>
+            <Button type="submit" disabled={loading}>
+              {loading ? "Creating..." : "Create Fee Structure"}
+            </Button>
+          </div>
+        </form>
       </DialogContent>
     </Dialog>
   );

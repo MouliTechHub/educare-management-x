@@ -68,7 +68,7 @@ export function DiscountReportsDialog({ open, onOpenChange }: DiscountReportsDia
     setLoading(true);
     try {
       let query = supabase
-        .from("fees")
+        .from("student_fee_records")
         .select(`
           student_id,
           discount_amount,
@@ -133,8 +133,8 @@ export function DiscountReportsDialog({ open, onOpenChange }: DiscountReportsDia
     setLoading(true);
     try {
       const { data, error } = await supabase
-        .from("fees")
-        .select("discount_amount, actual_amount, created_at")
+        .from("student_fee_records")
+        .select("discount_amount, actual_fee, created_at")
         .gt("discount_amount", 0);
 
       if (error) throw error;
@@ -148,13 +148,13 @@ export function DiscountReportsDialog({ open, onOpenChange }: DiscountReportsDia
         
         if (existing) {
           existing.total_discount += fee.discount_amount;
-          existing.total_fees += fee.actual_amount;
+          existing.total_fees += fee.actual_fee;
           existing.discount_count += 1;
         } else {
           yearMap.set(year, {
             year,
             total_discount: fee.discount_amount,
-            total_fees: fee.actual_amount,
+            total_fees: fee.actual_fee,
             discount_percentage: 0,
             discount_count: 1,
           });

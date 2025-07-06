@@ -24,24 +24,6 @@ export function FeeTypeValidator() {
     const validationResults: ValidationResult[] = [];
 
     try {
-      // Check fees table
-      const { data: feesData, error: feesError } = await supabase
-        .from('fees')
-        .select('fee_type');
-      
-      if (!feesError && feesData) {
-        const feeTypes = [...new Set(feesData.map(f => f.fee_type))];
-        const valid = feeTypes.filter(isValidFeeType);
-        const invalid = feeTypes.filter(type => !isValidFeeType(type));
-        
-        validationResults.push({
-          table: 'fees',
-          validTypes: valid,
-          invalidTypes: invalid,
-          totalRecords: feesData.length
-        });
-      }
-
       // Check student_fee_records table
       const { data: studentFeeData, error: studentFeeError } = await supabase
         .from('student_fee_records')
@@ -78,20 +60,38 @@ export function FeeTypeValidator() {
         });
       }
 
-      // Check payment_history table
-      const { data: paymentData, error: paymentError } = await supabase
-        .from('payment_history')
-        .select('fee_type');
+      // Check discount_history table
+      const { data: discountData, error: discountError } = await supabase
+        .from('discount_history')
+        .select('reason')
+        .not('reason', 'is', null);
       
-      if (!paymentError && paymentData) {
-        const feeTypes = [...new Set(paymentData.map(f => f.fee_type))];
-        const valid = feeTypes.filter(isValidFeeType);
-        const invalid = feeTypes.filter(type => !isValidFeeType(type));
+      if (!discountError && discountData) {
+        // For discount history, we check the reason field which might contain fee types
+        const reasons = [...new Set(discountData.map(d => d.reason))];
+        const feeTypeReasons = reasons.filter(reason => 
+          STANDARDIZED_FEE_TYPES.some(feeType => reason.toLowerCase().includes(feeType.toLowerCase()))
+        );
         
         validationResults.push({
-          table: 'payment_history',
-          validTypes: valid,
-          invalidTypes: invalid,
+          table: 'discount_history',
+          validTypes: feeTypeReasons,
+          invalidTypes: [],
+          totalRecords: discountData.length
+        });
+      }
+
+      // Check fee_payment_records table - no fee_type column, so we skip this
+      const { data: paymentData, error: paymentError } = await supabase
+        .from('fee_payment_records')
+        .select('id')
+        .limit(1);
+      
+      if (!paymentError && paymentData) {
+        validationResults.push({
+          table: 'fee_payment_records',
+          validTypes: ['No fee_type validation needed'],
+          invalidTypes: [],
           totalRecords: paymentData.length
         });
       }
