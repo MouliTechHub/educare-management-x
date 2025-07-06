@@ -152,7 +152,6 @@ export function PaymentDialog({
         .from("student_fee_records")
         .update({
           paid_amount: newTotalPaid,
-          balance_fee: newBalance,
           status: newStatus,
           updated_at: new Date().toISOString()
         })
