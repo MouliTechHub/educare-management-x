@@ -34,28 +34,8 @@ export function usePreviousYearDues(currentAcademicYearId: string | any) {
     try {
       console.log('📅 Fetching previous year dues for current year:', stableYearId);
       
-      // Get all academic years except current
-      const { data: academicYears, error: yearsError } = await supabase
-        .from('academic_years')
-        .select('id, year_name')
-        .neq('id', stableYearId)
-        .order('start_date', { ascending: false });
-
-      if (yearsError) {
-        console.error('❌ Error fetching academic years:', yearsError);
-        throw yearsError;
-      }
-
-      if (!academicYears || academicYears.length === 0) {
-        console.log('⚠️ No previous academic years found');
-        setPreviousYearDues(new Map());
-        return;
-      }
-
-      const previousYearIds = academicYears.map(year => year.id);
-      console.log('📋 Previous year IDs:', previousYearIds);
-
-      // Fetch previous year dues from consolidated student_fee_records system only
+      // Fetch "Previous Year Dues" records from the current academic year
+      // These are created when students are promoted and have outstanding balances
       const { data: feeData, error: feeError } = await supabase
         .from('student_fee_records')
         .select(`
@@ -68,7 +48,8 @@ export function usePreviousYearDues(currentAcademicYearId: string | any) {
           academic_year_id,
           academic_years!inner(year_name)
         `)
-        .in('academic_year_id', previousYearIds)
+        .eq('academic_year_id', stableYearId)
+        .eq('fee_type', 'Previous Year Dues')
         .neq('status', 'Paid')
         .gt('balance_fee', 0);
 

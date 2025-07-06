@@ -83,7 +83,11 @@ export function PaymentForm({ classes, students, feeStructures, onSubmit, onCanc
     e.preventDefault();
     
     // Check if payment is blocked due to previous year dues
-    if (isPaymentBlocked) {
+    // Only block payment if this is NOT a "Previous Year Dues" payment and student has outstanding dues
+    const selectedStructure = feeStructures.find(fs => fs.id === formData.fee_structure_id);
+    const isPreviousYearDuesPayment = selectedStructure?.fee_type === 'Previous Year Dues';
+    
+    if (isPaymentBlocked && !isPreviousYearDuesPayment) {
       await logPaymentBlockage(
         formData.student_id,
         parseFloat(formData.amount_paid) || 0,
@@ -296,7 +300,7 @@ export function PaymentForm({ classes, students, feeStructures, onSubmit, onCanc
       )}
 
       {/* Payment Blocking Warning */}
-      {isPaymentBlocked && formData.student_id && (
+      {isPaymentBlocked && formData.student_id && feeStructures.find(fs => fs.id === formData.fee_structure_id)?.fee_type !== 'Previous Year Dues' && (
         <Alert variant="destructive">
           <AlertTriangle className="h-4 w-4" />
           <AlertDescription>
@@ -331,8 +335,8 @@ export function PaymentForm({ classes, students, feeStructures, onSubmit, onCanc
         <Button type="button" variant="outline" onClick={onCancel}>
           Cancel
         </Button>
-        <Button type="submit" disabled={isPaymentBlocked}>
-          {isPaymentBlocked ? 'Payment Blocked' : 'Record Payment'}
+        <Button type="submit" disabled={isPaymentBlocked && feeStructures.find(fs => fs.id === formData.fee_structure_id)?.fee_type !== 'Previous Year Dues'}>
+          {isPaymentBlocked && feeStructures.find(fs => fs.id === formData.fee_structure_id)?.fee_type !== 'Previous Year Dues' ? 'Payment Blocked' : 'Record Payment'}
         </Button>
       </div>
     </form>

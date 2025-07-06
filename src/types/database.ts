@@ -1,4 +1,6 @@
 // Database types that match Supabase schema
+import { StandardizedFeeType } from "@/constants/feeTypes";
+
 export interface Student {
   id: string;
   first_name: string;
@@ -106,7 +108,7 @@ export interface FeeStructure {
   id: string;
   class_id: string;
   academic_year_id: string;
-  fee_type: 'Tuition Fee' | 'Transport Fee' | 'Meals Fee' | 'Books Fee' | 'Uniform Fee' | 'Activities Fee' | 'Laboratory Fee' | 'Library Fee' | 'Sports Fee' | 'Development Fee' | 'Exam Fee' | 'Other Fee';
+  fee_type: StandardizedFeeType;
   amount: number;
   frequency: 'Monthly' | 'Quarterly' | 'Annually' | 'One Time';
   description: string | null;
