@@ -324,7 +324,7 @@ export function SimpleFeeManagement() {
         discountAmount = (selectedRecord.actual_fee * discount.amount) / 100;
       }
 
-      // Only update the discount amount and let the database calculate final_fee and balance_fee
+      // Only update the discount amount - let triggers handle computed columns
       const { error } = await supabase
         .from('student_fee_records')
         .update({

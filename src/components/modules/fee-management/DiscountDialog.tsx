@@ -41,6 +41,9 @@ export function DiscountDialog({ open, onOpenChange, selectedFee, onSuccess }: D
 
     setLoading(true);
     try {
+      // Get the actual fee amount from multiple possible sources
+      const actualAmount = selectedFee.actual_fee || selectedFee.actual_amount || selectedFee.amount || 0;
+      
       // Validation
       if (data.amount <= 0) {
         toast({
@@ -76,7 +79,7 @@ export function DiscountDialog({ open, onOpenChange, selectedFee, onSuccess }: D
           setLoading(false);
           return;
         }
-        discountAmount = (selectedFee.actual_fee * data.amount) / 100;
+        discountAmount = (actualAmount * data.amount) / 100;
       }
 
       const currentYear = academicYears.find(year => year.is_current);
@@ -87,7 +90,8 @@ export function DiscountDialog({ open, onOpenChange, selectedFee, onSuccess }: D
         feeType: selectedFee.fee_type,
         selectedFeeId: selectedFee.id,
         newDiscountAmount: discountAmount,
-        academicYear: currentYear.id
+        academicYear: currentYear.id,
+        actualAmount
       });
 
       // Get current discount amount from student_fee_records
@@ -95,10 +99,10 @@ export function DiscountDialog({ open, onOpenChange, selectedFee, onSuccess }: D
       const newTotalDiscount = currentDiscount + discountAmount;
 
       // Validate total discount doesn't exceed actual amount
-      if (newTotalDiscount > selectedFee.actual_fee) {
+      if (newTotalDiscount > actualAmount) {
         toast({
           title: "Invalid discount amount",
-          description: `Total discount (₹${newTotalDiscount.toFixed(2)}) cannot exceed the actual fee amount (₹${selectedFee.actual_fee.toFixed(2)})`,
+          description: `Total discount (₹${newTotalDiscount.toFixed(2)}) cannot exceed the actual fee amount (₹${actualAmount.toFixed(2)})`,
           variant: "destructive",
         });
         setLoading(false);
@@ -112,12 +116,11 @@ export function DiscountDialog({ open, onOpenChange, selectedFee, onSuccess }: D
       });
 
       // Update the student_fee_records with the new cumulative discount
+      // Only update fields that are not computed columns
       const { error: updateError } = await supabase
         .from('student_fee_records')
         .update({
           discount_amount: newTotalDiscount,
-          final_fee: selectedFee.actual_fee - newTotalDiscount,
-          balance_fee: selectedFee.actual_fee - newTotalDiscount - (selectedFee.paid_amount || 0),
           discount_notes: data.notes,
           discount_updated_by: 'Admin',
           discount_updated_at: new Date().toISOString()
@@ -177,6 +180,9 @@ export function DiscountDialog({ open, onOpenChange, selectedFee, onSuccess }: D
     onOpenChange(false);
   };
 
+  // Get the actual fee amount for display and validation
+  const actualAmount = selectedFee?.actual_fee || selectedFee?.actual_amount || selectedFee?.amount || 0;
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-md">
@@ -193,13 +199,13 @@ export function DiscountDialog({ open, onOpenChange, selectedFee, onSuccess }: D
         </DialogHeader>
         
         <div className="space-y-6">
-          <DiscountSummary selectedFee={selectedFee} />
+          <DiscountSummary selectedFee={{ ...selectedFee, actual_fee: actualAmount }} />
           
           <DiscountForm 
             form={form}
             onSubmit={onSubmit}
             loading={loading}
-            selectedFee={selectedFee}
+            selectedFee={{ ...selectedFee, actual_amount: actualAmount }}
             onCancel={handleCancel}
           />
         </div>
