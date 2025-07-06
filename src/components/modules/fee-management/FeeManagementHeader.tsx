@@ -6,8 +6,8 @@ import { AcademicYear } from "./types/feeTypes";
 
 interface FeeManagementHeaderProps {
   academicYears: AcademicYear[];
-  currentAcademicYear: string;
-  onYearChange: (year: string) => void;
+  currentAcademicYear: AcademicYear | null;
+  onYearChange: (year: AcademicYear) => void;
   onRefresh: () => void;
 }
 
@@ -29,7 +29,15 @@ export function FeeManagementHeader({
       <div className="flex items-center space-x-4">
         <div className="flex items-center space-x-2">
           <label className="text-sm font-medium text-gray-700">Academic Year:</label>
-          <Select value={currentAcademicYear} onValueChange={onYearChange}>
+          <Select 
+            value={currentAcademicYear?.id || ''} 
+            onValueChange={(value) => {
+              const selectedYear = academicYears.find(year => year.id === value);
+              if (selectedYear) {
+                onYearChange(selectedYear);
+              }
+            }}
+          >
             <SelectTrigger className="w-48">
               <SelectValue placeholder="Select academic year" />
             </SelectTrigger>

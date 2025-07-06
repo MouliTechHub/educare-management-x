@@ -248,7 +248,7 @@ export default function FeeManagement() {
       <PaymentHistoryErrorBoundary>
         <StudentPaymentHistory
           open={historyDialogOpen}
-          onOpenChange={setHistoryDialogOpen}
+          onOpenChange={setHistoryDialogDialog}
           studentName={selectedStudentName}
           fees={selectedStudentFees as any}
           academicYears={academicYears}
