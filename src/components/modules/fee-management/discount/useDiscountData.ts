@@ -36,7 +36,7 @@ export function useDiscountData() {
     enabled: academicYears.length > 0
   });
 
-  // Fetch existing fee records from consolidated system
+  // Fetch existing fee records from student_fee_records (not fees table)
   const { data: existingFees = [] } = useQuery({
     queryKey: ['existing-student-fee-records'],
     queryFn: async () => {

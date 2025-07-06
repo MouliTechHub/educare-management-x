@@ -115,8 +115,7 @@ export function DiscountDialog({ open, onOpenChange, selectedFee, onSuccess }: D
         newTotalDiscount
       });
 
-      // Update the student_fee_records with the new cumulative discount
-      // Only update fields that are not computed columns
+      // Update only the student_fee_records table - no references to old fees table
       const { error: updateError } = await supabase
         .from('student_fee_records')
         .update({
