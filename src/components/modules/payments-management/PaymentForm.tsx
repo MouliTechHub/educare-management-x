@@ -145,34 +145,12 @@ export function PaymentForm({ classes, students, feeStructures, onSubmit, onCanc
       // Generate receipt number if not provided
       const receiptNumber = formData.reference_number || `RCP-${Date.now()}-${Math.random().toString(36).substr(2, 4).toUpperCase()}`;
 
-      console.log('🔄 Recording payment in all systems...');
+      console.log('🔄 Recording payment in consolidated system...');
 
-      // 1. Record payment in student_payments table (for Payments Management)
-      const { error: paymentError } = await supabase
-        .from("student_payments")
-        .insert({
-          student_id: formData.student_id,
-          fee_structure_id: formData.fee_structure_id,
-          amount_paid: amountPaid,
-          payment_date: formData.payment_date,
-          payment_method: formData.payment_method,
-          late_fee: parseFloat(formData.late_fee) || 0,
-          reference_number: receiptNumber,
-          payment_received_by: formData.payment_received_by,
-          notes: formData.notes || null,
-        });
-
-      if (paymentError) {
-        console.error("Error recording student payment:", paymentError);
-        throw paymentError;
-      }
-
-      console.log('✅ Student payment recorded');
-
-      // 2. Find or create corresponding fee record in main fees table
+      // Find or create corresponding fee record in student_fee_records table
       let feeRecord;
       const { data: existingFeeRecord, error: feeRecordError } = await supabase
-        .from("fees")
+        .from("student_fee_records")
         .select("*")
         .eq("student_id", formData.student_id)
         .eq("academic_year_id", currentYear.id)
@@ -189,96 +167,6 @@ export function PaymentForm({ classes, students, feeStructures, onSubmit, onCanc
       } else {
         // Create new fee record
         const { data: newFeeRecord, error: createFeeError } = await supabase
-          .from("fees")
-          .insert({
-            student_id: formData.student_id,
-            academic_year_id: currentYear.id,
-            fee_type: selectedStructure.fee_type,
-            amount: selectedStructure.amount,
-            actual_amount: selectedStructure.amount,
-            discount_amount: 0,
-            total_paid: 0,
-            due_date: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-            status: 'Pending'
-          })
-          .select()
-          .single();
-
-        if (createFeeError) {
-          console.error("Error creating fee record:", createFeeError);
-        } else {
-          feeRecord = newFeeRecord;
-          console.log('✅ Created new fee record:', feeRecord.id);
-        }
-      }
-
-      // 3. Record payment in payment_history table if we have fee record
-      if (feeRecord) {
-        const { error: historyError } = await supabase
-          .from("payment_history")
-          .insert({
-            fee_id: feeRecord.id,
-            student_id: formData.student_id,
-            amount_paid: amountPaid,
-            payment_date: formData.payment_date,
-            payment_method: formData.payment_method,
-            receipt_number: receiptNumber,
-            payment_receiver: formData.payment_received_by,
-            notes: formData.notes || null,
-            fee_type: selectedStructure.fee_type
-          });
-
-        if (historyError) {
-          console.error("Error recording payment history:", historyError);
-        } else {
-          console.log('✅ Payment history recorded');
-        }
-
-        // 4. Update total_paid in fees table
-        const { data: paymentTotal, error: totalError } = await supabase
-          .from("payment_history")
-          .select("amount_paid")
-          .eq("fee_id", feeRecord.id);
-
-        if (!totalError && paymentTotal) {
-          const totalPaid = paymentTotal.reduce((sum, payment) => sum + payment.amount_paid, 0);
-          
-          const { error: updateError } = await supabase
-            .from("fees")
-            .update({
-              total_paid: totalPaid,
-              status: totalPaid >= (feeRecord.actual_amount - feeRecord.discount_amount) ? 'Paid' : 
-                     totalPaid > 0 ? 'Partial' : 'Pending'
-            })
-            .eq("id", feeRecord.id);
-
-          if (updateError) {
-            console.error("Error updating fee total:", updateError);
-          } else {
-            console.log('✅ Fee total updated to:', totalPaid);
-          }
-        }
-      }
-
-      // 5. Handle enhanced fee system (student_fee_records)
-      let enhancedFeeRecord;
-      const { data: existingEnhancedRecord, error: enhancedRecordError } = await supabase
-        .from("student_fee_records")
-        .select("*")
-        .eq("student_id", formData.student_id)
-        .eq("academic_year_id", currentYear.id)
-        .eq("fee_type", selectedStructure.fee_type)
-        .maybeSingle();
-
-      if (enhancedRecordError && enhancedRecordError.code !== 'PGRST116') {
-        console.error("Error checking enhanced fee record:", enhancedRecordError);
-      }
-
-      if (existingEnhancedRecord) {
-        enhancedFeeRecord = existingEnhancedRecord;
-      } else {
-        // Create new enhanced fee record
-        const { data: newEnhancedRecord, error: createEnhancedError } = await supabase
           .from("student_fee_records")
           .insert({
             student_id: formData.student_id,
@@ -294,22 +182,28 @@ export function PaymentForm({ classes, students, feeStructures, onSubmit, onCanc
           .select()
           .single();
 
-        if (createEnhancedError) {
-          console.error("Error creating enhanced fee record:", createEnhancedError);
+        if (createFeeError) {
+          console.error("Error creating fee record:", createFeeError);
+          throw createFeeError;
         } else {
-          enhancedFeeRecord = newEnhancedRecord;
+          feeRecord = newFeeRecord;
+          console.log('✅ Created new fee record:', feeRecord.id);
         }
       }
 
-      // Record payment in enhanced system
-      if (enhancedFeeRecord) {
-        const { error: feePaymentError } = await supabase
+      // Record payment in fee_payment_records table
+      if (feeRecord) {
+        const currentTime = new Date();
+        const paymentTime = currentTime.toTimeString().split(' ')[0];
+
+        const { error: paymentError } = await supabase
           .from("fee_payment_records")
           .insert({
-            fee_record_id: enhancedFeeRecord.id,
+            fee_record_id: feeRecord.id,
             student_id: formData.student_id,
             amount_paid: amountPaid,
             payment_date: formData.payment_date,
+            payment_time: paymentTime,
             payment_method: formData.payment_method,
             late_fee: parseFloat(formData.late_fee) || 0,
             receipt_number: receiptNumber,
@@ -318,11 +212,35 @@ export function PaymentForm({ classes, students, feeStructures, onSubmit, onCanc
             created_by: formData.payment_received_by
           });
 
-        if (feePaymentError) {
-          console.error("Error recording fee payment:", feePaymentError);
-        } else {
-          console.log('✅ Enhanced fee payment recorded');
+        if (paymentError) {
+          console.error("Error recording payment:", paymentError);
+          throw paymentError;
         }
+
+        console.log('✅ Payment recorded successfully');
+
+        // Update the fee record with new paid amount and status
+        const newTotalPaid = feeRecord.paid_amount + amountPaid;
+        const finalFee = feeRecord.actual_fee - feeRecord.discount_amount;
+        const newBalance = finalFee - newTotalPaid;
+        const newStatus = newBalance <= 0 ? "Paid" : "Pending";
+
+        const { error: updateError } = await supabase
+          .from("student_fee_records")
+          .update({
+            paid_amount: newTotalPaid,
+            balance_fee: newBalance,
+            status: newStatus,
+            updated_at: new Date().toISOString()
+          })
+          .eq("id", feeRecord.id);
+
+        if (updateError) {
+          console.error("Error updating fee record:", updateError);
+          throw updateError;
+        }
+
+        console.log('✅ Fee record updated successfully');
       }
 
       console.log('✅ Payment recording completed successfully');

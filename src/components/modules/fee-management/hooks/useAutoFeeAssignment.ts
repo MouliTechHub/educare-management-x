@@ -133,7 +133,7 @@ export function useAutoFeeAssignment() {
 
       // Fetch existing fee records to avoid duplicates
       const { data: existingFees, error: existingFeesError } = await supabase
-        .from("fees")
+        .from("student_fee_records")
         .select("student_id, fee_type")
         .eq("academic_year_id", academicYearId);
 
@@ -167,14 +167,14 @@ export function useAutoFeeAssignment() {
 
           feeRecordsToInsert.push({
             student_id: student.id,
-            amount: structure.amount,
-            actual_amount: structure.amount,
-            discount_amount: 0,
-            total_paid: 0,
+            class_id: student.class_id,
+            academic_year_id: academicYearId,
             fee_type: structure.fee_type,
+            actual_fee: structure.amount,
+            discount_amount: 0,
+            paid_amount: 0,
             due_date: dueDate.toISOString().split('T')[0],
-            status: 'Pending',
-            academic_year_id: academicYearId
+            status: 'Pending'
           });
 
           assignmentCount++;
@@ -186,7 +186,7 @@ export function useAutoFeeAssignment() {
       // Insert fee records in batches
       if (feeRecordsToInsert.length > 0) {
         const { error: insertError } = await supabase
-          .from("fees")
+          .from("student_fee_records")
           .insert(feeRecordsToInsert);
 
         if (insertError) throw insertError;

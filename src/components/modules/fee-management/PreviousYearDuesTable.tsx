@@ -1,3 +1,4 @@
+
 import React, { useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -36,15 +37,15 @@ export function PreviousYearDuesTable({ academicYearId, onRefresh }: PreviousYea
     setLoading(true);
     try {
       const { data, error } = await supabase
-        .from('fees')
+        .from('student_fee_records')
         .select(`
           id,
           student_id,
-          amount,
-          actual_amount,
-          total_paid,
+          actual_fee,
+          paid_amount,
+          balance_fee,
           due_date,
-          notes,
+          discount_notes,
           status,
           students!inner(
             id,
@@ -66,11 +67,11 @@ export function PreviousYearDuesTable({ academicYearId, onRefresh }: PreviousYea
         studentName: `${due.students.first_name} ${due.students.last_name}`,
         admissionNumber: due.students.admission_number,
         className: `${due.students.classes.name}${due.students.classes.section ? ` (${due.students.classes.section})` : ''}`,
-        amount: due.actual_amount,
-        paidAmount: due.total_paid,
-        balanceAmount: due.actual_amount - due.total_paid,
+        amount: due.actual_fee,
+        paidAmount: due.paid_amount,
+        balanceAmount: due.balance_fee || (due.actual_fee - due.paid_amount),
         dueDate: due.due_date,
-        notes: due.notes || '',
+        notes: due.discount_notes || '',
         status: due.status
       }));
 
