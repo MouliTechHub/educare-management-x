@@ -23,34 +23,46 @@ export function useFeeCreation() {
         return;
       }
 
+      // Get student's class
+      const { data: student, error: studentError } = await supabase
+        .from('students')
+        .select('class_id')
+        .eq('id', studentId)
+        .single();
+
+      if (studentError || !student) {
+        console.error('Error fetching student class:', studentError);
+        return;
+      }
+
       // Create default fee records with valid fee types that match the database constraint
       const defaultFees = [
         {
           student_id: studentId,
-          fee_type: 'Tuition',
-          amount: 5000,
-          actual_amount: 5000,
+          class_id: student.class_id,
+          academic_year_id: currentYear.id,
+          fee_type: 'Tuition Fee',
+          actual_fee: 5000,
           discount_amount: 0,
-          total_paid: 0,
+          paid_amount: 0,
           due_date: new Date(new Date().getFullYear(), 3, 30).toISOString().split('T')[0],
-          status: 'Pending',
-          academic_year_id: currentYear.id
+          status: 'Pending'
         },
         {
           student_id: studentId,
-          fee_type: 'Development',
-          amount: 1000,
-          actual_amount: 1000,
+          class_id: student.class_id,
+          academic_year_id: currentYear.id,
+          fee_type: 'Development Fee',
+          actual_fee: 1000,
           discount_amount: 0,
-          total_paid: 0,
+          paid_amount: 0,
           due_date: new Date(new Date().getFullYear(), 3, 30).toISOString().split('T')[0],
-          status: 'Pending',
-          academic_year_id: currentYear.id
+          status: 'Pending'
         }
       ];
 
       const { error: feeError } = await supabase
-        .from('fees')
+        .from('student_fee_records')
         .insert(defaultFees);
 
       if (feeError) {

@@ -21,6 +21,21 @@ interface AcademicYear {
   is_current: boolean;
 }
 
+interface PaymentHistory {
+  id: string;
+  fee_record_id: string;
+  student_id: string;
+  amount_paid: number;
+  payment_date: string;
+  payment_time?: string;
+  receipt_number: string;
+  payment_receiver: string;
+  payment_method: string;
+  notes: string | null;
+  fee_type: string;
+  created_at: string;
+}
+
 interface StudentPaymentHistoryProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -199,7 +214,7 @@ export function StudentPaymentHistory({
                     paymentHistory={filteredPaymentHistory}
                     paymentReversals={paymentReversals}
                     loading={loading}
-                    onReversalClick={openReversalDialog}
+                    onReversalClick={(payment) => openReversalDialog(payment as any)}
                   />
                 </TabsContent>
                 
@@ -224,7 +239,7 @@ export function StudentPaymentHistory({
       <PaymentReversalDialog
         open={reversalDialogOpen}
         onOpenChange={setReversalDialogOpen}
-        payment={selectedPayment}
+        payment={selectedPayment as any}
         onReversalRecorded={fetchPaymentHistory}
       />
     </>

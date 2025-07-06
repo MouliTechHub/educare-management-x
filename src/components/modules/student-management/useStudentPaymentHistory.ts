@@ -6,7 +6,7 @@ import { Fee } from "@/types/database";
 
 interface PaymentHistory {
   id: string;
-  fee_id: string;
+  fee_record_id: string;
   student_id: string;
   amount_paid: number;
   payment_date: string;
@@ -62,21 +62,6 @@ export function useStudentPaymentHistory(fees: Fee[], currentAcademicYear: strin
 
       console.log('📊 Fetching payment history for student:', studentId);
 
-      // Get payment history from payment_history table
-      const { data: historyData, error: historyError } = await supabase
-        .from('payment_history')
-        .select('*')
-        .eq('student_id', studentId)
-        .order('payment_date', { ascending: false })
-        .order('payment_time', { ascending: false });
-
-      if (historyError) {
-        console.error('❌ Payment history fetch error:', historyError);
-        throw new Error(`Failed to fetch payment history: ${historyError.message}`);
-      }
-
-      console.log('✅ Payment history data fetched:', historyData?.length || 0, 'records');
-
       // Get payment history from fee_payment_records table
       const { data: feePaymentData, error: feePaymentError } = await supabase
         .from('fee_payment_records')
@@ -87,52 +72,30 @@ export function useStudentPaymentHistory(fees: Fee[], currentAcademicYear: strin
 
       if (feePaymentError) {
         console.error('❌ Fee payment records fetch error:', feePaymentError);
-        // Don't throw here, just log the error
+        throw new Error(`Failed to fetch payment history: ${feePaymentError.message}`);
       }
 
       console.log('✅ Fee payment records fetched:', feePaymentData?.length || 0, 'records');
 
-      // Combine and transform payment data
+      // Transform payment data
       let allPayments: PaymentHistory[] = [];
-
-      // Add payment_history records
-      if (historyData && historyData.length > 0) {
-        allPayments = allPayments.concat(
-          historyData.map(payment => ({
-            id: payment.id,
-            fee_id: payment.fee_id || '',
-            student_id: payment.student_id,
-            amount_paid: Number(payment.amount_paid) || 0,
-            payment_date: payment.payment_date,
-            payment_time: payment.payment_time || undefined,
-            receipt_number: payment.receipt_number || `RCP-${payment.id}`,
-            payment_receiver: payment.payment_receiver || 'Unknown',
-            payment_method: payment.payment_method || 'Cash',
-            notes: payment.notes,
-            fee_type: payment.fee_type || 'Unknown',
-            created_at: payment.created_at
-          }))
-        );
-      }
 
       // Add fee_payment_records
       if (feePaymentData && feePaymentData.length > 0) {
-        allPayments = allPayments.concat(
-          feePaymentData.map(payment => ({
-            id: payment.id,
-            fee_id: payment.fee_record_id || '',
-            student_id: payment.student_id,
-            amount_paid: Number(payment.amount_paid) || 0,
-            payment_date: payment.payment_date,
-            payment_time: payment.payment_time || undefined,
-            receipt_number: payment.receipt_number || `RCP-${payment.id}`,
-            payment_receiver: payment.payment_receiver || 'Unknown',
-            payment_method: payment.payment_method || 'Cash',
-            notes: payment.notes,
-            fee_type: 'Fee Payment', // Default since fee_payment_records doesn't have fee_type
-            created_at: payment.created_at
-          }))
-        );
+        allPayments = feePaymentData.map(payment => ({
+          id: payment.id,
+          fee_record_id: payment.fee_record_id || '',
+          student_id: payment.student_id,
+          amount_paid: Number(payment.amount_paid) || 0,
+          payment_date: payment.payment_date,
+          payment_time: payment.payment_time || undefined,
+          receipt_number: payment.receipt_number || `RCP-${payment.id}`,
+          payment_receiver: payment.payment_receiver || 'Unknown',
+          payment_method: payment.payment_method || 'Cash',
+          notes: payment.notes,
+          fee_type: 'Fee Payment', // Default since fee_payment_records doesn't have fee_type
+          created_at: payment.created_at
+        }));
       }
 
       // Filter by academic year if selected
@@ -145,7 +108,7 @@ export function useStudentPaymentHistory(fees: Fee[], currentAcademicYear: strin
         
         if (yearFeeIds.length > 0) {
           filteredHistory = allPayments.filter(payment => 
-            yearFeeIds.includes(payment.fee_id) || payment.student_id === studentId
+            yearFeeIds.includes(payment.fee_record_id) || payment.student_id === studentId
           );
         }
       }
