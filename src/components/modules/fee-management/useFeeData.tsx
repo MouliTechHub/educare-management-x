@@ -1,8 +1,9 @@
+
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAutoFeeAssignment } from './hooks/useAutoFeeAssignment';
 import { Fee } from './types/feeTypes';
-import { useQuery } from 'react-query';
+import { useQuery } from '@tanstack/react-query';
 
 export function useFeeData() {
   const [currentAcademicYear, setCurrentAcademicYear] = useState<any>(null);
