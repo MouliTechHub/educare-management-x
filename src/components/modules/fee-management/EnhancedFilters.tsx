@@ -4,7 +4,7 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Class, FilterState } from "./types/feeTypes";
+import { Class } from "./types/feeTypes";
 
 interface EnhancedFilterState {
   classId: string;
@@ -86,7 +86,7 @@ export function EnhancedFilters({
               <SelectValue placeholder="All Classes" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="">All Classes</SelectItem>
+              <SelectItem value="all">All Classes</SelectItem>
               {classes.map((cls) => (
                 <SelectItem key={cls.id} value={cls.id}>
                   {cls.name} {cls.section ? `- ${cls.section}` : ''}
@@ -104,7 +104,7 @@ export function EnhancedFilters({
               <SelectValue placeholder="All Sections" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="">All Sections</SelectItem>
+              <SelectItem value="all">All Sections</SelectItem>
               <SelectItem value="A">Section A</SelectItem>
               <SelectItem value="B">Section B</SelectItem>
               <SelectItem value="C">Section C</SelectItem>
@@ -120,7 +120,7 @@ export function EnhancedFilters({
               <SelectValue placeholder="All Status" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="">All Status</SelectItem>
+              <SelectItem value="all">All Status</SelectItem>
               <SelectItem value="Pending">Pending</SelectItem>
               <SelectItem value="Paid">Paid</SelectItem>
               <SelectItem value="Partial">Partial</SelectItem>
@@ -137,7 +137,7 @@ export function EnhancedFilters({
               <SelectValue placeholder="All Fee Types" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="">All Fee Types</SelectItem>
+              <SelectItem value="all">All Fee Types</SelectItem>
               <SelectItem value="Tuition Fee">Tuition Fee</SelectItem>
               <SelectItem value="Admission Fee">Admission Fee</SelectItem>
               <SelectItem value="Transport Fee">Transport Fee</SelectItem>
@@ -183,7 +183,7 @@ export function EnhancedFilters({
               <SelectValue placeholder="Discount Status" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="">All Records</SelectItem>
+              <SelectItem value="all">All Records</SelectItem>
               <SelectItem value="yes">With Discount</SelectItem>
               <SelectItem value="no">No Discount</SelectItem>
             </SelectContent>
@@ -197,7 +197,7 @@ export function EnhancedFilters({
               <SelectValue placeholder="Payment Status" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="">All Payments</SelectItem>
+              <SelectItem value="all">All Payments</SelectItem>
               <SelectItem value="has_payment">Has Payments</SelectItem>
               <SelectItem value="no_payment">No Payments</SelectItem>
             </SelectContent>
