@@ -68,7 +68,7 @@ export function useFeeData() {
   const { data: fees = [], error: feesError, refetch: refetchFees } = useQuery({
     queryKey: ['student-fee-records', currentAcademicYear?.id],
     queryFn: async (): Promise<Fee[]> => {
-      if (!currentAcademicYear) {
+      if (!currentAcademicYear?.id) {
         console.log('⚠️ No current academic year selected, returning empty fees');
         return [];
       }
@@ -104,14 +104,14 @@ export function useFeeData() {
       
       return transformedFees;
     },
-    enabled: !!currentAcademicYear
+    enabled: !!currentAcademicYear?.id
   });
 
   // Set current academic year when academic years are loaded
   useEffect(() => {
     if (academicYears.length > 0 && !currentAcademicYear) {
       const current = academicYears.find(year => year.is_current) || academicYears[0];
-      console.log('🎯 Setting current academic year:', current?.year_name);
+      console.log('🎯 Setting current academic year:', current?.year_name, 'ID:', current?.id);
       setCurrentAcademicYear(current);
     }
   }, [academicYears, currentAcademicYear]);

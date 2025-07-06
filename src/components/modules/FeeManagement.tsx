@@ -1,4 +1,3 @@
-
 import React from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { FeeManagementHeader } from "./fee-management/FeeManagementHeader";
@@ -136,7 +135,7 @@ export default function FeeManagement() {
 
       <BlockedStudentsReport 
         fees={filteredFees}
-        currentAcademicYear={currentAcademicYear}
+        currentAcademicYear={currentAcademicYear?.id || ''}
       />
 
       <BulkActionsPanel
@@ -186,7 +185,7 @@ export default function FeeManagement() {
           }}
           onReminderClick={handleReminderClick}
           onDiscountHistoryClick={handleDiscountHistoryClick}
-          currentAcademicYear={currentAcademicYear}
+          currentAcademicYear={currentAcademicYear?.id || ''}
         />
       </div>
 
