@@ -115,7 +115,7 @@ export function DiscountDialog({ open, onOpenChange, selectedFee, onSuccess }: D
         newTotalDiscount
       });
 
-      // Update only the student_fee_records table - no references to old fees table
+      // Update only the student_fee_records table
       const { error: updateError } = await supabase
         .from('student_fee_records')
         .update({
@@ -133,7 +133,7 @@ export function DiscountDialog({ open, onOpenChange, selectedFee, onSuccess }: D
 
       console.log('✅ Updated student fee record with total discount:', newTotalDiscount);
 
-      // Log the discount in history (log only the new discount amount being added)
+      // Log the discount in history (only the new discount amount being added)
       const { error: historyError } = await supabase
         .from('discount_history')
         .insert({
