@@ -1,4 +1,3 @@
-
 import React from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { FeeManagementHeader } from "./fee-management/FeeManagementHeader";
@@ -248,7 +247,7 @@ export default function FeeManagement() {
       <PaymentHistoryErrorBoundary>
         <StudentPaymentHistory
           open={historyDialogOpen}
-          onOpenChange={setHistoryDialogDialog}
+          onOpenChange={setHistoryDialogOpen}
           studentName={selectedStudentName}
           fees={selectedStudentFees as any}
           academicYears={academicYears}
