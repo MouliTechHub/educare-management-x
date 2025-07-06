@@ -6,7 +6,6 @@ import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { DiscountForm } from "./discount/DiscountForm";
 import { DiscountSummary } from "./discount/DiscountSummary";
-import { useDiscountData } from "./discount/useDiscountData";
 
 interface DiscountFormData {
   type: string;
@@ -25,7 +24,6 @@ interface DiscountDialogProps {
 export function DiscountDialog({ open, onOpenChange, selectedFee, onSuccess }: DiscountDialogProps) {
   const { toast } = useToast();
   const [loading, setLoading] = React.useState(false);
-  const { academicYears } = useDiscountData();
 
   const form = useForm<DiscountFormData>({
     defaultValues: {
@@ -41,7 +39,15 @@ export function DiscountDialog({ open, onOpenChange, selectedFee, onSuccess }: D
 
     setLoading(true);
     try {
-      // Get the actual fee amount from multiple possible sources
+      console.log('🔍 Starting discount application for:', {
+        selectedFeeType: 'student_fee_records',
+        selectedFeeId: selectedFee.id,
+        studentId: selectedFee.student_id,
+        feeType: selectedFee.fee_type,
+        discountData: data
+      });
+
+      // Get the actual fee amount from the student_fee_records
       const actualAmount = selectedFee.actual_fee || selectedFee.actual_amount || selectedFee.amount || 0;
       
       // Validation
@@ -82,18 +88,6 @@ export function DiscountDialog({ open, onOpenChange, selectedFee, onSuccess }: D
         discountAmount = (actualAmount * data.amount) / 100;
       }
 
-      const currentYear = academicYears.find(year => year.is_current);
-      if (!currentYear) throw new Error('No current academic year found');
-
-      console.log('🔍 Starting discount application for:', {
-        studentId: selectedFee.student_id,
-        feeType: selectedFee.fee_type,
-        selectedFeeId: selectedFee.id,
-        newDiscountAmount: discountAmount,
-        academicYear: currentYear.id,
-        actualAmount
-      });
-
       // Get current discount amount from student_fee_records
       const currentDiscount = selectedFee.discount_amount || 0;
       const newTotalDiscount = currentDiscount + discountAmount;
@@ -112,10 +106,11 @@ export function DiscountDialog({ open, onOpenChange, selectedFee, onSuccess }: D
       console.log('💰 Applying cumulative discount:', {
         currentDiscount,
         newDiscountAmount: discountAmount,
-        newTotalDiscount
+        newTotalDiscount,
+        tableUsed: 'student_fee_records'
       });
 
-      // Update only the student_fee_records table
+      // Update ONLY the student_fee_records table - no references to fees table
       const { error: updateError } = await supabase
         .from('student_fee_records')
         .update({
@@ -127,7 +122,7 @@ export function DiscountDialog({ open, onOpenChange, selectedFee, onSuccess }: D
         .eq('id', selectedFee.id);
 
       if (updateError) {
-        console.error('Error updating student fee record:', updateError);
+        console.error('❌ Error updating student fee record:', updateError);
         throw updateError;
       }
 
@@ -149,8 +144,8 @@ export function DiscountDialog({ open, onOpenChange, selectedFee, onSuccess }: D
         });
 
       if (historyError) {
-        console.error('Error logging discount history:', historyError);
-        // Don't throw here, just log the error
+        console.error('⚠️ Error logging discount history (non-critical):', historyError);
+        // Don't throw here, just log the error as this is not critical for the main operation
       } else {
         console.log('✅ Logged discount history for amount:', discountAmount);
       }

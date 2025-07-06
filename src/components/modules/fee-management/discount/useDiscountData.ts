@@ -3,43 +3,29 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 
 export function useDiscountData() {
+  console.log('🔍 useDiscountData: Fetching data for discount dialog');
+
   // Fetch current academic year
   const { data: academicYears = [] } = useQuery({
-    queryKey: ['academic-years'],
+    queryKey: ['academic-years-for-discount'],
     queryFn: async () => {
+      console.log('📅 Fetching academic years...');
       const { data, error } = await supabase
         .from('academic_years')
         .select('*')
         .order('start_date', { ascending: false });
       
-      if (error) throw error;
+      if (error) {
+        console.error('❌ Error fetching academic years:', error);
+        throw error;
+      }
+      console.log('✅ Academic years fetched:', data?.length || 0);
       return data || [];
     }
   });
 
-  // Fetch fee structures
-  const { data: feeStructures = [] } = useQuery({
-    queryKey: ['fee-structures'],
-    queryFn: async () => {
-      const currentYear = academicYears.find(year => year.is_current);
-      if (!currentYear) return [];
-      
-      const { data, error } = await supabase
-        .from('fee_structures')
-        .select('*')
-        .eq('academic_year_id', currentYear.id)
-        .eq('is_active', true);
-      
-      if (error) throw error;
-      return data || [];
-    },
-    enabled: academicYears.length > 0
-  });
-
-  // Remove the existingFees query that might be causing issues
-  // Only return what's actually needed
+  // Return only what's needed - no fee structures or other queries that might reference fees table
   return {
-    academicYears,
-    feeStructures
+    academicYears
   };
 }

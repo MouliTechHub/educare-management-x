@@ -1,150 +1,92 @@
-
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAutoFeeAssignment } from './hooks/useAutoFeeAssignment';
 import { Fee } from './types/feeTypes';
+import { useQuery } from 'react-query';
 
-export const useFeeData = () => {
-  const [fees, setFees] = useState<Fee[]>([]);
-  const [academicYears, setAcademicYears] = useState<any[]>([]);
-  const [currentAcademicYear, setCurrentAcademicYear] = useState<string>('');
+export function useFeeData() {
+  const [currentAcademicYear, setCurrentAcademicYear] = useState<any>(null);
   const [loading, setLoading] = useState(true);
-  const { assignFeesToStudents } = useAutoFeeAssignment();
 
-  const fetchAcademicYears = async () => {
-    const { data, error } = await supabase
-      .from('academic_years')
-      .select('*')
-      .order('is_current', { ascending: false })
-      .order('start_date', { ascending: false });
-
-    if (error) {
-      console.error('Error fetching academic years:', error);
-      return;
+  // Fetch academic years
+  const { data: academicYears = [], error: yearError } = useQuery({
+    queryKey: ['academic-years'],
+    queryFn: async () => {
+      console.log('📅 Fetching academic years for fee data...');
+      const { data, error } = await supabase
+        .from('academic_years')
+        .select('*')
+        .order('start_date', { ascending: false });
+      
+      if (error) {
+        console.error('❌ Error fetching academic years:', error);
+        throw error;
+      }
+      console.log('✅ Academic years fetched successfully:', data?.length || 0);
+      return data || [];
     }
+  });
 
-    setAcademicYears(data || []);
-    const current = data?.find(year => year.is_current);
-    if (current && !currentAcademicYear) {
-      setCurrentAcademicYear(current.id);
-    }
-  };
+  // Fetch fees from student_fee_records ONLY - no references to fees table
+  const { data: fees = [], error: feesError, refetch: refetchFees } = useQuery({
+    queryKey: ['student-fee-records', currentAcademicYear?.id],
+    queryFn: async () => {
+      if (!currentAcademicYear) {
+        console.log('⚠️ No current academic year selected, returning empty fees');
+        return [];
+      }
 
-  const fetchFees = async (academicYearId: string) => {
-    if (!academicYearId) return;
-
-    console.log('🔄 Auto-assigning fees before fetching data...');
-    await assignFeesToStudents(academicYearId);
-
-    console.log('📊 Fetching fees for academic year:', academicYearId);
-
-    try {
-      // Fetch from consolidated student_fee_records table only
+      console.log('💰 Fetching fees from student_fee_records for year:', currentAcademicYear.id);
+      
+      // ONLY query student_fee_records table - no fees table references
       const { data, error } = await supabase
         .from('student_fee_records')
         .select(`
-          id,
-          student_id,
-          class_id,
-          fee_type,
-          actual_fee,
-          discount_amount,
-          paid_amount,
-          final_fee,
-          balance_fee,
-          due_date,
-          status,
-          academic_year_id,
-          created_at,
-          updated_at,
-          discount_notes,
-          discount_updated_by,
-          discount_updated_at,
-          students!inner (
+          *,
+          student:students(
             id,
             first_name,
             last_name,
             admission_number,
             class_id,
-            classes!inner (
-              id,
-              name,
-              section
-            )
+            classes(name, section)
           )
         `)
-        .eq('academic_year_id', academicYearId)
-        .order('due_date', { ascending: true });
+        .eq('academic_year_id', currentAcademicYear.id)
+        .order('created_at', { ascending: false });
 
       if (error) {
-        console.error('❌ Error fetching fees:', error);
+        console.error('❌ Error fetching student fee records:', error);
         throw error;
       }
+      
+      console.log('✅ Student fee records fetched successfully:', data?.length || 0);
+      return data || [];
+    },
+    enabled: !!currentAcademicYear
+  });
 
-      console.log('✅ Fee records fetched:', data?.length || 0);
-
-      const transformedFees: Fee[] = (data || []).map((record: any) => ({
-        id: record.id,
-        student_id: record.student_id,
-        fee_type: record.fee_type,
-        actual_fee: record.actual_fee,
-        discount_amount: record.discount_amount,
-        paid_amount: record.paid_amount,
-        final_fee: record.final_fee || (record.actual_fee - record.discount_amount),
-        balance_fee: record.balance_fee || (record.actual_fee - record.discount_amount - record.paid_amount),
-        due_date: record.due_date,
-        status: record.status as 'Pending' | 'Paid' | 'Overdue' | 'Partial',
-        created_at: record.created_at,
-        updated_at: record.updated_at,
-        discount_notes: record.discount_notes,
-        discount_updated_by: record.discount_updated_by,
-        discount_updated_at: record.discount_updated_at,
-        academic_year_id: record.academic_year_id,
-        class_id: record.class_id,
-        student: {
-          id: record.students.id,
-          first_name: record.students.first_name,
-          last_name: record.students.last_name,
-          admission_number: record.students.admission_number,
-          class_name: record.students.classes.name,
-          section: record.students.classes.section,
-          class_id: record.students.class_id,
-          gender: undefined,
-          status: undefined,
-          parent_phone: undefined,
-          parent_email: undefined
-        }
-      }));
-
-      const uniqueFeeTypes = [...new Set(transformedFees.map(f => f.fee_type))];
-      console.log('🔍 Unique fee types found:', uniqueFeeTypes);
-      console.log('✅ Final processed fees:', transformedFees.length);
-
-      setFees(transformedFees);
-    } catch (error) {
-      console.error('Error in fetchFees:', error);
-      setFees([]);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const refetchFees = () => {
-    if (currentAcademicYear) {
-      setLoading(true);
-      fetchFees(currentAcademicYear);
-    }
-  };
-
+  // Set current academic year when academic years are loaded
   useEffect(() => {
-    fetchAcademicYears();
-  }, []);
-
-  useEffect(() => {
-    if (currentAcademicYear) {
-      fetchFees(currentAcademicYear);
+    if (academicYears.length > 0 && !currentAcademicYear) {
+      const current = academicYears.find(year => year.is_current) || academicYears[0];
+      console.log('🎯 Setting current academic year:', current?.year_name);
+      setCurrentAcademicYear(current);
     }
-  }, [currentAcademicYear]);
+  }, [academicYears, currentAcademicYear]);
+
+  // Update loading state
+  useEffect(() => {
+    setLoading(false);
+  }, [fees, academicYears]);
+
+  if (yearError) {
+    console.error('❌ Academic year error:', yearError);
+  }
+  
+  if (feesError) {
+    console.error('❌ Fees data error:', feesError);
+  }
 
   return {
     fees,
@@ -154,4 +96,4 @@ export const useFeeData = () => {
     loading,
     refetchFees
   };
-};
+}
