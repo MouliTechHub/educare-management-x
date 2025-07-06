@@ -25,7 +25,7 @@ interface DiscountDialogProps {
 export function DiscountDialog({ open, onOpenChange, selectedFee, onSuccess }: DiscountDialogProps) {
   const { toast } = useToast();
   const [loading, setLoading] = React.useState(false);
-  const { academicYears, feeStructures } = useDiscountData();
+  const { academicYears } = useDiscountData();
 
   const form = useForm<DiscountFormData>({
     defaultValues: {

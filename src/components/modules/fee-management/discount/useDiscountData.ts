@@ -36,27 +36,10 @@ export function useDiscountData() {
     enabled: academicYears.length > 0
   });
 
-  // Fetch existing fee records from student_fee_records (not fees table)
-  const { data: existingFees = [] } = useQuery({
-    queryKey: ['existing-student-fee-records'],
-    queryFn: async () => {
-      const currentYear = academicYears.find(year => year.is_current);
-      if (!currentYear) return [];
-      
-      const { data, error } = await supabase
-        .from('student_fee_records')
-        .select('*')
-        .eq('academic_year_id', currentYear.id);
-      
-      if (error) throw error;
-      return data || [];
-    },
-    enabled: academicYears.length > 0
-  });
-
+  // Remove the existingFees query that might be causing issues
+  // Only return what's actually needed
   return {
     academicYears,
-    feeStructures,
-    existingFees
+    feeStructures
   };
 }
