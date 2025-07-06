@@ -50,27 +50,9 @@ export function useFeeRecords(currentAcademicYear: string) {
       setLoading(true);
       console.log('🔄 Fetching fees for academic year:', currentAcademicYear);
       
-      // First, get the payment totals for each fee
-      const { data: paymentData, error: paymentError } = await supabase
-        .from('payment_history')
-        .select('fee_id, amount_paid')
-        .order('created_at', { ascending: true });
-
-      if (paymentError) {
-        console.error('❌ Error fetching payment data:', paymentError);
-      } else {
-        console.log('✅ Payment data fetched:', paymentData?.length || 0, 'records');
-      }
-
-      // Calculate total paid per fee
-      const paymentTotals = paymentData?.reduce((acc, payment) => {
-        acc[payment.fee_id] = (acc[payment.fee_id] || 0) + payment.amount_paid;
-        return acc;
-      }, {} as Record<string, number>) || {};
-
-      // Fetch fees with student and class data
+      // Fetch from consolidated student_fee_records table only
       const { data, error } = await supabase
-        .from("fees")
+        .from("student_fee_records")
         .select(`
           *,
           students (
@@ -104,39 +86,35 @@ export function useFeeRecords(currentAcademicYear: string) {
         });
       }
 
-      // Transform and enrich the data
-      const transformedFees: Fee[] = (data || []).map((fee: any) => {
-        const totalPaidFromHistory = paymentTotals[fee.id] || 0;
-        
-        return {
-          id: fee.id,
-          student_id: fee.student_id,
-          amount: fee.amount,
-          actual_amount: fee.actual_amount,
-          discount_amount: fee.discount_amount,
-          total_paid: totalPaidFromHistory,
-          fee_type: fee.fee_type,
-          due_date: fee.due_date,
-          payment_date: fee.payment_date,
-          status: fee.status,
-          receipt_number: fee.receipt_number,
-          created_at: fee.created_at,
-          updated_at: fee.updated_at,
-          discount_notes: fee.discount_notes,
-          discount_updated_by: fee.discount_updated_by,
-          discount_updated_at: fee.discount_updated_at,
-          academic_year_id: fee.academic_year_id,
-          student: fee.students ? {
-            id: fee.students.id,
-            first_name: fee.students.first_name,
-            last_name: fee.students.last_name,
-            admission_number: fee.students.admission_number,
-            class_name: fee.students.classes?.name,
-            section: fee.students.classes?.section,
-            class_id: fee.students.class_id
-          } : undefined
-        };
-      });
+      // Transform the data to match the expected interface
+      const transformedFees: Fee[] = (data || []).map((fee: any) => ({
+        id: fee.id,
+        student_id: fee.student_id,
+        amount: fee.actual_fee,
+        actual_amount: fee.actual_fee,
+        discount_amount: fee.discount_amount,
+        total_paid: fee.paid_amount,
+        fee_type: fee.fee_type,
+        due_date: fee.due_date,
+        payment_date: null, // This field doesn't exist in student_fee_records
+        status: fee.status,
+        receipt_number: null, // This field doesn't exist in student_fee_records
+        created_at: fee.created_at,
+        updated_at: fee.updated_at,
+        discount_notes: fee.discount_notes,
+        discount_updated_by: fee.discount_updated_by,
+        discount_updated_at: fee.discount_updated_at,
+        academic_year_id: fee.academic_year_id,
+        student: fee.students ? {
+          id: fee.students.id,
+          first_name: fee.students.first_name,
+          last_name: fee.students.last_name,
+          admission_number: fee.students.admission_number,
+          class_name: fee.students.classes?.name,
+          section: fee.students.classes?.section,
+          class_id: fee.students.class_id
+        } : undefined
+      }));
 
       console.log('✅ Transformed fees:', transformedFees.length, 'records');
       console.log('📊 Fees with student data:', transformedFees.filter(f => f.student).length);
@@ -148,7 +126,7 @@ export function useFeeRecords(currentAcademicYear: string) {
         description: error.message,
         variant: "destructive",
       });
-      setFees([]); // Set empty array on error
+      setFees([]);
     } finally {
       setLoading(false);
     }

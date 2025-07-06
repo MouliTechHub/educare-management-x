@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -38,75 +39,30 @@ export function usePreviousYearDues(currentAcademicYearId: string) {
 
       const previousYearIds = academicYears.map(year => year.id);
 
-      // Fetch previous year dues from both fee systems
-      const [enhancedFeesResult, legacyFeesResult] = await Promise.allSettled([
-        // Enhanced system - student_fee_records
-        supabase
-          .from('student_fee_records')
-          .select(`
-            student_id,
-            fee_type,
-            actual_fee,
-            discount_amount,
-            paid_amount,
-            academic_year_id,
-            academic_years!inner(year_name)
-          `)
-          .in('academic_year_id', previousYearIds)
-          .neq('status', 'Paid'),
-        
-        // Legacy system - fees table
-        supabase
-          .from('fees')
-          .select(`
-            student_id,
-            fee_type,
-            actual_amount,
-            discount_amount,
-            total_paid,
-            academic_year_id,
-            academic_years!inner(year_name)
-          `)
-          .in('academic_year_id', previousYearIds)
-          .neq('status', 'Paid')
-      ]);
+      // Fetch previous year dues from consolidated student_fee_records system only
+      const { data: feeData, error: feeError } = await supabase
+        .from('student_fee_records')
+        .select(`
+          student_id,
+          fee_type,
+          actual_fee,
+          discount_amount,
+          paid_amount,
+          balance_fee,
+          academic_year_id,
+          academic_years!inner(year_name)
+        `)
+        .in('academic_year_id', previousYearIds)
+        .neq('status', 'Paid')
+        .gt('balance_fee', 0);
 
-      // Combine both result sets and deduplicate based on student_id + fee_type + academic_year_id
-      let allFeesData = [];
-      const uniqueFeeMap = new Map<string, any>();
-      
-      if (enhancedFeesResult.status === 'fulfilled' && enhancedFeesResult.value.data) {
-        enhancedFeesResult.value.data.forEach((fee: any) => {
-          const uniqueKey = `${fee.student_id}_${fee.fee_type}_${fee.academic_year_id}`;
-          uniqueFeeMap.set(uniqueKey, fee);
-        });
-      }
-      
-      if (legacyFeesResult.status === 'fulfilled' && legacyFeesResult.value.data) {
-        // Transform legacy fees to match enhanced format, but only add if not already present
-        legacyFeesResult.value.data.forEach((fee: any) => {
-          const uniqueKey = `${fee.student_id}_${fee.fee_type}_${fee.academic_year_id}`;
-          if (!uniqueFeeMap.has(uniqueKey)) {
-            uniqueFeeMap.set(uniqueKey, {
-              student_id: fee.student_id,
-              fee_type: fee.fee_type,
-              actual_fee: fee.actual_amount,
-              discount_amount: fee.discount_amount,
-              paid_amount: fee.total_paid,
-              academic_year_id: fee.academic_year_id,
-              academic_years: fee.academic_years
-            });
-          }
-        });
-      }
-
-      allFeesData = Array.from(uniqueFeeMap.values());
+      if (feeError) throw feeError;
 
       // Group dues by student
       const studentDuesMap = new Map<string, PreviousYearDues>();
 
-      allFeesData.forEach((fee: any) => {
-        const balanceAmount = fee.actual_fee - fee.discount_amount - fee.paid_amount;
+      (feeData || []).forEach((fee: any) => {
+        const balanceAmount = fee.balance_fee || (fee.actual_fee - fee.discount_amount - fee.paid_amount);
         
         if (balanceAmount <= 0) return; // Skip if fully paid
 
@@ -167,31 +123,16 @@ export function usePreviousYearDues(currentAcademicYearId: string) {
     }
   };
 
-  const logDuesClearance = async (studentId: string, clearedAmount: number) => {
-    try {
-      await supabase.from('fee_change_history').insert({
-        fee_record_id: studentId, // Using student_id as reference
-        change_type: 'dues_cleared',
-        amount: clearedAmount,
-        changed_by: 'System',
-        notes: 'Previous year dues cleared - current year payments now enabled'
-      });
-    } catch (error) {
-      console.error('Error logging dues clearance:', error);
-    }
-  };
-
   useEffect(() => {
     fetchPreviousYearDues();
   }, [currentAcademicYearId]);
 
   return {
-    previousYearDues,
-    loading,
+    previousYearDues: Array.from(previousYearDues.values()),
     getStudentDues,
     hasOutstandingDues,
     logPaymentBlockage,
-    logDuesClearance,
+    loading,
     refetch: fetchPreviousYearDues
   };
 }

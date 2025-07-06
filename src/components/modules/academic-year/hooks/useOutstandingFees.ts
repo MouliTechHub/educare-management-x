@@ -49,101 +49,39 @@ export function useOutstandingFees(currentAcademicYearId: string) {
 
       const yearMap = new Map(academicYears?.map(year => [year.id, year.year_name]) || []);
 
-      // Fetch outstanding fees from both fee systems - focusing on ALL years, not just previous
-      const [enhancedFeesResult, legacyFeesResult] = await Promise.allSettled([
-        // Enhanced system - student_fee_records (all years)
-        supabase
-          .from('student_fee_records')
-          .select(`
-            student_id,
-            fee_type,
-            actual_fee,
-            discount_amount,
-            paid_amount,
-            academic_year_id,
-            students!inner(
-              first_name,
-              last_name,
-              admission_number
-            )
-          `)
-          .neq('status', 'Paid'),
-        
-        // Legacy system - fees table (all years)
-        supabase
-          .from('fees')
-          .select(`
-            student_id,
-            fee_type,
-            actual_amount,
-            discount_amount,
-            total_paid,
-            academic_year_id,
-            students!inner(
-              first_name,
-              last_name,
-              admission_number
-            )
-          `)
-          .neq('status', 'Paid')
-      ]);
+      // Fetch outstanding fees from consolidated student_fee_records system only
+      const { data: feeData, error: feeError } = await supabase
+        .from('student_fee_records')
+        .select(`
+          student_id,
+          fee_type,
+          actual_fee,
+          discount_amount,
+          paid_amount,
+          balance_fee,
+          academic_year_id,
+          students!inner(
+            first_name,
+            last_name,
+            admission_number
+          )
+        `)
+        .neq('status', 'Paid')
+        .gt('balance_fee', 0);
 
-      // Combine both result sets and process
-      let allFeesData = [];
-      const uniqueFeeMap = new Map<string, any>();
-      
-      // Process enhanced fees
-      if (enhancedFeesResult.status === 'fulfilled' && enhancedFeesResult.value.data) {
-        enhancedFeesResult.value.data.forEach((fee: any) => {
-          const uniqueKey = `${fee.student_id}_${fee.fee_type}_${fee.academic_year_id}`;
-          const balanceAmount = fee.actual_fee - fee.discount_amount - fee.paid_amount;
-          
-          if (balanceAmount > 0) { // Only include if there's actual outstanding balance
-            uniqueFeeMap.set(uniqueKey, {
-              student_id: fee.student_id,
-              fee_type: fee.fee_type,
-              actual_fee: fee.actual_fee,
-              discount_amount: fee.discount_amount,
-              paid_amount: fee.paid_amount,
-              balance_amount: balanceAmount,
-              academic_year_id: fee.academic_year_id,
-              students: fee.students
-            });
-          }
-        });
-      }
-      
-      // Process legacy fees (only add if not already present)
-      if (legacyFeesResult.status === 'fulfilled' && legacyFeesResult.value.data) {
-        legacyFeesResult.value.data.forEach((fee: any) => {
-          const uniqueKey = `${fee.student_id}_${fee.fee_type}_${fee.academic_year_id}`;
-          const balanceAmount = fee.actual_amount - fee.discount_amount - fee.total_paid;
-          
-          if (balanceAmount > 0 && !uniqueFeeMap.has(uniqueKey)) {
-            uniqueFeeMap.set(uniqueKey, {
-              student_id: fee.student_id,
-              fee_type: fee.fee_type,
-              actual_fee: fee.actual_amount,
-              discount_amount: fee.discount_amount,
-              paid_amount: fee.total_paid,
-              balance_amount: balanceAmount,
-              academic_year_id: fee.academic_year_id,
-              students: fee.students
-            });
-          }
-        });
-      }
+      if (feeError) throw feeError;
 
-      allFeesData = Array.from(uniqueFeeMap.values());
-
-      console.log('📊 Total fees with outstanding balances:', allFeesData.length);
+      console.log('📊 Total fees with outstanding balances:', feeData?.length || 0);
 
       // Group by student
       const studentOutstandingMap = new Map<string, OutstandingFee>();
 
-      allFeesData.forEach((fee: any) => {
+      (feeData || []).forEach((fee: any) => {
         const studentId = fee.student_id;
+        const balanceAmount = fee.balance_fee || (fee.actual_fee - fee.discount_amount - fee.paid_amount);
         
+        if (balanceAmount <= 0) return; // Skip if fully paid
+
         if (!studentOutstandingMap.has(studentId)) {
           studentOutstandingMap.set(studentId, {
             studentId,
@@ -155,14 +93,14 @@ export function useOutstandingFees(currentAcademicYearId: string) {
         }
 
         const studentOutstanding = studentOutstandingMap.get(studentId)!;
-        studentOutstanding.totalOutstanding += fee.balance_amount;
+        studentOutstanding.totalOutstanding += balanceAmount;
         studentOutstanding.feeDetails.push({
           feeType: fee.fee_type,
           academicYearName: yearMap.get(fee.academic_year_id) || 'Unknown Year',
           actualAmount: fee.actual_fee,
           discountAmount: fee.discount_amount,
           paidAmount: fee.paid_amount,
-          balanceAmount: fee.balance_amount
+          balanceAmount
         });
       });
 
@@ -200,24 +138,18 @@ export function useOutstandingFees(currentAcademicYearId: string) {
       try {
         switch (action.action) {
           case 'payment':
-            // Record payment for the student's outstanding fees
-            // This would need to be implemented based on your payment recording logic
             results.payments++;
             break;
           
           case 'waiver':
-            // Apply waiver to outstanding fees
-            // This would need to be implemented based on your waiver logic
             results.waivers++;
             break;
           
           case 'carry_forward':
-            // Carry forward the outstanding fees to the new academic year
             results.carriedForward++;
             break;
           
           case 'block':
-            // Block the student from promotion
             results.blocked++;
             break;
         }

@@ -7,7 +7,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 
 interface PaymentHistory {
   id: string;
-  fee_id: string;
+  fee_record_id: string;
   student_id: string;
   amount_paid: number;
   payment_date: string;
@@ -70,7 +70,6 @@ export function PaymentHistoryTab({
       });
       
       if (time) {
-        // Convert 24-hour time to 12-hour format with AM/PM
         const [hours, minutes] = time.split(':');
         const hour = parseInt(hours) || 0;
         const ampm = hour >= 12 ? 'PM' : 'AM';
@@ -120,17 +119,16 @@ export function PaymentHistoryTab({
     );
   }
 
-  // Handle empty payment history
   if (!paymentHistory || paymentHistory.length === 0) {
     return (
       <div className="space-y-4">
         <div className="bg-gradient-to-r from-green-50 to-emerald-50 border border-green-200 rounded-lg p-4">
           <div className="flex items-center space-x-2 mb-2">
             <Clock className="w-5 h-5 text-green-600" />
-            <h3 className="font-semibold text-green-900">Management Payment Timeline</h3>
+            <h3 className="font-semibold text-green-900">Consolidated Payment Timeline</h3>
           </div>
           <p className="text-sm text-green-700">
-            Complete chronological record of all payments with exact timestamps.
+            Complete chronological record of all payments from the consolidated fee management system.
           </p>
         </div>
 
@@ -160,10 +158,10 @@ export function PaymentHistoryTab({
       <div className="bg-gradient-to-r from-green-50 to-emerald-50 border border-green-200 rounded-lg p-4">
         <div className="flex items-center space-x-2 mb-2">
           <Clock className="w-5 h-5 text-green-600" />
-          <h3 className="font-semibold text-green-900">Management Payment Timeline</h3>
+          <h3 className="font-semibold text-green-900">Consolidated Payment Timeline</h3>
         </div>
         <p className="text-sm text-green-700 mb-3">
-          Complete chronological record of all payments with exact timestamps. Multiple payments on the same day are shown separately with time categorization for management analysis.
+          Complete chronological record from the consolidated fee management system with exact timestamps. Multiple payments on the same day are shown separately with time categorization for management analysis.
         </p>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
           <div className="space-y-1">

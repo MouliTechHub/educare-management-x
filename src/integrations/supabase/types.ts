@@ -211,13 +211,6 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: "discount_history_fee_id_fkey"
-            columns: ["fee_id"]
-            isOneToOne: false
-            referencedRelation: "fees"
-            referencedColumns: ["id"]
-          },
-          {
             foreignKeyName: "discount_history_student_id_fkey"
             columns: ["student_id"]
             isOneToOne: false
@@ -407,50 +400,6 @@ export type Database = {
           },
         ]
       }
-      fee_discounts: {
-        Row: {
-          approved_by: string | null
-          created_at: string
-          discount_amount: number
-          discount_percentage: number | null
-          fee_id: string
-          id: string
-          notes: string | null
-          reason: string | null
-          updated_at: string
-        }
-        Insert: {
-          approved_by?: string | null
-          created_at?: string
-          discount_amount: number
-          discount_percentage?: number | null
-          fee_id: string
-          id?: string
-          notes?: string | null
-          reason?: string | null
-          updated_at?: string
-        }
-        Update: {
-          approved_by?: string | null
-          created_at?: string
-          discount_amount?: number
-          discount_percentage?: number | null
-          fee_id?: string
-          id?: string
-          notes?: string | null
-          reason?: string | null
-          updated_at?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "fee_discounts_fee_id_fkey"
-            columns: ["fee_id"]
-            isOneToOne: false
-            referencedRelation: "fees"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       fee_payment_records: {
         Row: {
           amount_paid: number
@@ -574,147 +523,6 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
-      }
-      fees: {
-        Row: {
-          academic_year_id: string
-          actual_amount: number
-          amount: number
-          created_at: string | null
-          discount_amount: number
-          discount_notes: string | null
-          discount_updated_at: string | null
-          discount_updated_by: string | null
-          due_date: string
-          fee_type: string
-          id: string
-          notes: string | null
-          payment_date: string | null
-          receipt_number: string | null
-          status: string
-          student_id: string
-          total_paid: number
-          updated_at: string | null
-        }
-        Insert: {
-          academic_year_id: string
-          actual_amount?: number
-          amount: number
-          created_at?: string | null
-          discount_amount?: number
-          discount_notes?: string | null
-          discount_updated_at?: string | null
-          discount_updated_by?: string | null
-          due_date: string
-          fee_type: string
-          id?: string
-          notes?: string | null
-          payment_date?: string | null
-          receipt_number?: string | null
-          status?: string
-          student_id: string
-          total_paid?: number
-          updated_at?: string | null
-        }
-        Update: {
-          academic_year_id?: string
-          actual_amount?: number
-          amount?: number
-          created_at?: string | null
-          discount_amount?: number
-          discount_notes?: string | null
-          discount_updated_at?: string | null
-          discount_updated_by?: string | null
-          due_date?: string
-          fee_type?: string
-          id?: string
-          notes?: string | null
-          payment_date?: string | null
-          receipt_number?: string | null
-          status?: string
-          student_id?: string
-          total_paid?: number
-          updated_at?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "fees_academic_year_id_fkey"
-            columns: ["academic_year_id"]
-            isOneToOne: false
-            referencedRelation: "academic_years"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "fees_student_id_fkey"
-            columns: ["student_id"]
-            isOneToOne: false
-            referencedRelation: "students"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      fees_backup: {
-        Row: {
-          academic_year_id: string | null
-          actual_amount: number | null
-          amount: number | null
-          created_at: string | null
-          discount_amount: number | null
-          discount_notes: string | null
-          discount_updated_at: string | null
-          discount_updated_by: string | null
-          due_date: string | null
-          fee_type: string | null
-          id: string | null
-          notes: string | null
-          payment_date: string | null
-          receipt_number: string | null
-          status: string | null
-          student_id: string | null
-          total_paid: number | null
-          updated_at: string | null
-        }
-        Insert: {
-          academic_year_id?: string | null
-          actual_amount?: number | null
-          amount?: number | null
-          created_at?: string | null
-          discount_amount?: number | null
-          discount_notes?: string | null
-          discount_updated_at?: string | null
-          discount_updated_by?: string | null
-          due_date?: string | null
-          fee_type?: string | null
-          id?: string | null
-          notes?: string | null
-          payment_date?: string | null
-          receipt_number?: string | null
-          status?: string | null
-          student_id?: string | null
-          total_paid?: number | null
-          updated_at?: string | null
-        }
-        Update: {
-          academic_year_id?: string | null
-          actual_amount?: number | null
-          amount?: number | null
-          created_at?: string | null
-          discount_amount?: number | null
-          discount_notes?: string | null
-          discount_updated_at?: string | null
-          discount_updated_by?: string | null
-          due_date?: string | null
-          fee_type?: string | null
-          id?: string | null
-          notes?: string | null
-          payment_date?: string | null
-          receipt_number?: string | null
-          status?: string | null
-          student_id?: string | null
-          total_paid?: number | null
-          updated_at?: string | null
-        }
-        Relationships: []
       }
       grades: {
         Row: {
@@ -888,69 +696,6 @@ export type Database = {
           },
         ]
       }
-      payment_history: {
-        Row: {
-          amount_paid: number
-          created_at: string
-          fee_id: string
-          fee_type: string
-          id: string
-          notes: string | null
-          payment_date: string
-          payment_method: string
-          payment_receiver: string
-          payment_time: string
-          receipt_number: string
-          student_id: string
-          updated_at: string
-        }
-        Insert: {
-          amount_paid: number
-          created_at?: string
-          fee_id: string
-          fee_type: string
-          id?: string
-          notes?: string | null
-          payment_date: string
-          payment_method?: string
-          payment_receiver: string
-          payment_time?: string
-          receipt_number: string
-          student_id: string
-          updated_at?: string
-        }
-        Update: {
-          amount_paid?: number
-          created_at?: string
-          fee_id?: string
-          fee_type?: string
-          id?: string
-          notes?: string | null
-          payment_date?: string
-          payment_method?: string
-          payment_receiver?: string
-          payment_time?: string
-          receipt_number?: string
-          student_id?: string
-          updated_at?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "payment_history_fee_id_fkey"
-            columns: ["fee_id"]
-            isOneToOne: false
-            referencedRelation: "fees"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "payment_history_student_id_fkey"
-            columns: ["student_id"]
-            isOneToOne: false
-            referencedRelation: "students"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       payment_reversals: {
         Row: {
           authorized_by: string
@@ -989,59 +734,6 @@ export type Database = {
           updated_at?: string
         }
         Relationships: []
-      }
-      payments: {
-        Row: {
-          amount_paid: number
-          created_at: string
-          fee_structure_id: string
-          id: string
-          late_fee: number | null
-          notes: string | null
-          payment_date: string
-          payment_method: string
-          payment_received_by: string
-          reference_number: string | null
-          student_id: string
-          updated_at: string
-        }
-        Insert: {
-          amount_paid: number
-          created_at?: string
-          fee_structure_id: string
-          id?: string
-          late_fee?: number | null
-          notes?: string | null
-          payment_date: string
-          payment_method: string
-          payment_received_by: string
-          reference_number?: string | null
-          student_id: string
-          updated_at?: string
-        }
-        Update: {
-          amount_paid?: number
-          created_at?: string
-          fee_structure_id?: string
-          id?: string
-          late_fee?: number | null
-          notes?: string | null
-          payment_date?: string
-          payment_method?: string
-          payment_received_by?: string
-          reference_number?: string | null
-          student_id?: string
-          updated_at?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "payments_student_id_fkey"
-            columns: ["student_id"]
-            isOneToOne: false
-            referencedRelation: "students"
-            referencedColumns: ["id"]
-          },
-        ]
       }
       profiles: {
         Row: {
@@ -1147,63 +839,6 @@ export type Database = {
             columns: ["promoted_from_class"]
             isOneToOne: false
             referencedRelation: "classes"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      student_fee_assignments: {
-        Row: {
-          assigned_date: string
-          balance_amount: number | null
-          created_at: string
-          due_date: string | null
-          fee_structure_id: string
-          id: string
-          paid_amount: number
-          status: string
-          student_id: string
-          total_amount: number
-          updated_at: string
-        }
-        Insert: {
-          assigned_date?: string
-          balance_amount?: number | null
-          created_at?: string
-          due_date?: string | null
-          fee_structure_id: string
-          id?: string
-          paid_amount?: number
-          status?: string
-          student_id: string
-          total_amount: number
-          updated_at?: string
-        }
-        Update: {
-          assigned_date?: string
-          balance_amount?: number | null
-          created_at?: string
-          due_date?: string | null
-          fee_structure_id?: string
-          id?: string
-          paid_amount?: number
-          status?: string
-          student_id?: string
-          total_amount?: number
-          updated_at?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "student_fee_assignments_fee_structure_id_fkey"
-            columns: ["fee_structure_id"]
-            isOneToOne: false
-            referencedRelation: "fee_structures"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "student_fee_assignments_student_id_fkey"
-            columns: ["student_id"]
-            isOneToOne: false
-            referencedRelation: "students"
             referencedColumns: ["id"]
           },
         ]
@@ -1323,66 +958,6 @@ export type Database = {
           },
           {
             foreignKeyName: "student_parent_links_student_id_fkey"
-            columns: ["student_id"]
-            isOneToOne: false
-            referencedRelation: "students"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      student_payments: {
-        Row: {
-          amount_paid: number
-          created_at: string
-          fee_structure_id: string
-          id: string
-          late_fee: number | null
-          notes: string | null
-          payment_date: string
-          payment_method: string
-          payment_received_by: string
-          reference_number: string | null
-          student_id: string
-          updated_at: string
-        }
-        Insert: {
-          amount_paid: number
-          created_at?: string
-          fee_structure_id: string
-          id?: string
-          late_fee?: number | null
-          notes?: string | null
-          payment_date: string
-          payment_method: string
-          payment_received_by: string
-          reference_number?: string | null
-          student_id: string
-          updated_at?: string
-        }
-        Update: {
-          amount_paid?: number
-          created_at?: string
-          fee_structure_id?: string
-          id?: string
-          late_fee?: number | null
-          notes?: string | null
-          payment_date?: string
-          payment_method?: string
-          payment_received_by?: string
-          reference_number?: string | null
-          student_id?: string
-          updated_at?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "student_payments_fee_structure_id_fkey"
-            columns: ["fee_structure_id"]
-            isOneToOne: false
-            referencedRelation: "fee_structures"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "student_payments_student_id_fkey"
             columns: ["student_id"]
             isOneToOne: false
             referencedRelation: "students"
