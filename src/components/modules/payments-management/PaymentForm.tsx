@@ -11,6 +11,7 @@ import { useToast } from "@/hooks/use-toast";
 import { usePreviousYearDues } from "../fee-management/hooks/usePreviousYearDues";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { AlertTriangle } from "lucide-react";
+import { useQueryClient } from "@tanstack/react-query";
 
 interface PaymentFormProps {
   classes: Class[];
@@ -36,6 +37,7 @@ export function PaymentForm({ classes, students, feeStructures, onSubmit, onCanc
 
   const feeDetails = useFeeDetails(formData.student_id, formData.fee_structure_id, feeStructures);
   const { toast } = useToast();
+  const queryClient = useQueryClient();
 
   // Get current academic year for dues checking
   const [currentAcademicYear, setCurrentAcademicYear] = useState("");
@@ -243,6 +245,10 @@ export function PaymentForm({ classes, students, feeStructures, onSubmit, onCanc
       }
 
       console.log('✅ Payment recording completed successfully');
+
+      // Invalidate fee management cache to show updated payment
+      queryClient.invalidateQueries({ queryKey: ['student-fee-records'] });
+      queryClient.invalidateQueries({ queryKey: ['fee-payment-records'] });
 
       // Show success message
       toast({
