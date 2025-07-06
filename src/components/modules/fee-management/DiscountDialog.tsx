@@ -40,7 +40,6 @@ export function DiscountDialog({ open, onOpenChange, selectedFee, onSuccess }: D
     setLoading(true);
     try {
       console.log('🔍 Starting discount application for:', {
-        selectedFeeType: 'student_fee_records',
         selectedFeeId: selectedFee.id,
         studentId: selectedFee.student_id,
         feeType: selectedFee.fee_type,
@@ -106,11 +105,10 @@ export function DiscountDialog({ open, onOpenChange, selectedFee, onSuccess }: D
       console.log('💰 Applying cumulative discount:', {
         currentDiscount,
         newDiscountAmount: discountAmount,
-        newTotalDiscount,
-        tableUsed: 'student_fee_records'
+        newTotalDiscount
       });
 
-      // Update ONLY the student_fee_records table - no references to fees table
+      // Update ONLY the student_fee_records table
       const { error: updateError } = await supabase
         .from('student_fee_records')
         .update({
