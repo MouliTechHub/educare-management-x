@@ -16,6 +16,7 @@ import { PaymentHistoryErrorBoundary } from "./student-management/PaymentHistory
 import { useFeeData } from "./fee-management/useFeeData";
 import { useFeeManagement } from "./fee-management/useFeeManagement";
 import { BlockedStudentsReport } from "./fee-management/BlockedStudentsReport";
+import { Fee } from "./fee-management/types/feeTypes";
 
 export default function FeeManagement() {
   const {
@@ -45,11 +46,11 @@ export default function FeeManagement() {
   const [paymentDialogOpen, setPaymentDialogOpen] = React.useState(false);
   const [reminderDialogOpen, setReminderDialogOpen] = React.useState(false);
   const [discountHistoryDialogOpen, setDiscountHistoryDialogOpen] = React.useState(false);
-  const [selectedFee, setSelectedFee] = React.useState(null);
+  const [selectedFee, setSelectedFee] = React.useState<Fee | null>(null);
   const [selectedFees, setSelectedFees] = React.useState<Set<string>>(new Set());
 
-  // Apply filters to fees
-  const filteredFees = applyFilters(fees).filter(fee => {
+  // Apply filters to fees - ensure we're working with Fee[] type
+  const filteredFees: Fee[] = applyFilters(fees as Fee[]).filter(fee => {
     if (!searchTerm) return true;
     
     const searchLower = searchTerm.toLowerCase();
@@ -61,17 +62,17 @@ export default function FeeManagement() {
     );
   });
 
-  const handleDiscountClick = (fee) => {
+  const handleDiscountClick = (fee: Fee) => {
     setSelectedFee(fee);
     setDiscountDialogOpen(true);
   };
 
-  const handlePaymentClick = (fee) => {
+  const handlePaymentClick = (fee: Fee) => {
     setSelectedFee(fee);
     setPaymentDialogOpen(true);
   };
 
-  const handleHistoryClick = (student) => {
+  const handleHistoryClick = (student: Fee['student']) => {
     console.log('🔍 History clicked for student:', student);
     
     if (!student) {
@@ -90,18 +91,18 @@ export default function FeeManagement() {
       }
       
       // Open history dialog with comprehensive fee data
-      openHistoryDialog(student, studentFees);
+      openHistoryDialog(student, studentFees as Fee[]);
     } catch (error) {
       console.error('❌ Error opening history dialog:', error);
     }
   };
 
-  const handleReminderClick = (fee) => {
+  const handleReminderClick = (fee: Fee) => {
     setSelectedFees(new Set([fee.id]));
     setReminderDialogOpen(true);
   };
 
-  const handleDiscountHistoryClick = (fee) => {
+  const handleDiscountHistoryClick = (fee: Fee) => {
     setSelectedFee(fee);
     setDiscountHistoryDialogOpen(true);
   };

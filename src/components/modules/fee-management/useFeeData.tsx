@@ -7,6 +7,10 @@ import { useQuery } from '@tanstack/react-query';
 
 // Function to transform StudentFeeRecord to Fee
 function transformToFee(record: StudentFeeRecord): Fee {
+  // Ensure status is one of the allowed values, default to 'Pending'
+  const validStatuses: Array<'Pending' | 'Paid' | 'Overdue' | 'Partial'> = ['Pending', 'Paid', 'Overdue', 'Partial'];
+  const status = validStatuses.includes(record.status as any) ? (record.status as 'Pending' | 'Paid' | 'Overdue' | 'Partial') : 'Pending';
+  
   return {
     id: record.id,
     student_id: record.student_id,
@@ -17,7 +21,7 @@ function transformToFee(record: StudentFeeRecord): Fee {
     final_fee: record.final_fee || (record.actual_fee - record.discount_amount),
     balance_fee: record.balance_fee || ((record.actual_fee - record.discount_amount) - record.paid_amount),
     due_date: record.due_date || '',
-    status: (record.status as 'Pending' | 'Paid' | 'Overdue' | 'Partial') || 'Pending',
+    status: status,
     created_at: record.created_at,
     updated_at: record.updated_at,
     discount_notes: record.discount_notes || undefined,
@@ -63,7 +67,7 @@ export function useFeeData() {
   // Fetch fees from student_fee_records and transform to Fee type
   const { data: fees = [], error: feesError, refetch: refetchFees } = useQuery({
     queryKey: ['student-fee-records', currentAcademicYear?.id],
-    queryFn: async () => {
+    queryFn: async (): Promise<Fee[]> => {
       if (!currentAcademicYear) {
         console.log('⚠️ No current academic year selected, returning empty fees');
         return [];
