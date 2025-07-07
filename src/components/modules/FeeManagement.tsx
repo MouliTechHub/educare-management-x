@@ -1,5 +1,8 @@
 import React from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { Button } from "@/components/ui/button";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { ChevronDown, ChevronUp, BarChart3, AlertTriangle, Users } from "lucide-react";
 import { FeeManagementHeader } from "./fee-management/FeeManagementHeader";
 import { EnhancedFeeStats } from "./fee-management/EnhancedFeeStats";
 import { BulkActionsPanel } from "./fee-management/BulkActionsPanel";
@@ -50,6 +53,11 @@ export default function FeeManagement() {
   const [discountHistoryDialogOpen, setDiscountHistoryDialogOpen] = React.useState(false);
   const [selectedFee, setSelectedFee] = React.useState<Fee | null>(null);
   const [selectedFees, setSelectedFees] = React.useState<Set<string>>(new Set());
+  
+  // Toggle states for collapsible sections
+  const [showReports, setShowReports] = React.useState(false);
+  const [showBlockedStudents, setShowBlockedStudents] = React.useState(false);
+  const [showBulkActions, setShowBulkActions] = React.useState(false);
 
   // Apply filters to fees - ensure we're working with Fee[] type and handle loading state
   const filteredFees: Fee[] = React.useMemo(() => {
@@ -152,26 +160,80 @@ export default function FeeManagement() {
 
       <EnhancedFeeStats fees={filteredFees} filters={filters} />
 
-      <BlockedStudentsReport 
-        fees={filteredFees}
-        currentAcademicYear={currentAcademicYear?.id || ''}
-      />
+      {/* Collapsible Advanced Reports Section */}
+      <Collapsible open={showReports} onOpenChange={setShowReports}>
+        <CollapsibleTrigger asChild>
+          <Button 
+            variant="outline" 
+            className="w-full justify-between h-12 text-left font-medium"
+          >
+            <div className="flex items-center gap-2">
+              <BarChart3 className="h-4 w-4" />
+              Advanced Reports & Export
+            </div>
+            {showReports ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+          </Button>
+        </CollapsibleTrigger>
+        <CollapsibleContent className="mt-4">
+          <div className="space-y-4 p-4 border rounded-lg bg-muted/20">
+            <ExportButtons fees={filteredFees} filters={filters} />
+          </div>
+        </CollapsibleContent>
+      </Collapsible>
 
-      <BulkActionsPanel
-        fees={filteredFees}
-        selectedFees={selectedFees}
-        onSelectionChange={setSelectedFees}
-        onRefresh={refetchFees}
-        onBulkReminder={(feeIds) => {
-          setSelectedFees(new Set(feeIds));
-          setReminderDialogOpen(true);
-        }}
-      />
+      {/* Collapsible Blocked Students Section */}
+      <Collapsible open={showBlockedStudents} onOpenChange={setShowBlockedStudents}>
+        <CollapsibleTrigger asChild>
+          <Button 
+            variant="outline" 
+            className="w-full justify-between h-12 text-left font-medium"
+          >
+            <div className="flex items-center gap-2">
+              <AlertTriangle className="h-4 w-4" />
+              Payment Blocked Students
+            </div>
+            {showBlockedStudents ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+          </Button>
+        </CollapsibleTrigger>
+        <CollapsibleContent className="mt-4">
+          <BlockedStudentsReport 
+            fees={filteredFees}
+            currentAcademicYear={currentAcademicYear?.id || ''}
+          />
+        </CollapsibleContent>
+      </Collapsible>
+
+      {/* Collapsible Bulk Actions Section */}
+      <Collapsible open={showBulkActions} onOpenChange={setShowBulkActions}>
+        <CollapsibleTrigger asChild>
+          <Button 
+            variant="outline" 
+            className="w-full justify-between h-12 text-left font-medium"
+          >
+            <div className="flex items-center gap-2">
+              <Users className="h-4 w-4" />
+              Bulk Actions
+            </div>
+            {showBulkActions ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+          </Button>
+        </CollapsibleTrigger>
+        <CollapsibleContent className="mt-4">
+          <BulkActionsPanel
+            fees={filteredFees}
+            selectedFees={selectedFees}
+            onSelectionChange={setSelectedFees}
+            onRefresh={refetchFees}
+            onBulkReminder={(feeIds) => {
+              setSelectedFees(new Set(feeIds));
+              setReminderDialogOpen(true);
+            }}
+          />
+        </CollapsibleContent>
+      </Collapsible>
 
       <div className="space-y-4">
         <div className="flex justify-between items-center">
           <h3 className="text-lg font-semibold">Fee Records</h3>
-          <ExportButtons fees={filteredFees} filters={filters} />
         </div>
 
         <EnhancedFilters
