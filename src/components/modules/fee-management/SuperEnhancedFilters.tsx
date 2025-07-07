@@ -73,7 +73,9 @@ export function SuperEnhancedFilters({
   }, [classes]);
 
   const updateFilter = (key: keyof EnhancedFilterState, value: string) => {
-    onFiltersChange({ ...filters, [key]: value });
+    // Convert "all" back to empty string for filtering logic
+    const filterValue = value === 'all' ? '' : value;
+    onFiltersChange({ ...filters, [key]: filterValue });
   };
 
   const clearFilter = (key: keyof EnhancedFilterState) => {
@@ -165,7 +167,7 @@ export function SuperEnhancedFilters({
                 <SelectValue placeholder="All Years" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">All Years</SelectItem>
+                <SelectItem value="all">All Years</SelectItem>
                 {academicYears.map((year) => (
                   <SelectItem key={year.id} value={year.id}>
                     {year.year_name} {year.is_current && "(Current)"}
@@ -183,7 +185,7 @@ export function SuperEnhancedFilters({
                 <SelectValue placeholder="All Classes" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">All Classes</SelectItem>
+                <SelectItem value="all">All Classes</SelectItem>
                 {classes.map((cls) => (
                   <SelectItem key={cls.id} value={cls.id}>
                     {cls.name}
@@ -201,7 +203,7 @@ export function SuperEnhancedFilters({
                 <SelectValue placeholder="All Sections" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">All Sections</SelectItem>
+                <SelectItem value="all">All Sections</SelectItem>
                 {sections.map((section) => (
                   <SelectItem key={section} value={section}>
                     {section}
@@ -219,7 +221,7 @@ export function SuperEnhancedFilters({
                 <SelectValue placeholder="All Fee Types" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">All Fee Types</SelectItem>
+                <SelectItem value="all">All Fee Types</SelectItem>
                 {feeTypes.map((type) => (
                   <SelectItem key={type} value={type}>
                     {type}
@@ -237,7 +239,7 @@ export function SuperEnhancedFilters({
                 <SelectValue placeholder="All Status" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">All Status</SelectItem>
+                <SelectItem value="all">All Status</SelectItem>
                 {statusOptions.map((status) => (
                   <SelectItem key={status.value} value={status.value}>
                     <div className="flex items-center gap-2">
@@ -258,7 +260,7 @@ export function SuperEnhancedFilters({
                 <SelectValue placeholder="All Amounts" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">All Amounts</SelectItem>
+                <SelectItem value="all">All Amounts</SelectItem>
                 {amountRanges.map((range) => (
                   <SelectItem key={range.value} value={range.value}>
                     {range.label}
@@ -276,7 +278,7 @@ export function SuperEnhancedFilters({
                 <SelectValue placeholder="All Records" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">All Records</SelectItem>
+                <SelectItem value="all">All Records</SelectItem>
                 <SelectItem value="yes">With Discount</SelectItem>
                 <SelectItem value="no">No Discount</SelectItem>
               </SelectContent>
@@ -291,7 +293,7 @@ export function SuperEnhancedFilters({
                 <SelectValue placeholder="All Records" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">All Records</SelectItem>
+                <SelectItem value="all">All Records</SelectItem>
                 <SelectItem value="yes">Carry Forward Only</SelectItem>
                 <SelectItem value="no">Current Year Only</SelectItem>
               </SelectContent>
@@ -334,7 +336,7 @@ export function SuperEnhancedFilters({
                 <SelectValue placeholder="All Students" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">All Students</SelectItem>
+                <SelectItem value="all">All Students</SelectItem>
                 <SelectItem value="yes">Blocked Only</SelectItem>
                 <SelectItem value="no">Not Blocked</SelectItem>
               </SelectContent>
