@@ -1,8 +1,9 @@
 import React from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
-import { ChevronDown, ChevronUp, BarChart3, AlertTriangle, Users, PieChart, Filter } from "lucide-react";
+import { ChevronDown, ChevronUp, BarChart3, AlertTriangle, Users, PieChart, Filter, Sparkles } from "lucide-react";
 import { FeeManagementHeader } from "./fee-management/FeeManagementHeader";
 import { EnhancedFeeStats } from "./fee-management/EnhancedFeeStats";
 import { BulkActionsPanel } from "./fee-management/BulkActionsPanel";
@@ -20,6 +21,7 @@ import { useFeeManagement } from "./fee-management/useFeeManagement";
 import { usePreviousYearDues } from "./fee-management/hooks/usePreviousYearDues";
 import { BlockedStudentsReport } from "./fee-management/BlockedStudentsReport";
 import { Fee } from "./fee-management/types/feeTypes";
+import EnhancedFeeManagement from "./fee-management/EnhancedFeeManagement";
 
 export default function FeeManagement() {
   const {
@@ -160,7 +162,17 @@ export default function FeeManagement() {
         onRefresh={refetchFees}
       />
 
-      {/* Collapsible Statistics Section */}
+      <Tabs defaultValue="classic" className="w-full">
+        <TabsList className="grid w-full grid-cols-2">
+          <TabsTrigger value="classic">Classic Fee Management</TabsTrigger>
+          <TabsTrigger value="enhanced" className="flex items-center gap-2">
+            <Sparkles className="h-4 w-4" />
+            Enhanced Fee Management
+          </TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="classic" className="space-y-6 mt-6">
+          {/* Original Content Starts Here */}
       <Collapsible open={showStats} onOpenChange={setShowStats}>
         <CollapsibleTrigger asChild>
           <Button 
@@ -318,6 +330,13 @@ export default function FeeManagement() {
           </p>
         </div>
       )}
+
+        </TabsContent>
+
+        <TabsContent value="enhanced" className="mt-6">
+          <EnhancedFeeManagement />
+        </TabsContent>
+      </Tabs>
 
       <DiscountDialog
         open={discountDialogOpen}
