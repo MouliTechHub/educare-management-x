@@ -7,6 +7,11 @@ export type Json =
   | Json[]
 
 export type Database = {
+  // Allows to automatically instanciate createClient with right options
+  // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
+  __InternalSupabase: {
+    PostgrestVersion: "12.2.3 (519615d)"
+  }
   public: {
     Tables: {
       academic_years: {
@@ -350,6 +355,176 @@ export type Database = {
           },
         ]
       }
+      fee_allocation_rules: {
+        Row: {
+          academic_year_priority: string
+          allocation_order: number
+          created_at: string
+          fee_type: string
+          id: string
+          is_active: boolean
+          rule_name: string
+          updated_at: string
+        }
+        Insert: {
+          academic_year_priority?: string
+          allocation_order: number
+          created_at?: string
+          fee_type: string
+          id?: string
+          is_active?: boolean
+          rule_name: string
+          updated_at?: string
+        }
+        Update: {
+          academic_year_priority?: string
+          allocation_order?: number
+          created_at?: string
+          fee_type?: string
+          id?: string
+          is_active?: boolean
+          rule_name?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      fee_audit_log: {
+        Row: {
+          academic_year_id: string
+          action_type: string
+          amount_affected: number | null
+          fee_record_id: string | null
+          id: string
+          ip_address: string | null
+          new_values: Json | null
+          notes: string | null
+          old_values: Json | null
+          performed_at: string
+          performed_by: string
+          reference_number: string | null
+          student_id: string
+        }
+        Insert: {
+          academic_year_id: string
+          action_type: string
+          amount_affected?: number | null
+          fee_record_id?: string | null
+          id?: string
+          ip_address?: string | null
+          new_values?: Json | null
+          notes?: string | null
+          old_values?: Json | null
+          performed_at?: string
+          performed_by: string
+          reference_number?: string | null
+          student_id: string
+        }
+        Update: {
+          academic_year_id?: string
+          action_type?: string
+          amount_affected?: number | null
+          fee_record_id?: string | null
+          id?: string
+          ip_address?: string | null
+          new_values?: Json | null
+          notes?: string | null
+          old_values?: Json | null
+          performed_at?: string
+          performed_by?: string
+          reference_number?: string | null
+          student_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fk_audit_academic_year"
+            columns: ["academic_year_id"]
+            isOneToOne: false
+            referencedRelation: "academic_years"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_audit_fee_record"
+            columns: ["fee_record_id"]
+            isOneToOne: false
+            referencedRelation: "student_fee_records"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_audit_student"
+            columns: ["student_id"]
+            isOneToOne: false
+            referencedRelation: "students"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      fee_carry_forward: {
+        Row: {
+          carried_amount: number
+          carry_forward_type: string
+          created_at: string
+          created_by: string
+          from_academic_year_id: string
+          id: string
+          notes: string | null
+          original_amount: number
+          status: string
+          student_id: string
+          to_academic_year_id: string
+          updated_at: string
+        }
+        Insert: {
+          carried_amount?: number
+          carry_forward_type?: string
+          created_at?: string
+          created_by?: string
+          from_academic_year_id: string
+          id?: string
+          notes?: string | null
+          original_amount?: number
+          status?: string
+          student_id: string
+          to_academic_year_id: string
+          updated_at?: string
+        }
+        Update: {
+          carried_amount?: number
+          carry_forward_type?: string
+          created_at?: string
+          created_by?: string
+          from_academic_year_id?: string
+          id?: string
+          notes?: string | null
+          original_amount?: number
+          status?: string
+          student_id?: string
+          to_academic_year_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fk_carry_forward_from_year"
+            columns: ["from_academic_year_id"]
+            isOneToOne: false
+            referencedRelation: "academic_years"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_carry_forward_student"
+            columns: ["student_id"]
+            isOneToOne: false
+            referencedRelation: "students"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_carry_forward_to_year"
+            columns: ["to_academic_year_id"]
+            isOneToOne: false
+            referencedRelation: "academic_years"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       fee_change_history: {
         Row: {
           amount: number | null
@@ -651,6 +826,48 @@ export type Database = {
         }
         Relationships: []
       }
+      payment_allocations: {
+        Row: {
+          allocated_amount: number
+          allocation_date: string
+          allocation_order: number
+          fee_record_id: string
+          id: string
+          payment_record_id: string
+        }
+        Insert: {
+          allocated_amount: number
+          allocation_date?: string
+          allocation_order: number
+          fee_record_id: string
+          id?: string
+          payment_record_id: string
+        }
+        Update: {
+          allocated_amount?: number
+          allocation_date?: string
+          allocation_order?: number
+          fee_record_id?: string
+          id?: string
+          payment_record_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fk_allocation_fee"
+            columns: ["fee_record_id"]
+            isOneToOne: false
+            referencedRelation: "student_fee_records"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_allocation_payment"
+            columns: ["payment_record_id"]
+            isOneToOne: false
+            referencedRelation: "fee_payment_records"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       payment_blockage_log: {
         Row: {
           academic_year_id: string | null
@@ -848,6 +1065,10 @@ export type Database = {
           academic_year_id: string
           actual_fee: number
           balance_fee: number | null
+          blocked_at: string | null
+          blocked_by: string | null
+          blocked_reason: string | null
+          carry_forward_source_id: string | null
           class_id: string
           created_at: string
           discount_amount: number
@@ -859,7 +1080,10 @@ export type Database = {
           fee_type: string
           final_fee: number | null
           id: string
+          is_carry_forward: boolean | null
           paid_amount: number
+          payment_blocked: boolean | null
+          priority_order: number | null
           status: string
           student_id: string
           updated_at: string
@@ -868,6 +1092,10 @@ export type Database = {
           academic_year_id: string
           actual_fee?: number
           balance_fee?: number | null
+          blocked_at?: string | null
+          blocked_by?: string | null
+          blocked_reason?: string | null
+          carry_forward_source_id?: string | null
           class_id: string
           created_at?: string
           discount_amount?: number
@@ -879,7 +1107,10 @@ export type Database = {
           fee_type?: string
           final_fee?: number | null
           id?: string
+          is_carry_forward?: boolean | null
           paid_amount?: number
+          payment_blocked?: boolean | null
+          priority_order?: number | null
           status?: string
           student_id: string
           updated_at?: string
@@ -888,6 +1119,10 @@ export type Database = {
           academic_year_id?: string
           actual_fee?: number
           balance_fee?: number | null
+          blocked_at?: string | null
+          blocked_by?: string | null
+          blocked_reason?: string | null
+          carry_forward_source_id?: string | null
           class_id?: string
           created_at?: string
           discount_amount?: number
@@ -899,12 +1134,22 @@ export type Database = {
           fee_type?: string
           final_fee?: number | null
           id?: string
+          is_carry_forward?: boolean | null
           paid_amount?: number
+          payment_blocked?: boolean | null
+          priority_order?: number | null
           status?: string
           student_id?: string
           updated_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "fk_carry_forward_source"
+            columns: ["carry_forward_source_id"]
+            isOneToOne: false
+            referencedRelation: "fee_carry_forward"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "student_fee_records_academic_year_id_fkey"
             columns: ["academic_year_id"]
@@ -1496,21 +1741,25 @@ export type Database = {
   }
 }
 
-type DefaultSchema = Database[Extract<keyof Database, "public">]
+type DatabaseWithoutInternals = Omit<Database, "__InternalSupabase">
+
+type DefaultSchema = DatabaseWithoutInternals[Extract<keyof Database, "public">]
 
 export type Tables<
   DefaultSchemaTableNameOrOptions extends
     | keyof (DefaultSchema["Tables"] & DefaultSchema["Views"])
-    | { schema: keyof Database },
+    | { schema: keyof DatabaseWithoutInternals },
   TableName extends DefaultSchemaTableNameOrOptions extends {
-    schema: keyof Database
+    schema: keyof DatabaseWithoutInternals
   }
-    ? keyof (Database[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
-        Database[DefaultSchemaTableNameOrOptions["schema"]]["Views"])
+    ? keyof (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
+        DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])
     : never = never,
-> = DefaultSchemaTableNameOrOptions extends { schema: keyof Database }
-  ? (Database[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
-      Database[DefaultSchemaTableNameOrOptions["schema"]]["Views"])[TableName] extends {
+> = DefaultSchemaTableNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
+}
+  ? (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
+      DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])[TableName] extends {
       Row: infer R
     }
     ? R
@@ -1528,14 +1777,16 @@ export type Tables<
 export type TablesInsert<
   DefaultSchemaTableNameOrOptions extends
     | keyof DefaultSchema["Tables"]
-    | { schema: keyof Database },
+    | { schema: keyof DatabaseWithoutInternals },
   TableName extends DefaultSchemaTableNameOrOptions extends {
-    schema: keyof Database
+    schema: keyof DatabaseWithoutInternals
   }
-    ? keyof Database[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
+    ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
     : never = never,
-> = DefaultSchemaTableNameOrOptions extends { schema: keyof Database }
-  ? Database[DefaultSchemaTableNameOrOptions["schema"]]["Tables"][TableName] extends {
+> = DefaultSchemaTableNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
+}
+  ? DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"][TableName] extends {
       Insert: infer I
     }
     ? I
@@ -1551,14 +1802,16 @@ export type TablesInsert<
 export type TablesUpdate<
   DefaultSchemaTableNameOrOptions extends
     | keyof DefaultSchema["Tables"]
-    | { schema: keyof Database },
+    | { schema: keyof DatabaseWithoutInternals },
   TableName extends DefaultSchemaTableNameOrOptions extends {
-    schema: keyof Database
+    schema: keyof DatabaseWithoutInternals
   }
-    ? keyof Database[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
+    ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
     : never = never,
-> = DefaultSchemaTableNameOrOptions extends { schema: keyof Database }
-  ? Database[DefaultSchemaTableNameOrOptions["schema"]]["Tables"][TableName] extends {
+> = DefaultSchemaTableNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
+}
+  ? DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"][TableName] extends {
       Update: infer U
     }
     ? U
@@ -1574,14 +1827,16 @@ export type TablesUpdate<
 export type Enums<
   DefaultSchemaEnumNameOrOptions extends
     | keyof DefaultSchema["Enums"]
-    | { schema: keyof Database },
+    | { schema: keyof DatabaseWithoutInternals },
   EnumName extends DefaultSchemaEnumNameOrOptions extends {
-    schema: keyof Database
+    schema: keyof DatabaseWithoutInternals
   }
-    ? keyof Database[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"]
+    ? keyof DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"]
     : never = never,
-> = DefaultSchemaEnumNameOrOptions extends { schema: keyof Database }
-  ? Database[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"][EnumName]
+> = DefaultSchemaEnumNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
+}
+  ? DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"][EnumName]
   : DefaultSchemaEnumNameOrOptions extends keyof DefaultSchema["Enums"]
     ? DefaultSchema["Enums"][DefaultSchemaEnumNameOrOptions]
     : never
@@ -1589,14 +1844,16 @@ export type Enums<
 export type CompositeTypes<
   PublicCompositeTypeNameOrOptions extends
     | keyof DefaultSchema["CompositeTypes"]
-    | { schema: keyof Database },
+    | { schema: keyof DatabaseWithoutInternals },
   CompositeTypeName extends PublicCompositeTypeNameOrOptions extends {
-    schema: keyof Database
+    schema: keyof DatabaseWithoutInternals
   }
-    ? keyof Database[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"]
+    ? keyof DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"]
     : never = never,
-> = PublicCompositeTypeNameOrOptions extends { schema: keyof Database }
-  ? Database[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"][CompositeTypeName]
+> = PublicCompositeTypeNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
+}
+  ? DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"][CompositeTypeName]
   : PublicCompositeTypeNameOrOptions extends keyof DefaultSchema["CompositeTypes"]
     ? DefaultSchema["CompositeTypes"][PublicCompositeTypeNameOrOptions]
     : never
