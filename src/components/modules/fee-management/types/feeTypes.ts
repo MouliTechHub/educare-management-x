@@ -52,6 +52,8 @@ export interface StudentFeeRecord {
   discount_updated_by?: string | null;
   discount_updated_at?: string | null;
   discount_percentage?: number | null;
+  is_carry_forward?: boolean;
+  payment_blocked?: boolean;
   student?: {
     id: string;
     first_name: string;
@@ -108,4 +110,20 @@ export interface FilterState {
   has_discount: string;
   payment_status: string;
   search_parent: string;
+}
+
+export interface EnhancedFilterState {
+  search: string;
+  class_id: string;
+  section: string;
+  status: string;
+  fee_type: string;
+  due_date_from: string;
+  due_date_to: string;
+  has_discount: string;
+  payment_status: string;
+  academic_year: string;
+  amount_range: string;
+  is_carry_forward: string;
+  payment_blocked: string;
 }

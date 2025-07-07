@@ -23,7 +23,7 @@ import {
   RefreshCw
 } from "lucide-react";
 
-interface FilterState {
+interface EnhancedFilterState {
   search: string;
   class_id: string;
   section: string;
@@ -46,8 +46,8 @@ interface Class {
 }
 
 interface SuperEnhancedFiltersProps {
-  filters: FilterState;
-  onFiltersChange: (filters: FilterState) => void;
+  filters: EnhancedFilterState;
+  onFiltersChange: (filters: EnhancedFilterState) => void;
   classes: Class[];
   academicYears: Array<{ id: string; year_name: string; is_current: boolean }>;
   feeTypes: string[];
@@ -72,11 +72,11 @@ export function SuperEnhancedFilters({
     return Array.from(sectionSet).sort();
   }, [classes]);
 
-  const updateFilter = (key: keyof FilterState, value: string) => {
+  const updateFilter = (key: keyof EnhancedFilterState, value: string) => {
     onFiltersChange({ ...filters, [key]: value });
   };
 
-  const clearFilter = (key: keyof FilterState) => {
+  const clearFilter = (key: keyof EnhancedFilterState) => {
     updateFilter(key, '');
   };
 
@@ -98,7 +98,7 @@ export function SuperEnhancedFilters({
   const getActiveFilters = () => {
     return Object.entries(filters)
       .filter(([key, value]) => value !== '' && key !== 'search')
-      .map(([key, value]) => ({ key: key as keyof FilterState, value }));
+      .map(([key, value]) => ({ key: key as keyof EnhancedFilterState, value }));
   };
 
   const activeFilters = getActiveFilters();
@@ -144,11 +144,11 @@ export function SuperEnhancedFilters({
         {activeFilters.length > 0 && (
           <div className="flex flex-wrap gap-2">
             {activeFilters.map(({ key, value }) => (
-              <Badge key={key} variant="secondary" className="flex items-center gap-1">
-                <span className="capitalize">{key.replace('_', ' ')}: {value}</span>
+              <Badge key={String(key)} variant="secondary" className="flex items-center gap-1">
+                <span className="capitalize">{String(key).replace('_', ' ')}: {value}</span>
                 <X 
                   className="h-3 w-3 cursor-pointer hover:bg-destructive/20 rounded" 
-                  onClick={() => clearFilter(key)}
+                  onClick={() => clearFilter(key as keyof EnhancedFilterState)}
                 />
               </Badge>
             ))}
