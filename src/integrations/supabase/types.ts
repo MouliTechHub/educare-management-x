@@ -1719,9 +1719,43 @@ export type Database = {
       }
     }
     Functions: {
+      allocate_payment_fifo: {
+        Args: {
+          p_student_id: string
+          p_payment_amount: number
+          p_payment_record_id: string
+          p_academic_year_id: string
+        }
+        Returns: Json
+      }
+      carry_forward_student_fees: {
+        Args: {
+          p_student_id: string
+          p_from_academic_year_id: string
+          p_to_academic_year_id: string
+          p_carry_forward_type?: string
+          p_created_by?: string
+        }
+        Returns: Json
+      }
       check_fee_structure_exists: {
         Args: { target_academic_year_id: string; target_class_id: string }
         Returns: boolean
+      }
+      log_fee_audit: {
+        Args: {
+          p_student_id: string
+          p_fee_record_id: string
+          p_action_type: string
+          p_academic_year_id: string
+          p_performed_by: string
+          p_old_values?: Json
+          p_new_values?: Json
+          p_amount_affected?: number
+          p_notes?: string
+          p_reference_number?: string
+        }
+        Returns: string
       }
       promote_students_with_fees: {
         Args: {
@@ -1730,6 +1764,10 @@ export type Database = {
           promoted_by_user: string
         }
         Returns: Json
+      }
+      update_fee_priorities: {
+        Args: Record<PropertyKey, never>
+        Returns: undefined
       }
     }
     Enums: {
