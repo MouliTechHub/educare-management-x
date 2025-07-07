@@ -2,7 +2,7 @@ import React from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
-import { ChevronDown, ChevronUp, BarChart3, AlertTriangle, Users } from "lucide-react";
+import { ChevronDown, ChevronUp, BarChart3, AlertTriangle, Users, PieChart, Filter } from "lucide-react";
 import { FeeManagementHeader } from "./fee-management/FeeManagementHeader";
 import { EnhancedFeeStats } from "./fee-management/EnhancedFeeStats";
 import { BulkActionsPanel } from "./fee-management/BulkActionsPanel";
@@ -58,6 +58,8 @@ export default function FeeManagement() {
   const [showReports, setShowReports] = React.useState(false);
   const [showBlockedStudents, setShowBlockedStudents] = React.useState(false);
   const [showBulkActions, setShowBulkActions] = React.useState(false);
+  const [showStats, setShowStats] = React.useState(true);
+  const [showFilters, setShowFilters] = React.useState(true);
 
   // Apply filters to fees - ensure we're working with Fee[] type and handle loading state
   const filteredFees: Fee[] = React.useMemo(() => {
@@ -158,7 +160,24 @@ export default function FeeManagement() {
         onRefresh={refetchFees}
       />
 
-      <EnhancedFeeStats fees={filteredFees} filters={filters} />
+      {/* Collapsible Statistics Section */}
+      <Collapsible open={showStats} onOpenChange={setShowStats}>
+        <CollapsibleTrigger asChild>
+          <Button 
+            variant="outline" 
+            className="w-full justify-between h-12 text-left font-medium"
+          >
+            <div className="flex items-center gap-2">
+              <PieChart className="h-4 w-4" />
+              Fee Statistics & Overview
+            </div>
+            {showStats ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+          </Button>
+        </CollapsibleTrigger>
+        <CollapsibleContent className="mt-4">
+          <EnhancedFeeStats fees={filteredFees} filters={filters} />
+        </CollapsibleContent>
+      </Collapsible>
 
       {/* Collapsible Advanced Reports Section */}
       <Collapsible open={showReports} onOpenChange={setShowReports}>
@@ -236,13 +255,30 @@ export default function FeeManagement() {
           <h3 className="text-lg font-semibold">Fee Records</h3>
         </div>
 
-        <EnhancedFilters
-          searchTerm={searchTerm}
-          onSearchChange={setSearchTerm}
-          filters={filters as any}
-          onFiltersChange={setFilters as any}
-          classes={classes}
-        />
+        {/* Collapsible Search & Filters Section */}
+        <Collapsible open={showFilters} onOpenChange={setShowFilters}>
+          <CollapsibleTrigger asChild>
+            <Button 
+              variant="outline" 
+              className="w-full justify-between h-12 text-left font-medium"
+            >
+              <div className="flex items-center gap-2">
+                <Filter className="h-4 w-4" />
+                Search & Filters
+              </div>
+              {showFilters ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+            </Button>
+          </CollapsibleTrigger>
+          <CollapsibleContent className="mt-4">
+            <EnhancedFilters
+              searchTerm={searchTerm}
+              onSearchChange={setSearchTerm}
+              filters={filters as any}
+              onFiltersChange={setFilters as any}
+              classes={classes}
+            />
+          </CollapsibleContent>
+        </Collapsible>
 
         <EnhancedFeeTable
           fees={filteredFees}
