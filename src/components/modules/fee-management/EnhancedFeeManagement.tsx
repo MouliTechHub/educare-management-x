@@ -11,13 +11,16 @@ import {
   History,
   FileText,
   Settings,
-  Plus
+  Plus,
+  CreditCard,
+  Eye
 } from "lucide-react";
 
 // Enhanced Components
 import { FeeSummarySection } from "./FeeSummarySection";
 import { SuperEnhancedFilters } from "./SuperEnhancedFilters";
 import { PaymentHistoryDialog } from "./PaymentHistoryDialog";
+import { PaymentDialog } from "./PaymentDialog";
 import { EnhancedFeeTable } from "./EnhancedFeeTable";
 import { EnhancedFeeStats } from "./EnhancedFeeStats";
 import { BulkActionsPanel } from "./BulkActionsPanel";
@@ -79,6 +82,8 @@ export default function EnhancedFeeManagement() {
   const [paymentHistory, setPaymentHistory] = React.useState([]);
   const [selectedFees, setSelectedFees] = React.useState<Set<string>>(new Set());
   const [activeTab, setActiveTab] = React.useState("overview");
+  const [paymentDialogOpen, setPaymentDialogOpen] = React.useState(false);
+  const [selectedFeeRecord, setSelectedFeeRecord] = React.useState<any>(null);
 
   // Enhanced filters with more options
   const enhancedFilters: EnhancedFilterState = React.useMemo(() => ({
@@ -411,11 +416,39 @@ export default function EnhancedFeeManagement() {
                             {record.fee_type} - ₹{record.actual_fee.toLocaleString()}
                           </p>
                           <p className="text-sm">Balance: ₹{(record.balance_fee || 0).toLocaleString()}</p>
+                          {record.discount_amount > 0 && (
+                            <p className="text-sm text-green-600">
+                              Discount: ₹{record.discount_amount.toLocaleString()}
+                            </p>
+                          )}
                         </div>
-                        <div className="text-right">
+                        <div className="flex items-center gap-2">
                           <Badge variant={record.status === 'Paid' ? 'default' : 'secondary'}>
                             {record.status}
                           </Badge>
+                          <div className="flex gap-1">
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => handleViewPaymentHistory(record.student_id)}
+                              title="View Payment History"
+                            >
+                              <Eye className="h-3 w-3" />
+                            </Button>
+                            {record.balance_fee > 0 && !record.payment_blocked && (
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => {
+                                  setSelectedFeeRecord(record);
+                                  setPaymentDialogOpen(true);
+                                }}
+                                title="Record Payment"
+                              >
+                                <CreditCard className="h-3 w-3" />
+                              </Button>
+                            )}
+                          </div>
                         </div>
                       </div>
                     </div>
@@ -454,6 +487,19 @@ export default function EnhancedFeeManagement() {
         onOpenChange={setPaymentHistoryOpen}
         studentName={selectedStudent ? `${selectedStudent.first_name} ${selectedStudent.last_name}` : ''}
         payments={paymentHistory}
+      />
+
+      {/* Payment Dialog */}
+      <PaymentDialog
+        open={paymentDialogOpen}
+        onOpenChange={setPaymentDialogOpen}
+        fee={selectedFeeRecord}
+        onPaymentRecorded={() => {
+          refetchFees();
+          setPaymentDialogOpen(false);
+          setSelectedFeeRecord(null);
+        }}
+        academicYearName={currentAcademicYear?.year_name}
       />
     </div>
   );

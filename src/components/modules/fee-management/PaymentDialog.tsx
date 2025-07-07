@@ -15,15 +15,17 @@ interface Fee {
   actual_fee: number;
   discount_amount: number;
   paid_amount: number;
+  balance_fee?: number;
   fee_type: string;
   due_date: string;
-  status: 'Pending' | 'Paid' | 'Overdue';
+  status: 'Pending' | 'Paid' | 'Overdue' | 'Partial' | string;
   created_at: string;
   updated_at: string;
-  discount_notes: string | null;
-  discount_updated_by: string | null;
-  discount_updated_at: string | null;
+  discount_notes?: string | null;
+  discount_updated_by?: string | null;
+  discount_updated_at?: string | null;
   academic_year_id: string;
+  payment_blocked?: boolean;
   student?: {
     id: string;
     first_name: string;
