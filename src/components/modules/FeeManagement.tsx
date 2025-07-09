@@ -1,6 +1,7 @@
 import React from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { ChevronDown, ChevronUp, BarChart3, AlertTriangle, Users, PieChart, Filter, Sparkles } from "lucide-react";
@@ -22,6 +23,9 @@ import { usePreviousYearDues } from "./fee-management/hooks/usePreviousYearDues"
 import { BlockedStudentsReport } from "./fee-management/BlockedStudentsReport";
 import { Fee } from "./fee-management/types/feeTypes";
 import EnhancedFeeManagement from "./fee-management/EnhancedFeeManagement";
+import { PreviousYearDuesSummary } from "./fee-management/PreviousYearDuesSummary";
+import { DuesCalculationVerifier } from "./fee-management/DuesCalculationVerifier";
+import { ImprovedPreviousYearDuesCard } from "./fee-management/ImprovedPreviousYearDuesCard";
 
 export default function FeeManagement() {
   const {
@@ -47,7 +51,13 @@ export default function FeeManagement() {
     applyFilters
   } = useFeeManagement();
 
-  const { getStudentDues, hasOutstandingDues, logPaymentBlockage } = usePreviousYearDues(currentAcademicYear?.id || '');
+  const { 
+    getStudentDues, 
+    hasOutstandingDues, 
+    logPaymentBlockage, 
+    previousYearDues, 
+    refetch: refetchDues 
+  } = usePreviousYearDues(currentAcademicYear?.id || '');
 
   const [discountDialogOpen, setDiscountDialogOpen] = React.useState(false);
   const [paymentDialogOpen, setPaymentDialogOpen] = React.useState(false);
@@ -55,6 +65,8 @@ export default function FeeManagement() {
   const [discountHistoryDialogOpen, setDiscountHistoryDialogOpen] = React.useState(false);
   const [selectedFee, setSelectedFee] = React.useState<Fee | null>(null);
   const [selectedFees, setSelectedFees] = React.useState<Set<string>>(new Set());
+  const [calculationIssues, setCalculationIssues] = React.useState<any[]>([]);
+  const [showDuesDetails, setShowDuesDetails] = React.useState(false);
   
   // Toggle states for collapsible sections
   const [showReports, setShowReports] = React.useState(false);
@@ -62,6 +74,8 @@ export default function FeeManagement() {
   const [showBulkActions, setShowBulkActions] = React.useState(false);
   const [showStats, setShowStats] = React.useState(true);
   const [showFilters, setShowFilters] = React.useState(true);
+  const [showDuesManagement, setShowDuesManagement] = React.useState(true);
+  const [showCalculationVerifier, setShowCalculationVerifier] = React.useState(false);
 
   // Apply filters to fees - ensure we're working with Fee[] type and handle loading state
   const filteredFees: Fee[] = React.useMemo(() => {
@@ -125,6 +139,20 @@ export default function FeeManagement() {
     setDiscountHistoryDialogOpen(true);
   };
 
+  const handleSendBulkReminders = () => {
+    // Implementation for bulk reminders
+    console.log('Sending bulk reminders for previous year dues');
+  };
+
+  const handleViewAllDuesDetails = () => {
+    setShowDuesDetails(true);
+  };
+
+  const handleClearStudentDues = (studentId: string) => {
+    console.log('Clearing dues for student:', studentId);
+    // Implementation for clearing dues
+  };
+
   if (loading) {
     return (
       <div className="p-6">
@@ -159,7 +187,10 @@ export default function FeeManagement() {
         academicYears={academicYears}
         currentAcademicYear={currentAcademicYear}
         onYearChange={setCurrentAcademicYear}
-        onRefresh={refetchFees}
+        onRefresh={() => {
+          refetchFees();
+          refetchDues();
+        }}
       />
 
       <Tabs defaultValue="classic" className="w-full">
@@ -172,8 +203,87 @@ export default function FeeManagement() {
         </TabsList>
 
         <TabsContent value="classic" className="space-y-6 mt-6">
+          {/* Enhanced Previous Year Dues Management */}
+          <Collapsible open={showDuesManagement} onOpenChange={setShowDuesManagement}>
+            <CollapsibleTrigger asChild>
+              <Button 
+                variant="outline" 
+                className="w-full justify-between h-12 text-left font-medium border-red-200 bg-red-50 hover:bg-red-100"
+              >
+                <div className="flex items-center gap-2">
+                  <AlertTriangle className="h-4 w-4 text-red-600" />
+                  Previous Year Dues Management
+                  {previousYearDues.length > 0 && (
+                    <Badge variant="destructive" className="ml-2">
+                      {previousYearDues.length} students with dues
+                    </Badge>
+                  )}
+                </div>
+                {showDuesManagement ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+              </Button>
+            </CollapsibleTrigger>
+            <CollapsibleContent className="mt-4">
+              <div className="space-y-4">
+                <PreviousYearDuesSummary
+                  allDues={previousYearDues}
+                  loading={loading}
+                  onRefresh={refetchDues}
+                  onSendBulkReminders={handleSendBulkReminders}
+                  onViewAllDetails={handleViewAllDuesDetails}
+                />
+                
+                {/* Individual Student Dues Cards */}
+                {previousYearDues.length > 0 && (
+                  <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                    {previousYearDues.slice(0, 6).map((dues) => {
+                      const student = fees.find(f => f.student_id === dues.studentId)?.student;
+                      return (
+                        <ImprovedPreviousYearDuesCard
+                          key={dues.studentId}
+                          studentId={dues.studentId}
+                          studentName={student ? `${student.first_name} ${student.last_name}` : 'Unknown Student'}
+                          admissionNumber={student?.admission_number || 'N/A'}
+                          dues={dues}
+                          onViewDetails={() => handleHistoryClick(student)}
+                          onClearDues={() => handleClearStudentDues(dues.studentId)}
+                        />
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            </CollapsibleContent>
+          </Collapsible>
+
+          {/* Calculation Verification */}
+          <Collapsible open={showCalculationVerifier} onOpenChange={setShowCalculationVerifier}>
+            <CollapsibleTrigger asChild>
+              <Button 
+                variant="outline" 
+                className="w-full justify-between h-12 text-left font-medium"
+              >
+                <div className="flex items-center gap-2">
+                  <BarChart3 className="h-4 w-4" />
+                  Calculation Verification & Audit
+                  {calculationIssues.length > 0 && (
+                    <Badge variant="destructive" className="ml-2">
+                      {calculationIssues.length} issues
+                    </Badge>
+                  )}
+                </div>
+                {showCalculationVerifier ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+              </Button>
+            </CollapsibleTrigger>
+            <CollapsibleContent className="mt-4">
+              <DuesCalculationVerifier
+                currentAcademicYearId={currentAcademicYear?.id || ''}
+                onIssuesFound={setCalculationIssues}
+              />
+            </CollapsibleContent>
+          </Collapsible>
+
           {/* Original Content Starts Here */}
-      <Collapsible open={showStats} onOpenChange={setShowStats}>
+          <Collapsible open={showStats} onOpenChange={setShowStats}>
         <CollapsibleTrigger asChild>
           <Button 
             variant="outline" 
