@@ -8,7 +8,7 @@ import { ChevronDown, ChevronUp, BarChart3, AlertTriangle, Users, PieChart, Filt
 import { FeeManagementHeader } from "./fee-management/FeeManagementHeader";
 import { EnhancedFeeStats } from "./fee-management/EnhancedFeeStats";
 import { BulkActionsPanel } from "./fee-management/BulkActionsPanel";
-import { EnhancedFeeTable } from "./fee-management/EnhancedFeeTable";
+import { ConsolidatedFeeTable } from "./fee-management/ConsolidatedFeeTable";
 import { EnhancedFilters } from "./fee-management/EnhancedFilters";
 import { ExportButtons } from "./fee-management/ExportButtons";
 import { DiscountDialog } from "./fee-management/DiscountDialog";
@@ -389,29 +389,15 @@ export default function FeeManagement() {
           </CollapsibleContent>
         </Collapsible>
 
-        <EnhancedFeeTable
+        <ConsolidatedFeeTable
           fees={filteredFees}
           selectedFees={selectedFees}
           onSelectionChange={setSelectedFees}
           onPaymentClick={handlePaymentClick}
           onDiscountClick={handleDiscountClick}
           onHistoryClick={handleHistoryClick}
-          onNotesEdit={async (feeId, notes) => {
-            try {
-              const { error } = await supabase
-                .from('student_fee_records')
-                .update({ discount_notes: notes } as any)
-                .eq('id', feeId);
-                
-              if (error) throw error;
-              refetchFees();
-            } catch (error) {
-              console.error('Error updating notes:', error);
-            }
-          }}
           onReminderClick={handleReminderClick}
           onDiscountHistoryClick={handleDiscountHistoryClick}
-          currentAcademicYear={currentAcademicYear?.id || ''}
         />
       </div>
 
