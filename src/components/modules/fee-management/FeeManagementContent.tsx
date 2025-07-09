@@ -81,9 +81,9 @@ export function FeeManagementContent({
         />
 
         <FeeTable
-          fees={filteredFees}
-          onPaymentClick={onPaymentClick}
-          onDiscountClick={onDiscountClick}
+          fees={filteredFees as any}
+          onPaymentClick={onPaymentClick as any}
+          onDiscountClick={onDiscountClick as any}
           onHistoryClick={onHistoryClick}
         />
       </CardContent>

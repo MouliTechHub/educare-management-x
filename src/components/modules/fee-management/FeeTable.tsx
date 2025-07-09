@@ -1,13 +1,44 @@
 
 import { Table, TableBody, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { FeeTableRow } from "./FeeTableRow";
-import { Fee } from "./types/feeTypes";
+
+interface FeeWithDues {
+  id: string;
+  student_id: string;
+  amount: number;
+  actual_amount: number;
+  discount_amount: number;
+  total_paid: number;
+  fee_type: string;
+  due_date: string;
+  payment_date: string | null;
+  status: 'Pending' | 'Paid' | 'Overdue';
+  receipt_number: string | null;
+  created_at: string;
+  updated_at: string;
+  discount_notes: string | null;
+  discount_updated_by: string | null;
+  discount_updated_at: string | null;
+  academic_year_id: string;
+  previous_year_dues: number;
+  student?: {
+    id: string;
+    first_name: string;
+    last_name: string;
+    admission_number: string;
+    class_name?: string;
+    section?: string;
+    parent_phone?: string;
+    parent_email?: string;
+    class_id?: string;
+  };
+}
 
 interface FeeTableProps {
-  fees: Fee[];
-  onPaymentClick: (fee: Fee) => void;
-  onDiscountClick: (fee: Fee) => void;
-  onHistoryClick: (student: Fee['student']) => void;
+  fees: FeeWithDues[];
+  onPaymentClick: (fee: FeeWithDues) => void;
+  onDiscountClick: (fee: FeeWithDues) => void;
+  onHistoryClick: (student: FeeWithDues['student']) => void;
 }
 
 export function FeeTable({ fees, onPaymentClick, onDiscountClick, onHistoryClick }: FeeTableProps) {
@@ -29,6 +60,7 @@ export function FeeTable({ fees, onPaymentClick, onDiscountClick, onHistoryClick
             <TableHead>Student</TableHead>
             <TableHead>Class</TableHead>
             <TableHead>Fee Type</TableHead>
+            <TableHead>Previous Year Dues</TableHead>
             <TableHead>Actual Fee</TableHead>
             <TableHead>Discount</TableHead>
             <TableHead>Final Fee</TableHead>

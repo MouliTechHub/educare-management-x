@@ -5,11 +5,43 @@ import { Badge } from "@/components/ui/badge";
 import { CreditCard, Percent, History, Calendar } from "lucide-react";
 import { Fee } from "./types/feeTypes";
 
+interface FeeWithDues {
+  id: string;
+  student_id: string;
+  amount: number;
+  actual_amount: number;
+  discount_amount: number;
+  total_paid: number;
+  fee_type: string;
+  due_date: string;
+  payment_date: string | null;
+  status: 'Pending' | 'Paid' | 'Overdue';
+  receipt_number: string | null;
+  created_at: string;
+  updated_at: string;
+  discount_notes: string | null;
+  discount_updated_by: string | null;
+  discount_updated_at: string | null;
+  academic_year_id: string;
+  previous_year_dues: number;
+  student?: {
+    id: string;
+    first_name: string;
+    last_name: string;
+    admission_number: string;
+    class_name?: string;
+    section?: string;
+    parent_phone?: string;
+    parent_email?: string;
+    class_id?: string;
+  };
+}
+
 interface FeeTableRowProps {
-  fee: Fee;
-  onPaymentClick: (fee: Fee) => void;
-  onDiscountClick: (fee: Fee) => void;
-  onHistoryClick: (student: Fee['student']) => void;
+  fee: FeeWithDues;
+  onPaymentClick: (fee: FeeWithDues) => void;
+  onDiscountClick: (fee: FeeWithDues) => void;
+  onHistoryClick: (student: FeeWithDues['student']) => void;
   onChangeHistoryClick: () => void;
   showPaymentActions: boolean;
 }
@@ -22,8 +54,8 @@ export function FeeTableRow({
   onChangeHistoryClick,
   showPaymentActions
 }: FeeTableRowProps) {
-  const finalFee = fee.actual_fee - fee.discount_amount;
-  const balanceAmount = finalFee - fee.paid_amount;
+  const finalFee = fee.actual_amount - fee.discount_amount;
+  const balanceAmount = finalFee - fee.total_paid;
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -52,7 +84,21 @@ export function FeeTableRow({
         {fee.student?.section && ` - ${fee.student.section}`}
       </TableCell>
       <TableCell>{fee.fee_type}</TableCell>
-      <TableCell>₹{fee.actual_fee.toLocaleString()}</TableCell>
+      
+      <TableCell>
+        {fee.previous_year_dues > 0 ? (
+          <div className="text-red-600 font-medium">
+            ₹{fee.previous_year_dues.toLocaleString()}
+            <Badge variant="destructive" className="ml-2 text-xs">
+              Blocked
+            </Badge>
+          </div>
+        ) : (
+          <span className="text-gray-400">₹0</span>
+        )}
+      </TableCell>
+      
+      <TableCell>₹{fee.actual_amount.toLocaleString()}</TableCell>
       <TableCell>
         {fee.discount_amount > 0 ? (
           <span className="text-green-600">₹{fee.discount_amount.toLocaleString()}</span>
@@ -61,7 +107,7 @@ export function FeeTableRow({
         )}
       </TableCell>
       <TableCell className="font-medium">₹{finalFee.toLocaleString()}</TableCell>
-      <TableCell className="text-blue-600">₹{fee.paid_amount.toLocaleString()}</TableCell>
+      <TableCell className="text-blue-600">₹{fee.total_paid.toLocaleString()}</TableCell>
       <TableCell className={balanceAmount > 0 ? 'text-red-600' : 'text-green-600'}>
         ₹{balanceAmount.toLocaleString()}
       </TableCell>

@@ -8,7 +8,7 @@ import { ChevronDown, ChevronUp, BarChart3, AlertTriangle, Users, PieChart, Filt
 import { FeeManagementHeader } from "./fee-management/FeeManagementHeader";
 import { EnhancedFeeStats } from "./fee-management/EnhancedFeeStats";
 import { BulkActionsPanel } from "./fee-management/BulkActionsPanel";
-import { ConsolidatedFeeTable } from "./fee-management/ConsolidatedFeeTable";
+import { FeeTable } from "./fee-management/FeeTable";
 import { EnhancedFilters } from "./fee-management/EnhancedFilters";
 import { ExportButtons } from "./fee-management/ExportButtons";
 import { DiscountDialog } from "./fee-management/DiscountDialog";
@@ -17,6 +17,7 @@ import { ReminderDialog } from "./fee-management/ReminderDialog";
 import { DiscountHistoryDialog } from "./fee-management/DiscountHistoryDialog";
 import { StudentPaymentHistory } from "./student-management/StudentPaymentHistory";
 import { PaymentHistoryErrorBoundary } from "./student-management/PaymentHistoryErrorBoundary";
+import { useFeeRecordsWithDues } from "./fee-management/hooks/useFeeRecordsWithDues";
 import { useFeeData } from "./fee-management/useFeeData";
 import { useFeeManagement } from "./fee-management/useFeeManagement";
 import { usePreviousYearDues } from "./fee-management/hooks/usePreviousYearDues";
@@ -29,13 +30,16 @@ import { PreviousYearDuesConsolidated } from "./fee-management/PreviousYearDuesC
 
 export default function FeeManagement() {
   const {
-    fees,
     academicYears,
     currentAcademicYear,
-    setCurrentAcademicYear,
+    setCurrentAcademicYear
+  } = useFeeData();
+
+  const {
+    fees,
     loading,
     refetchFees
-  } = useFeeData();
+  } = useFeeRecordsWithDues(currentAcademicYear?.id || '');
 
   const {
     classes,
@@ -78,10 +82,10 @@ export default function FeeManagement() {
   const [showCalculationVerifier, setShowCalculationVerifier] = React.useState(false);
 
   // Apply filters to fees - ensure we're working with Fee[] type and handle loading state
-  const filteredFees: Fee[] = React.useMemo(() => {
+  const filteredFees = React.useMemo(() => {
     if (loading || !fees) return [];
     
-    return applyFilters(fees as Fee[]).filter(fee => {
+    return fees.filter(fee => {
       if (!searchTerm) return true;
       
       const searchLower = searchTerm.toLowerCase();
@@ -94,17 +98,17 @@ export default function FeeManagement() {
     });
   }, [loading, fees, searchTerm, applyFilters]);
 
-  const handleDiscountClick = (fee: Fee) => {
-    setSelectedFee(fee);
+  const handleDiscountClick = (fee: any) => {
+    setSelectedFee(fee as Fee);
     setDiscountDialogOpen(true);
   };
 
-  const handlePaymentClick = (fee: Fee) => {
-    setSelectedFee(fee);
+  const handlePaymentClick = (fee: any) => {
+    setSelectedFee(fee as Fee);
     setPaymentDialogOpen(true);
   };
 
-  const handleHistoryClick = (student: Fee['student']) => {
+  const handleHistoryClick = (student: any) => {
     console.log('🔍 History clicked for student:', student);
     
     if (!student) {
@@ -123,7 +127,7 @@ export default function FeeManagement() {
       }
       
       // Open history dialog with comprehensive fee data
-      openHistoryDialog(student, studentFees as Fee[]);
+      openHistoryDialog(student, studentFees as any);
     } catch (error) {
       console.error('❌ Error opening history dialog:', error);
     }
@@ -233,8 +237,8 @@ export default function FeeManagement() {
                 />
                 
                 {/* Consolidated Previous Year Dues Display */}
-                <PreviousYearDuesConsolidated
-                  studentFees={filteredFees}
+                 <PreviousYearDuesConsolidated
+                  studentFees={filteredFees as any}
                   onViewDetails={handleHistoryClick}
                   onMakePayment={handlePaymentClick}
                 />
@@ -284,7 +288,7 @@ export default function FeeManagement() {
           </Button>
         </CollapsibleTrigger>
         <CollapsibleContent className="mt-4">
-          <EnhancedFeeStats fees={filteredFees} filters={filters} />
+          <EnhancedFeeStats fees={filteredFees as any} filters={filters} />
         </CollapsibleContent>
       </Collapsible>
 
@@ -304,7 +308,7 @@ export default function FeeManagement() {
         </CollapsibleTrigger>
         <CollapsibleContent className="mt-4">
           <div className="space-y-4 p-4 border rounded-lg bg-muted/20">
-            <ExportButtons fees={filteredFees} filters={filters} />
+            <ExportButtons fees={filteredFees as any} filters={filters} />
           </div>
         </CollapsibleContent>
       </Collapsible>
@@ -325,7 +329,7 @@ export default function FeeManagement() {
         </CollapsibleTrigger>
         <CollapsibleContent className="mt-4">
           <BlockedStudentsReport 
-            fees={filteredFees}
+            fees={filteredFees as any}
             currentAcademicYear={currentAcademicYear?.id || ''}
           />
         </CollapsibleContent>
@@ -347,7 +351,7 @@ export default function FeeManagement() {
         </CollapsibleTrigger>
         <CollapsibleContent className="mt-4">
           <BulkActionsPanel
-            fees={filteredFees}
+            fees={filteredFees as any}
             selectedFees={selectedFees}
             onSelectionChange={setSelectedFees}
             onRefresh={refetchFees}
@@ -389,15 +393,11 @@ export default function FeeManagement() {
           </CollapsibleContent>
         </Collapsible>
 
-        <ConsolidatedFeeTable
+        <FeeTable
           fees={filteredFees}
-          selectedFees={selectedFees}
-          onSelectionChange={setSelectedFees}
           onPaymentClick={handlePaymentClick}
           onDiscountClick={handleDiscountClick}
           onHistoryClick={handleHistoryClick}
-          onReminderClick={handleReminderClick}
-          onDiscountHistoryClick={handleDiscountHistoryClick}
         />
       </div>
 
@@ -439,7 +439,7 @@ export default function FeeManagement() {
       <ReminderDialog
         open={reminderDialogOpen}
         onOpenChange={setReminderDialogOpen}
-        fees={filteredFees.filter(f => selectedFees.has(f.id))}
+        fees={filteredFees.filter(f => selectedFees.has(f.id)) as any}
         onSuccess={refetchFees}
       />
 
