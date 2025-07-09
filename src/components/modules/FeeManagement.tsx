@@ -25,7 +25,7 @@ import { Fee } from "./fee-management/types/feeTypes";
 import EnhancedFeeManagement from "./fee-management/EnhancedFeeManagement";
 import { PreviousYearDuesSummary } from "./fee-management/PreviousYearDuesSummary";
 import { DuesCalculationVerifier } from "./fee-management/DuesCalculationVerifier";
-import { ImprovedPreviousYearDuesCard } from "./fee-management/ImprovedPreviousYearDuesCard";
+import { PreviousYearDuesConsolidated } from "./fee-management/PreviousYearDuesConsolidated";
 
 export default function FeeManagement() {
   const {
@@ -232,25 +232,12 @@ export default function FeeManagement() {
                   onViewAllDetails={handleViewAllDuesDetails}
                 />
                 
-                {/* Individual Student Dues Cards */}
-                {previousYearDues.length > 0 && (
-                  <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-                    {previousYearDues.slice(0, 6).map((dues) => {
-                      const student = fees.find(f => f.student_id === dues.studentId)?.student;
-                      return (
-                        <ImprovedPreviousYearDuesCard
-                          key={dues.studentId}
-                          studentId={dues.studentId}
-                          studentName={student ? `${student.first_name} ${student.last_name}` : 'Unknown Student'}
-                          admissionNumber={student?.admission_number || 'N/A'}
-                          dues={dues}
-                          onViewDetails={() => handleHistoryClick(student)}
-                          onClearDues={() => handleClearStudentDues(dues.studentId)}
-                        />
-                      );
-                    })}
-                  </div>
-                )}
+                {/* Consolidated Previous Year Dues Display */}
+                <PreviousYearDuesConsolidated
+                  studentFees={filteredFees}
+                  onViewDetails={handleHistoryClick}
+                  onMakePayment={handlePaymentClick}
+                />
               </div>
             </CollapsibleContent>
           </Collapsible>

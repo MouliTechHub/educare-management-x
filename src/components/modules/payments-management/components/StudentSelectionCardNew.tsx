@@ -1,35 +1,52 @@
-
+import React, { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Class, Student, FeeStructure } from "@/types/database";
+import { Class, Student } from "@/types/database";
+import { supabase } from "@/integrations/supabase/client";
+import { Badge } from "@/components/ui/badge";
+import { CalendarDays } from "lucide-react";
 
-interface StudentSelectionCardProps {
+interface StudentSelectionCardNewProps {
   classId: string;
   studentId: string;
-  feeStructureId: string;
+  academicYearId: string;
   classes: Class[];
   students: Student[];
-  feeStructures: FeeStructure[];
   onInputChange: (field: string, value: string) => void;
 }
 
-export function StudentSelectionCard({
+export function StudentSelectionCardNew({
   classId,
   studentId,
-  feeStructureId,
+  academicYearId,
   classes,
   students,
-  feeStructures,
   onInputChange
-}: StudentSelectionCardProps) {
+}: StudentSelectionCardNewProps) {
+  const [currentAcademicYear, setCurrentAcademicYear] = useState<any>(null);
+
   const filteredStudents = classId 
     ? students.filter(s => s.class_id === classId)
     : [];
-  
-  const filteredFeeStructures = classId 
-    ? feeStructures.filter(fs => fs.class_id === classId)
-    : [];
+
+  // Get current academic year on mount
+  useEffect(() => {
+    const getCurrentAcademicYear = async () => {
+      const { data, error } = await supabase
+        .from("academic_years")
+        .select("*")
+        .eq("is_current", true)
+        .single();
+      
+      if (data && !error) {
+        setCurrentAcademicYear(data);
+        // Auto-select current academic year
+        onInputChange('academic_year_id', data.id);
+      }
+    };
+    getCurrentAcademicYear();
+  }, []);
 
   return (
     <Card>
@@ -78,23 +95,20 @@ export function StudentSelectionCard({
         </div>
 
         <div className="space-y-2 md:col-span-2">
-          <Label htmlFor="fee_structure_id">Academic Year *</Label>
-          <Select
-            value={feeStructureId}
-            onValueChange={(value) => onInputChange('fee_structure_id', value)}
-            disabled={!classId}
-          >
-            <SelectTrigger>
-              <SelectValue placeholder={!classId ? "Select class first" : "Current Academic Year (2025-2026)"} />
-            </SelectTrigger>
-            <SelectContent>
-              {filteredFeeStructures.map((structure) => (
-                <SelectItem key={structure.id} value={structure.id}>
-                  {structure.fee_type} - ₹{structure.amount.toLocaleString()} ({structure.frequency})
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+          <Label htmlFor="academic_year_id">Academic Year *</Label>
+          <div className="flex items-center gap-2">
+            <CalendarDays className="h-4 w-4 text-muted-foreground" />
+            {currentAcademicYear ? (
+              <Badge variant="default" className="bg-primary">
+                {currentAcademicYear.year_name} (Current)
+              </Badge>
+            ) : (
+              <span className="text-sm text-muted-foreground">Loading current academic year...</span>
+            )}
+          </div>
+          <p className="text-xs text-muted-foreground">
+            Payments will be allocated automatically to outstanding fees for this academic year
+          </p>
         </div>
       </CardContent>
     </Card>
