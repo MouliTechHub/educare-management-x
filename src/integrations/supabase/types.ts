@@ -580,7 +580,7 @@ export type Database = {
           amount_paid: number
           created_at: string
           created_by: string
-          fee_record_id: string
+          fee_record_id: string | null
           id: string
           late_fee: number | null
           notes: string | null
@@ -595,7 +595,7 @@ export type Database = {
           amount_paid: number
           created_at?: string
           created_by?: string
-          fee_record_id: string
+          fee_record_id?: string | null
           id?: string
           late_fee?: number | null
           notes?: string | null
@@ -610,7 +610,7 @@ export type Database = {
           amount_paid?: number
           created_at?: string
           created_by?: string
-          fee_record_id?: string
+          fee_record_id?: string | null
           id?: string
           late_fee?: number | null
           notes?: string | null
