@@ -17,6 +17,7 @@ import { ReminderDialog } from "./fee-management/ReminderDialog";
 import { DiscountHistoryDialog } from "./fee-management/DiscountHistoryDialog";
 import { StudentPaymentHistory } from "./student-management/StudentPaymentHistory";
 import { PaymentHistoryErrorBoundary } from "./student-management/PaymentHistoryErrorBoundary";
+import { EnhancedPaymentHistoryDialog } from "./fee-management/EnhancedPaymentHistoryDialog";
 import { useFeeRecordsWithDues } from "./fee-management/hooks/useFeeRecordsWithDues";
 import { useFeeData } from "./fee-management/useFeeData";
 import { useFeeManagement } from "./fee-management/useFeeManagement";
@@ -80,6 +81,7 @@ export default function FeeManagement() {
   const [showFilters, setShowFilters] = React.useState(true);
   const [showDuesManagement, setShowDuesManagement] = React.useState(true);
   const [showCalculationVerifier, setShowCalculationVerifier] = React.useState(false);
+  const [showEnhancedHistory, setShowEnhancedHistory] = React.useState(false);
 
   // Apply filters to fees - ensure we're working with Fee[] type and handle loading state
   const filteredFees = React.useMemo(() => {
@@ -109,24 +111,12 @@ export default function FeeManagement() {
   };
 
   const handleHistoryClick = (student: any) => {
-    console.log('🔍 History clicked for student:', student);
+    console.log('📋 Opening enhanced payment history for student:', student);
+    setShowEnhancedHistory(true);
     
-    if (!student) {
-      console.warn('⚠️ No student data provided for history');
-      return;
-    }
-    
+    // Also set for fallback compatibility
     try {
-      // Get all fees for this student across all fee systems
       const studentFees = fees.filter(fee => fee.student_id === student.id);
-      console.log('📊 Student fees found:', studentFees.length);
-      
-      if (studentFees.length === 0) {
-        console.warn('⚠️ No fees found for student:', student.id);
-        // Still open the dialog to show "no records" message
-      }
-      
-      // Open history dialog with comprehensive fee data
       openHistoryDialog(student, studentFees as any);
     } catch (error) {
       console.error('❌ Error opening history dialog:', error);
@@ -451,16 +441,35 @@ export default function FeeManagement() {
         feeType={selectedFee?.fee_type || ''}
       />
 
-      <PaymentHistoryErrorBoundary>
-        <StudentPaymentHistory
-          open={historyDialogOpen}
-          onOpenChange={setHistoryDialogOpen}
-          studentName={selectedStudentName}
-          fees={selectedStudentFees as any}
-          academicYears={academicYears}
-          selectedAcademicYear={currentAcademicYear}
-        />
-      </PaymentHistoryErrorBoundary>
+      <EnhancedPaymentHistoryDialog
+        open={showEnhancedHistory}
+        onOpenChange={(open) => {
+          setShowEnhancedHistory(open);
+          if (!open) {
+            setHistoryDialogOpen(false);
+          }
+        }}
+        student={selectedStudentFees && selectedStudentFees.length > 0 ? {
+          id: selectedStudentFees[0].student_id,
+          first_name: selectedStudentName?.split(' ')[0] || '',
+          last_name: selectedStudentName?.split(' ').slice(1).join(' ') || '',
+          admission_number: selectedStudentFees[0].student?.admission_number || ''
+        } : null}
+        currentAcademicYearId={currentAcademicYear?.id || ''}
+      />
+
+      {!showEnhancedHistory && (
+        <PaymentHistoryErrorBoundary>
+          <StudentPaymentHistory
+            open={historyDialogOpen}
+            onOpenChange={setHistoryDialogOpen}
+            studentName={selectedStudentName}
+            fees={selectedStudentFees as any}
+            academicYears={academicYears}
+            selectedAcademicYear={currentAcademicYear}
+          />
+        </PaymentHistoryErrorBoundary>
+      )}
     </div>
   );
 }
