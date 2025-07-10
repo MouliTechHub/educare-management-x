@@ -39,6 +39,7 @@ export function usePreviousYearDues(currentAcademicYearId: string | any) {
       const { data: feeData, error: feeError } = await supabase
         .from('student_fee_records')
         .select(`
+          id,
           student_id,
           fee_type,
           actual_fee,
@@ -46,11 +47,11 @@ export function usePreviousYearDues(currentAcademicYearId: string | any) {
           paid_amount,
           balance_fee,
           academic_year_id,
+          status,
           academic_years!inner(year_name)
         `)
         .eq('academic_year_id', stableYearId)
         .eq('fee_type', 'Previous Year Dues')
-        .neq('status', 'Paid')
         .gt('balance_fee', 0);
 
       if (feeError) {
@@ -58,7 +59,8 @@ export function usePreviousYearDues(currentAcademicYearId: string | any) {
         throw feeError;
       }
 
-      console.log('✅ Fee data fetched:', feeData?.length || 0, 'records');
+      console.log('✅ Previous Year Dues records fetched:', feeData?.length || 0, 'records');
+      console.log('📊 Fee data details:', feeData);
 
       // Group dues by student
       const studentDuesMap = new Map<string, PreviousYearDues>();
