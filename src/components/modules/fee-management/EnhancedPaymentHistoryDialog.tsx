@@ -51,11 +51,14 @@ export function EnhancedPaymentHistoryDialog({
   const { toast } = useToast();
 
   const fetchEnhancedPaymentHistory = async () => {
-    if (!student?.id || !currentAcademicYearId) return;
+    if (!student?.id || !currentAcademicYearId) {
+      console.log('⚠️ Missing student or academic year for enhanced payment history');
+      return;
+    }
 
     setLoading(true);
     try {
-      console.log('🔍 Fetching enhanced payment history for student:', student.id);
+      console.log('🔍 Fetching enhanced payment history for student:', student.id, 'academic year:', currentAcademicYearId);
 
       // Get all payment allocations for this student
       const { data: allocations, error: allocationsError } = await supabase

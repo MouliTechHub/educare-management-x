@@ -82,6 +82,7 @@ export default function FeeManagement() {
   const [showDuesManagement, setShowDuesManagement] = React.useState(true);
   const [showCalculationVerifier, setShowCalculationVerifier] = React.useState(false);
   const [showEnhancedHistory, setShowEnhancedHistory] = React.useState(false);
+  const [selectedStudentForEnhancedHistory, setSelectedStudentForEnhancedHistory] = React.useState<any>(null);
 
   // Apply filters to fees - ensure we're working with Fee[] type and handle loading state
   const filteredFees = React.useMemo(() => {
@@ -112,6 +113,7 @@ export default function FeeManagement() {
 
   const handleHistoryClick = (student: any) => {
     console.log('📋 Opening enhanced payment history for student:', student);
+    setSelectedStudentForEnhancedHistory(student);
     setShowEnhancedHistory(true);
     
     // Also set for fallback compatibility
@@ -446,14 +448,15 @@ export default function FeeManagement() {
         onOpenChange={(open) => {
           setShowEnhancedHistory(open);
           if (!open) {
+            setSelectedStudentForEnhancedHistory(null);
             setHistoryDialogOpen(false);
           }
         }}
-        student={selectedStudentFees && selectedStudentFees.length > 0 ? {
-          id: selectedStudentFees[0].student_id,
-          first_name: selectedStudentName?.split(' ')[0] || '',
-          last_name: selectedStudentName?.split(' ').slice(1).join(' ') || '',
-          admission_number: selectedStudentFees[0].student?.admission_number || ''
+        student={selectedStudentForEnhancedHistory ? {
+          id: selectedStudentForEnhancedHistory.id,
+          first_name: selectedStudentForEnhancedHistory.first_name,
+          last_name: selectedStudentForEnhancedHistory.last_name,
+          admission_number: selectedStudentForEnhancedHistory.admission_number
         } : null}
         currentAcademicYearId={currentAcademicYear?.id || ''}
       />

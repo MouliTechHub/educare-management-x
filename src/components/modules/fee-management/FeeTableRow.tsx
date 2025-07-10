@@ -143,9 +143,17 @@ export function FeeTableRow({
             variant="outline"
             size="sm"
             onClick={() => onHistoryClick(fee.student)}
-            title="View payment history"
+            title="View enhanced payment history"
           >
             <History className="w-3 h-3" />
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => onChangeHistoryClick()}
+            title="View change history"
+          >
+            <Calendar className="w-3 h-3" />
           </Button>
         </div>
       </TableCell>
