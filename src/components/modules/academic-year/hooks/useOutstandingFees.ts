@@ -49,8 +49,8 @@ export function useOutstandingFees(currentAcademicYearId: string) {
 
       const yearMap = new Map(academicYears?.map(year => [year.id, year.year_name]) || []);
 
-      // Get all outstanding fees from ALL years except the target year
-      // This includes current year fees and previous year dues
+      // Get outstanding fees ONLY from the year being promoted FROM (current academic year)
+      // This avoids double counting - Previous Year Dues are already carried forward amounts
       const { data: feeData, error: feeError } = await supabase
         .from('student_fee_records')
         .select(`
@@ -67,6 +67,7 @@ export function useOutstandingFees(currentAcademicYearId: string) {
             admission_number
           )
         `)
+        .eq('academic_year_id', currentAcademicYearId) // Only current year fees
         .neq('status', 'Paid')
         .gt('balance_fee', 0);
 
