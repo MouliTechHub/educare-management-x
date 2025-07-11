@@ -61,6 +61,13 @@ export function EnhancedStudentPromotionDialog({
     }
   }, [open, targetAcademicYear.id]);
 
+  // Auto-refresh outstanding fees when step changes to 'outstanding'
+  useEffect(() => {
+    if (currentStep === 'outstanding' && open) {
+      refetchOutstandingFees();
+    }
+  }, [currentStep, open]);
+
   const checkSequentialYear = () => {
     // Sort academic years by start date
     const sortedYears = [...allAcademicYears].sort((a, b) => 

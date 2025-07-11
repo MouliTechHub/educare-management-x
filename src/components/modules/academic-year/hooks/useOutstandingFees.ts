@@ -168,6 +168,15 @@ export function useOutstandingFees(currentAcademicYearId: string) {
     fetchOutstandingFees();
   }, [currentAcademicYearId]);
 
+  // Auto-refresh every 30 seconds to catch payment updates
+  useEffect(() => {
+    const interval = setInterval(() => {
+      fetchOutstandingFees();
+    }, 30000);
+
+    return () => clearInterval(interval);
+  }, [currentAcademicYearId]);
+
   return {
     outstandingFees,
     loading,
