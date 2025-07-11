@@ -49,24 +49,8 @@ export function useOutstandingFees(currentAcademicYearId: string) {
 
       const yearMap = new Map(academicYears?.map(year => [year.id, year.year_name]) || []);
 
-      // First, get all students who already have "Previous Year Dues" in the current academic year
-      // These students have already had their previous year fees carried forward
-      const { data: carriedForwardStudents, error: carriedError } = await supabase
-        .from('student_fee_records')
-        .select('student_id')
-        .eq('academic_year_id', currentAcademicYearId)
-        .eq('fee_type', 'Previous Year Dues');
-
-      if (carriedError) throw carriedError;
-
-      const carriedForwardStudentIds = new Set(
-        carriedForwardStudents?.map(record => record.student_id) || []
-      );
-
-      console.log('🔄 Students with already carried forward fees:', carriedForwardStudentIds.size);
-
-      // Fetch outstanding fees from previous years only (not current year)
-      // Exclude students who already have "Previous Year Dues" records
+      // Get all outstanding fees from previous years (not current year)
+      // This includes fees that haven't been carried forward yet
       const { data: feeData, error: feeError } = await supabase
         .from('student_fee_records')
         .select(`
@@ -92,18 +76,34 @@ export function useOutstandingFees(currentAcademicYearId: string) {
 
       console.log('📊 Total fees with outstanding balances:', feeData?.length || 0);
 
-      // Group by student
+      // Get students who already have "Previous Year Dues" in the target academic year
+      // We'll check their existing carried forward amount vs their actual outstanding amount
+      const { data: carriedForwardData, error: carriedError } = await supabase
+        .from('student_fee_records')
+        .select('student_id, actual_fee, paid_amount, balance_fee')
+        .eq('academic_year_id', currentAcademicYearId)
+        .eq('fee_type', 'Previous Year Dues');
+
+      if (carriedError) throw carriedError;
+
+      const carriedForwardMap = new Map(
+        carriedForwardData?.map(record => [
+          record.student_id, 
+          {
+            carriedAmount: record.actual_fee,
+            paidAmount: record.paid_amount,
+            balanceAmount: record.balance_fee
+          }
+        ]) || []
+      );
+
+      console.log('🔄 Students with already carried forward fees:', carriedForwardMap.size);
+
+      // Group by student and calculate the ACTUAL outstanding amount vs what's already carried forward
       const studentOutstandingMap = new Map<string, OutstandingFee>();
 
       (feeData || []).forEach((fee: any) => {
         const studentId = fee.student_id;
-        
-        // Skip students who already have "Previous Year Dues" in the current academic year
-        if (carriedForwardStudentIds.has(studentId)) {
-          console.log(`⏭️ Skipping student ${studentId} - already has carried forward dues`);
-          return;
-        }
-        
         const balanceAmount = fee.balance_fee || (fee.actual_fee - fee.discount_amount - fee.paid_amount);
         
         if (balanceAmount <= 0) return; // Skip if fully paid
@@ -130,12 +130,41 @@ export function useOutstandingFees(currentAcademicYearId: string) {
         });
       });
 
-      const outstandingStudents = Array.from(studentOutstandingMap.values());
+      // Now check for students who already have "Previous Year Dues" carried forward
+      // If their actual outstanding amount is GREATER than what was carried forward, show the difference
+      const finalOutstandingStudents: OutstandingFee[] = [];
       
-      console.log('✅ Students with outstanding fees:', outstandingStudents.length);
-      console.log('📋 Outstanding students details:', outstandingStudents);
+      for (const [studentId, outstandingData] of studentOutstandingMap.entries()) {
+        const carriedForwardData = carriedForwardMap.get(studentId);
+        
+        if (carriedForwardData) {
+          // Student has Previous Year Dues already carried forward
+          const actualOutstanding = outstandingData.totalOutstanding;
+          const carriedAmount = carriedForwardData.carriedAmount;
+          const additionalOutstanding = actualOutstanding - carriedAmount;
+          
+          console.log(`🔍 Student ${studentId}: Actual Outstanding: ₹${actualOutstanding}, Carried: ₹${carriedAmount}, Additional: ₹${additionalOutstanding}`);
+          
+          if (additionalOutstanding > 0) {
+            // There are additional outstanding fees beyond what was carried forward
+            outstandingData.totalOutstanding = additionalOutstanding;
+            outstandingData.feeDetails = outstandingData.feeDetails.map(detail => ({
+              ...detail,
+              balanceAmount: detail.balanceAmount * (additionalOutstanding / actualOutstanding)
+            }));
+            finalOutstandingStudents.push(outstandingData);
+          }
+          // If additionalOutstanding <= 0, don't show the student (already handled)
+        } else {
+          // Student doesn't have Previous Year Dues carried forward yet, show all outstanding
+          finalOutstandingStudents.push(outstandingData);
+        }
+      }
 
-      setOutstandingFees(outstandingStudents);
+      console.log('✅ Students with outstanding fees:', finalOutstandingStudents.length);
+      console.log('📋 Outstanding students details:', finalOutstandingStudents);
+
+      setOutstandingFees(finalOutstandingStudents);
     } catch (error: any) {
       console.error('❌ Error fetching outstanding fees:', error);
       toast({
