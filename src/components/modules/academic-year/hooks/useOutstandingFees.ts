@@ -49,8 +49,8 @@ export function useOutstandingFees(currentAcademicYearId: string) {
 
       const yearMap = new Map(academicYears?.map(year => [year.id, year.year_name]) || []);
 
-      // Get all outstanding fees from previous years (not current year)
-      // This includes fees that haven't been carried forward yet
+      // Get all outstanding fees from the year being promoted FROM (not target year)
+      // This includes ALL outstanding fees regardless of type
       const { data: feeData, error: feeError } = await supabase
         .from('student_fee_records')
         .select(`
@@ -69,37 +69,13 @@ export function useOutstandingFees(currentAcademicYearId: string) {
         `)
         .neq('status', 'Paid')
         .gt('balance_fee', 0)
-        .neq('academic_year_id', currentAcademicYearId)
-        .neq('fee_type', 'Previous Year Dues'); // Exclude already carried forward dues
+        .neq('academic_year_id', currentAcademicYearId); // Get fees from the year being promoted FROM
 
       if (feeError) throw feeError;
 
       console.log('📊 Total fees with outstanding balances:', feeData?.length || 0);
 
-      // Get students who already have "Previous Year Dues" in the target academic year
-      // We'll check their existing carried forward amount vs their actual outstanding amount
-      const { data: carriedForwardData, error: carriedError } = await supabase
-        .from('student_fee_records')
-        .select('student_id, actual_fee, paid_amount, balance_fee')
-        .eq('academic_year_id', currentAcademicYearId)
-        .eq('fee_type', 'Previous Year Dues');
-
-      if (carriedError) throw carriedError;
-
-      const carriedForwardMap = new Map(
-        carriedForwardData?.map(record => [
-          record.student_id, 
-          {
-            carriedAmount: record.actual_fee,
-            paidAmount: record.paid_amount,
-            balanceAmount: record.balance_fee
-          }
-        ]) || []
-      );
-
-      console.log('🔄 Students with already carried forward fees:', carriedForwardMap.size);
-
-      // Group by student and calculate the ACTUAL outstanding amount vs what's already carried forward
+      // Group by student and calculate total outstanding amounts
       const studentOutstandingMap = new Map<string, OutstandingFee>();
 
       (feeData || []).forEach((fee: any) => {
@@ -130,36 +106,8 @@ export function useOutstandingFees(currentAcademicYearId: string) {
         });
       });
 
-      // Now check for students who already have "Previous Year Dues" carried forward
-      // If their actual outstanding amount is GREATER than what was carried forward, show the difference
-      const finalOutstandingStudents: OutstandingFee[] = [];
-      
-      for (const [studentId, outstandingData] of studentOutstandingMap.entries()) {
-        const carriedForwardData = carriedForwardMap.get(studentId);
-        
-        if (carriedForwardData) {
-          // Student has Previous Year Dues already carried forward
-          const actualOutstanding = outstandingData.totalOutstanding;
-          const carriedAmount = carriedForwardData.carriedAmount;
-          const additionalOutstanding = actualOutstanding - carriedAmount;
-          
-          console.log(`🔍 Student ${studentId}: Actual Outstanding: ₹${actualOutstanding}, Carried: ₹${carriedAmount}, Additional: ₹${additionalOutstanding}`);
-          
-          if (additionalOutstanding > 0) {
-            // There are additional outstanding fees beyond what was carried forward
-            outstandingData.totalOutstanding = additionalOutstanding;
-            outstandingData.feeDetails = outstandingData.feeDetails.map(detail => ({
-              ...detail,
-              balanceAmount: detail.balanceAmount * (additionalOutstanding / actualOutstanding)
-            }));
-            finalOutstandingStudents.push(outstandingData);
-          }
-          // If additionalOutstanding <= 0, don't show the student (already handled)
-        } else {
-          // Student doesn't have Previous Year Dues carried forward yet, show all outstanding
-          finalOutstandingStudents.push(outstandingData);
-        }
-      }
+      // Convert map to array - show ALL students with outstanding fees
+      const finalOutstandingStudents = Array.from(studentOutstandingMap.values());
 
       console.log('✅ Students with outstanding fees:', finalOutstandingStudents.length);
       console.log('📋 Outstanding students details:', finalOutstandingStudents);
