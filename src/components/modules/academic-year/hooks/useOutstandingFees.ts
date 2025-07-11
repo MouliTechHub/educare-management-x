@@ -49,9 +49,24 @@ export function useOutstandingFees(currentAcademicYearId: string) {
 
       const yearMap = new Map(academicYears?.map(year => [year.id, year.year_name]) || []);
 
+      // First, get all students who already have "Previous Year Dues" in the current academic year
+      // These students have already had their previous year fees carried forward
+      const { data: carriedForwardStudents, error: carriedError } = await supabase
+        .from('student_fee_records')
+        .select('student_id')
+        .eq('academic_year_id', currentAcademicYearId)
+        .eq('fee_type', 'Previous Year Dues');
+
+      if (carriedError) throw carriedError;
+
+      const carriedForwardStudentIds = new Set(
+        carriedForwardStudents?.map(record => record.student_id) || []
+      );
+
+      console.log('🔄 Students with already carried forward fees:', carriedForwardStudentIds.size);
+
       // Fetch outstanding fees from previous years only (not current year)
-      // Current year fees with outstanding balances should be shown separately
-      // We exclude fees that have already been carried forward as "Previous Year Dues"
+      // Exclude students who already have "Previous Year Dues" records
       const { data: feeData, error: feeError } = await supabase
         .from('student_fee_records')
         .select(`
@@ -82,6 +97,13 @@ export function useOutstandingFees(currentAcademicYearId: string) {
 
       (feeData || []).forEach((fee: any) => {
         const studentId = fee.student_id;
+        
+        // Skip students who already have "Previous Year Dues" in the current academic year
+        if (carriedForwardStudentIds.has(studentId)) {
+          console.log(`⏭️ Skipping student ${studentId} - already has carried forward dues`);
+          return;
+        }
+        
         const balanceAmount = fee.balance_fee || (fee.actual_fee - fee.discount_amount - fee.paid_amount);
         
         if (balanceAmount <= 0) return; // Skip if fully paid
