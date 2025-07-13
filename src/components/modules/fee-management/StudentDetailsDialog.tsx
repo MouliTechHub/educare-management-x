@@ -113,8 +113,8 @@ export function StudentDetailsDialog({
         .select(`
           *,
           classes!inner(name, section),
-          student_parent_links!inner(
-            parents!inner(
+          student_parent_links(
+            parents(
               first_name,
               last_name,
               phone_number,
@@ -123,9 +123,13 @@ export function StudentDetailsDialog({
           )
         `)
         .eq('id', studentId)
-        .single();
+        .maybeSingle();
 
       if (studentError) throw studentError;
+      
+      if (!student) {
+        throw new Error('Student not found');
+      }
 
       // Transform student data
       const transformedStudent: StudentDetails = {
