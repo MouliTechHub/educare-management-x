@@ -43,6 +43,7 @@ interface FeeTableRowProps {
   onDiscountClick: (fee: FeeWithDues) => void;
   onHistoryClick: (student: FeeWithDues['student']) => void;
   onChangeHistoryClick: () => void;
+  onStudentClick: (studentId: string) => void;
   showPaymentActions: boolean;
 }
 
@@ -52,6 +53,7 @@ export function FeeTableRow({
   onDiscountClick,
   onHistoryClick,
   onChangeHistoryClick,
+  onStudentClick,
   showPaymentActions
 }: FeeTableRowProps) {
   const finalFee = fee.actual_amount - fee.discount_amount;
@@ -71,12 +73,17 @@ export function FeeTableRow({
     <TableRow>
       <TableCell>
         <div>
-          <div className="font-medium">
-            {fee.student?.first_name} {fee.student?.last_name}
-          </div>
-          <div className="text-sm text-gray-500">
-            {fee.student?.admission_number}
-          </div>
+          <button
+            onClick={() => fee.student?.id && onStudentClick(fee.student.id)}
+            className="text-left hover:text-primary transition-colors"
+          >
+            <div className="font-medium hover:underline">
+              {fee.student?.first_name} {fee.student?.last_name}
+            </div>
+            <div className="text-sm text-gray-500">
+              {fee.student?.admission_number}
+            </div>
+          </button>
         </div>
       </TableCell>
       <TableCell>

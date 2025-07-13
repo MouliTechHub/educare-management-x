@@ -16,6 +16,7 @@ interface FeeManagementContentProps {
   onPaymentClick: (fee: Fee) => void;
   onDiscountClick: (fee: Fee) => void;
   onHistoryClick: (student: Fee['student']) => void;
+  onStudentClick: (studentId: string) => void;
 }
 
 export function FeeManagementContent({
@@ -28,7 +29,8 @@ export function FeeManagementContent({
   filteredFees,
   onPaymentClick,
   onDiscountClick,
-  onHistoryClick
+  onHistoryClick,
+  onStudentClick
 }: FeeManagementContentProps) {
   console.log('FeeManagementContent rendering with:', {
     currentYear: currentYear?.year_name,
@@ -85,6 +87,7 @@ export function FeeManagementContent({
           onPaymentClick={onPaymentClick as any}
           onDiscountClick={onDiscountClick as any}
           onHistoryClick={onHistoryClick}
+          onStudentClick={onStudentClick}
         />
       </CardContent>
     </Card>

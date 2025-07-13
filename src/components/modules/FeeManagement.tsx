@@ -18,6 +18,7 @@ import { DiscountHistoryDialog } from "./fee-management/DiscountHistoryDialog";
 import { StudentPaymentHistory } from "./student-management/StudentPaymentHistory";
 import { PaymentHistoryErrorBoundary } from "./student-management/PaymentHistoryErrorBoundary";
 import { EnhancedPaymentHistoryDialog } from "./fee-management/EnhancedPaymentHistoryDialog";
+import { StudentDetailsDialog } from "./fee-management/StudentDetailsDialog";
 import { useFeeRecordsWithDues } from "./fee-management/hooks/useFeeRecordsWithDues";
 import { useFeeData } from "./fee-management/useFeeData";
 import { useFeeManagement } from "./fee-management/useFeeManagement";
@@ -83,6 +84,8 @@ export default function FeeManagement() {
   const [showCalculationVerifier, setShowCalculationVerifier] = React.useState(false);
   const [showEnhancedHistory, setShowEnhancedHistory] = React.useState(false);
   const [selectedStudentForEnhancedHistory, setSelectedStudentForEnhancedHistory] = React.useState<any>(null);
+  const [studentDetailsDialogOpen, setStudentDetailsDialogOpen] = React.useState(false);
+  const [selectedStudentId, setSelectedStudentId] = React.useState<string | null>(null);
 
   // Apply filters to fees - ensure we're working with Fee[] type and handle loading state
   const filteredFees = React.useMemo(() => {
@@ -109,6 +112,11 @@ export default function FeeManagement() {
   const handlePaymentClick = (fee: any) => {
     setSelectedFee(fee as Fee);
     setPaymentDialogOpen(true);
+  };
+
+  const handleStudentClick = (studentId: string) => {
+    setSelectedStudentId(studentId);
+    setStudentDetailsDialogOpen(true);
   };
 
   const handleHistoryClick = (student: any) => {
@@ -390,6 +398,7 @@ export default function FeeManagement() {
           onPaymentClick={handlePaymentClick}
           onDiscountClick={handleDiscountClick}
           onHistoryClick={handleHistoryClick}
+          onStudentClick={handleStudentClick}
         />
       </div>
 
@@ -473,6 +482,12 @@ export default function FeeManagement() {
           />
         </PaymentHistoryErrorBoundary>
       )}
+
+      <StudentDetailsDialog
+        open={studentDetailsDialogOpen}
+        onOpenChange={setStudentDetailsDialogOpen}
+        studentId={selectedStudentId}
+      />
     </div>
   );
 }
