@@ -168,6 +168,17 @@ export function useFeeData() {
     setLoading(isLoading);
   }, [academicYearsLoading, feesLoading]);
 
+  // Listen for payment events to trigger immediate refresh
+  useEffect(() => {
+    const handlePaymentRecorded = () => {
+      console.log('🔄 Payment recorded event received, refreshing fee data...');
+      refetchFees();
+    };
+
+    window.addEventListener('payment-recorded', handlePaymentRecorded);
+    return () => window.removeEventListener('payment-recorded', handlePaymentRecorded);
+  }, [refetchFees]);
+
   if (yearError) {
     console.error('❌ Academic year error:', yearError);
   }

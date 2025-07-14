@@ -195,6 +195,17 @@ export function useFeeRecordsWithDues(currentAcademicYear: string) {
     };
   }, [currentAcademicYear]);
 
+  // Listen for payment events to trigger immediate refresh
+  useEffect(() => {
+    const handlePaymentRecorded = () => {
+      console.log('🔄 Payment recorded event received, refreshing fees with dues...');
+      fetchFeesWithDues();
+    };
+
+    window.addEventListener('payment-recorded', handlePaymentRecorded);
+    return () => window.removeEventListener('payment-recorded', handlePaymentRecorded);
+  }, []);
+
   const refetchFees = () => {
     console.log('🔄 Manually refreshing fees with dues...');
     fetchFeesWithDues();

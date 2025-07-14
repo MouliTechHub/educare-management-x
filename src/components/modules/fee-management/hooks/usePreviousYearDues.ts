@@ -173,6 +173,17 @@ export function usePreviousYearDues(currentAcademicYearId: string | any) {
     };
   }, [stableYearId]);
 
+  // Listen for payment events to trigger immediate refresh
+  useEffect(() => {
+    const handlePaymentRecorded = () => {
+      console.log('🔄 Payment recorded event received, refreshing previous year dues...');
+      fetchPreviousYearDues();
+    };
+
+    window.addEventListener('payment-recorded', handlePaymentRecorded);
+    return () => window.removeEventListener('payment-recorded', handlePaymentRecorded);
+  }, []);
+
   return {
     previousYearDues: Array.from(previousYearDues.values()),
     getStudentDues,

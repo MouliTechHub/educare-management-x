@@ -131,9 +131,19 @@ export function PaymentForm({ classes, students, feeStructures, onSubmit, onCanc
 
       console.log('✅ Payment recording completed successfully');
 
-      // Invalidate fee management cache to show updated payment
+      // Force immediate refresh of all fee management data
       queryClient.invalidateQueries({ queryKey: ['student-fee-records'] });
       queryClient.invalidateQueries({ queryKey: ['fee-payment-records'] });
+      queryClient.invalidateQueries({ queryKey: ['previous-year-dues'] });
+      
+      // Dispatch a custom event to trigger immediate refresh across all components
+      window.dispatchEvent(new CustomEvent('payment-recorded', { 
+        detail: { 
+          studentId: formData.student_id, 
+          academicYearId: formData.academic_year_id,
+          amount: amountPaid 
+        } 
+      }));
 
       // Show success message
       toast({
