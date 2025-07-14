@@ -25,28 +25,34 @@ export function StudentSelectionCardNew({
   onInputChange
 }: StudentSelectionCardNewProps) {
   const [currentAcademicYear, setCurrentAcademicYear] = useState<any>(null);
+  const [academicYears, setAcademicYears] = useState<any[]>([]);
 
   const filteredStudents = classId 
     ? students.filter(s => s.class_id === classId)
     : [];
 
-  // Get current academic year on mount
+  // Get all academic years and current one on mount
   useEffect(() => {
-    const getCurrentAcademicYear = async () => {
+    const getAcademicYears = async () => {
       const { data, error } = await supabase
         .from("academic_years")
         .select("*")
-        .eq("is_current", true)
-        .single();
+        .order("start_date", { ascending: false });
       
       if (data && !error) {
-        setCurrentAcademicYear(data);
-        // Auto-select current academic year
-        onInputChange('academic_year_id', data.id);
+        setAcademicYears(data);
+        const current = data.find(year => year.is_current);
+        if (current) {
+          setCurrentAcademicYear(current);
+          // Auto-select current academic year if none selected
+          if (!academicYearId) {
+            onInputChange('academic_year_id', current.id);
+          }
+        }
       }
     };
-    getCurrentAcademicYear();
-  }, []);
+    getAcademicYears();
+  }, [academicYearId]);
 
   return (
     <Card>
@@ -96,18 +102,31 @@ export function StudentSelectionCardNew({
 
         <div className="space-y-2 md:col-span-2">
           <Label htmlFor="academic_year_id">Academic Year *</Label>
-          <div className="flex items-center gap-2">
-            <CalendarDays className="h-4 w-4 text-muted-foreground" />
-            {currentAcademicYear ? (
-              <Badge variant="default" className="bg-primary">
-                {currentAcademicYear.year_name} (Current)
-              </Badge>
-            ) : (
-              <span className="text-sm text-muted-foreground">Loading current academic year...</span>
-            )}
-          </div>
+          <Select
+            value={academicYearId}
+            onValueChange={(value) => onInputChange('academic_year_id', value)}
+          >
+            <SelectTrigger>
+              <SelectValue placeholder="Select academic year" />
+            </SelectTrigger>
+            <SelectContent>
+              {academicYears.map((year) => (
+                <SelectItem key={year.id} value={year.id}>
+                  <div className="flex items-center gap-2">
+                    <CalendarDays className="h-4 w-4" />
+                    {year.year_name}
+                    {year.is_current && (
+                      <Badge variant="default" className="text-xs">
+                        Current
+                      </Badge>
+                    )}
+                  </div>
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
           <p className="text-xs text-muted-foreground">
-            Payments will be allocated automatically to outstanding fees for this academic year
+            Payments will be allocated automatically to outstanding fees for the selected academic year
           </p>
         </div>
       </CardContent>
