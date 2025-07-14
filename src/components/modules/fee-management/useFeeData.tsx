@@ -119,8 +119,10 @@ export function useFeeData() {
   useEffect(() => {
     if (!stableAcademicYearId) return;
 
+    console.log('🔗 Setting up realtime subscription for fee data...');
+    
     const channel = supabase
-      .channel('fee-records-changes')
+      .channel(`fee-data-${stableAcademicYearId}`)
       .on(
         'postgres_changes',
         {
@@ -130,28 +132,31 @@ export function useFeeData() {
           filter: `academic_year_id=eq.${stableAcademicYearId}`
         },
         (payload) => {
-          console.log('🔄 Real-time update received for fee records:', payload);
+          console.log('🔄 Real-time update received for fee records:', payload.eventType);
           refetchFees();
         }
       )
       .on(
         'postgres_changes',
         {
-          event: '*',
+          event: 'INSERT',
           schema: 'public',
           table: 'fee_payment_records'
         },
         (payload) => {
-          console.log('💰 Payment update received:', payload);
+          console.log('💰 Payment update received:', payload.eventType);
           refetchFees();
         }
       )
-      .subscribe();
+      .subscribe((status) => {
+        console.log('📡 Fee data subscription status:', status);
+      });
 
     return () => {
+      console.log('🔌 Cleaning up fee data subscription...');
       supabase.removeChannel(channel);
     };
-  }, [stableAcademicYearId, refetchFees]);
+  }, [stableAcademicYearId]); // Only depend on stable academic year ID
 
   // Set current academic year when academic years are loaded (only once)
   useEffect(() => {
