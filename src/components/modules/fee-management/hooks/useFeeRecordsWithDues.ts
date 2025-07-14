@@ -157,6 +157,44 @@ export function useFeeRecordsWithDues(currentAcademicYear: string) {
     }
   }, [currentAcademicYear]);
 
+  // Set up real-time subscription for fee record updates
+  useEffect(() => {
+    if (!currentAcademicYear) return;
+
+    const channel = supabase
+      .channel('fees-with-dues-changes')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'student_fee_records',
+          filter: `academic_year_id=eq.${currentAcademicYear}`
+        },
+        (payload) => {
+          console.log('🔄 Real-time update for fees with dues:', payload);
+          fetchFeesWithDues();
+        }
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'fee_payment_records'
+        },
+        (payload) => {
+          console.log('💰 Payment update affecting fees with dues:', payload);
+          fetchFeesWithDues();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [currentAcademicYear]);
+
   const refetchFees = () => {
     console.log('🔄 Manually refreshing fees with dues...');
     fetchFeesWithDues();

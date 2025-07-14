@@ -110,9 +110,48 @@ export function useFeeData() {
       return transformedFees;
     },
     enabled: !!stableAcademicYearId,
-    staleTime: 30 * 1000, // 30 seconds
-    gcTime: 5 * 60 * 1000, // 5 minutes
+    staleTime: 0, // Disable stale time to ensure fresh data after payments
+    gcTime: 2 * 60 * 1000, // 2 minutes
+    refetchOnWindowFocus: true, // Refetch when window gains focus
   });
+
+  // Set up real-time subscription for fee record updates
+  useEffect(() => {
+    if (!stableAcademicYearId) return;
+
+    const channel = supabase
+      .channel('fee-records-changes')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'student_fee_records',
+          filter: `academic_year_id=eq.${stableAcademicYearId}`
+        },
+        (payload) => {
+          console.log('🔄 Real-time update received for fee records:', payload);
+          refetchFees();
+        }
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'fee_payment_records'
+        },
+        (payload) => {
+          console.log('💰 Payment update received:', payload);
+          refetchFees();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [stableAcademicYearId, refetchFees]);
 
   // Set current academic year when academic years are loaded (only once)
   useEffect(() => {

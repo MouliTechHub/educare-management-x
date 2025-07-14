@@ -135,6 +135,44 @@ export function usePreviousYearDues(currentAcademicYearId: string | any) {
     }
   }, [stableYearId]);
 
+  // Set up real-time subscription for fee record updates
+  useEffect(() => {
+    if (!stableYearId) return;
+
+    const channel = supabase
+      .channel('previous-year-dues-changes')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'student_fee_records',
+          filter: `academic_year_id=eq.${stableYearId}`
+        },
+        (payload) => {
+          console.log('🔄 Real-time update for previous year dues:', payload);
+          fetchPreviousYearDues();
+        }
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'fee_payment_records'
+        },
+        (payload) => {
+          console.log('💰 Payment update affecting previous year dues:', payload);
+          fetchPreviousYearDues();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [stableYearId]);
+
   return {
     previousYearDues: Array.from(previousYearDues.values()),
     getStudentDues,
