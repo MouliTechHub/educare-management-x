@@ -110,53 +110,22 @@ export function useFeeData() {
       return transformedFees;
     },
     enabled: !!stableAcademicYearId,
-    staleTime: 0, // Disable stale time to ensure fresh data after payments
-    gcTime: 2 * 60 * 1000, // 2 minutes
-    refetchOnWindowFocus: true, // Refetch when window gains focus
+    staleTime: 0, // Always consider data stale to ensure fresh data
+    gcTime: 60 * 1000, // 1 minute cache
+    refetchOnWindowFocus: true,
+    refetchInterval: 30 * 1000, // Refetch every 30 seconds
   });
 
-  // Set up real-time subscription for fee record updates
+  // Listen for payment events to trigger immediate refresh
   useEffect(() => {
-    if (!stableAcademicYearId) return;
-
-    console.log('🔗 Setting up realtime subscription for fee data...');
-    
-    const channel = supabase
-      .channel(`fee-data-${stableAcademicYearId}`)
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'student_fee_records',
-          filter: `academic_year_id=eq.${stableAcademicYearId}`
-        },
-        (payload) => {
-          console.log('🔄 Real-time update received for fee records:', payload.eventType);
-          refetchFees();
-        }
-      )
-      .on(
-        'postgres_changes',
-        {
-          event: 'INSERT',
-          schema: 'public',
-          table: 'fee_payment_records'
-        },
-        (payload) => {
-          console.log('💰 Payment update received:', payload.eventType);
-          refetchFees();
-        }
-      )
-      .subscribe((status) => {
-        console.log('📡 Fee data subscription status:', status);
-      });
-
-    return () => {
-      console.log('🔌 Cleaning up fee data subscription...');
-      supabase.removeChannel(channel);
+    const handlePaymentRecorded = () => {
+      console.log('🔄 Payment recorded event received, refreshing fee data...');
+      refetchFees();
     };
-  }, [stableAcademicYearId]); // Only depend on stable academic year ID
+
+    window.addEventListener('payment-recorded', handlePaymentRecorded);
+    return () => window.removeEventListener('payment-recorded', handlePaymentRecorded);
+  }, [refetchFees]);
 
   // Set current academic year when academic years are loaded (only once)
   useEffect(() => {
@@ -173,16 +142,6 @@ export function useFeeData() {
     setLoading(isLoading);
   }, [academicYearsLoading, feesLoading]);
 
-  // Listen for payment events to trigger immediate refresh
-  useEffect(() => {
-    const handlePaymentRecorded = () => {
-      console.log('🔄 Payment recorded event received, refreshing fee data...');
-      refetchFees();
-    };
-
-    window.addEventListener('payment-recorded', handlePaymentRecorded);
-    return () => window.removeEventListener('payment-recorded', handlePaymentRecorded);
-  }, [refetchFees]);
 
   if (yearError) {
     console.error('❌ Academic year error:', yearError);
