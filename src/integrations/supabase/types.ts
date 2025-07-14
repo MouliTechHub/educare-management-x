@@ -590,6 +590,7 @@ export type Database = {
           payment_time: string
           receipt_number: string
           student_id: string
+          target_academic_year_id: string | null
         }
         Insert: {
           amount_paid: number
@@ -605,6 +606,7 @@ export type Database = {
           payment_time?: string
           receipt_number: string
           student_id: string
+          target_academic_year_id?: string | null
         }
         Update: {
           amount_paid?: number
@@ -620,6 +622,7 @@ export type Database = {
           payment_time?: string
           receipt_number?: string
           student_id?: string
+          target_academic_year_id?: string | null
         }
         Relationships: [
           {
@@ -634,6 +637,13 @@ export type Database = {
             columns: ["student_id"]
             isOneToOne: false
             referencedRelation: "students"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fee_payment_records_target_academic_year_id_fkey"
+            columns: ["target_academic_year_id"]
+            isOneToOne: false
+            referencedRelation: "academic_years"
             referencedColumns: ["id"]
           },
         ]

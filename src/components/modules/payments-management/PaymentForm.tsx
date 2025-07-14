@@ -120,7 +120,8 @@ export function PaymentForm({ classes, students, feeStructures, onSubmit, onCanc
           receipt_number: receiptNumber,
           payment_receiver: formData.payment_received_by,
           notes: formData.notes || null,
-          created_by: formData.payment_received_by
+          created_by: formData.payment_received_by,
+          target_academic_year_id: academicYearId // Pass the selected academic year
         });
 
       if (paymentError) {
@@ -175,14 +176,18 @@ export function PaymentForm({ classes, students, feeStructures, onSubmit, onCanc
       />
 
       {/* Smart Payment Allocation Info */}
-      {formData.student_id && (
+      {formData.student_id && formData.academic_year_id && (
         <Alert>
           <AlertTriangle className="h-4 w-4" />
           <AlertDescription>
             <strong>Smart Payment Allocation</strong>
             <br />
             Payment will be automatically allocated to outstanding fees using FIFO (First In, First Out) method.
-            Previous year dues will be cleared first, followed by current year fees in chronological order.
+            Previous year dues will be cleared first, followed by fees for the selected academic year in chronological order.
+            <br />
+            <span className="text-sm text-muted-foreground mt-1 block">
+              Target Academic Year: {formData.academic_year_id ? 'Selected' : 'Current'}
+            </span>
           </AlertDescription>
         </Alert>
       )}
