@@ -245,46 +245,99 @@ export default function FeeManagement() {
           </div>
 
           {/* Enhanced Previous Year Dues Management */}
-          <Collapsible open={showDuesManagement} onOpenChange={setShowDuesManagement}>
+          {!hideAll && (
+            <Collapsible open={showDuesManagement} onOpenChange={setShowDuesManagement}>
+              <CollapsibleTrigger asChild>
+                <Button 
+                  variant="outline" 
+                  className="w-full justify-between h-12 text-left font-medium border-red-200 bg-red-50 hover:bg-red-100"
+                >
+                  <div className="flex items-center gap-2">
+                    <AlertTriangle className="h-4 w-4 text-red-600" />
+                    Previous Year Dues Management
+                    {previousYearDues.length > 0 && (
+                      <Badge variant="destructive" className="ml-2">
+                        {previousYearDues.length} students with dues
+                      </Badge>
+                    )}
+                  </div>
+                  {showDuesManagement ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+                </Button>
+              </CollapsibleTrigger>
+              <CollapsibleContent className="mt-4">
+                <div className="space-y-4">
+                  <PreviousYearDuesSummary
+                    allDues={previousYearDues}
+                    loading={loading}
+                    onRefresh={refetchDues}
+                    onSendBulkReminders={handleSendBulkReminders}
+                    onViewAllDetails={handleViewAllDuesDetails}
+                  />
+                  
+                  {/* Consolidated Previous Year Dues Display */}
+                   <PreviousYearDuesConsolidated
+                    studentFees={filteredFees as any}
+                    onViewDetails={handleHistoryClick}
+                    onMakePayment={handlePaymentClick}
+                  />
+                </div>
+              </CollapsibleContent>
+            </Collapsible>
+          )}
+
+          {/* Calculation Verification */}
+          {!hideAll && (
+            <Collapsible open={showCalculationVerifier} onOpenChange={setShowCalculationVerifier}>
+              <CollapsibleTrigger asChild>
+                <Button 
+                  variant="outline" 
+                  className="w-full justify-between h-12 text-left font-medium"
+                >
+                  <div className="flex items-center gap-2">
+                    <BarChart3 className="h-4 w-4" />
+                    Calculation Verification & Audit
+                    {calculationIssues.length > 0 && (
+                      <Badge variant="destructive" className="ml-2">
+                        {calculationIssues.length} issues
+                      </Badge>
+                    )}
+                  </div>
+                  {showCalculationVerifier ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+                </Button>
+              </CollapsibleTrigger>
+              <CollapsibleContent className="mt-4">
+                <DuesCalculationVerifier
+                  currentAcademicYearId={currentAcademicYear?.id || ''}
+                  onIssuesFound={setCalculationIssues}
+                />
+              </CollapsibleContent>
+            </Collapsible>
+          )}
+
+          {/* Original Content Starts Here */}
+          {!hideAll && (
+            <Collapsible open={showStats} onOpenChange={setShowStats}>
             <CollapsibleTrigger asChild>
               <Button 
                 variant="outline" 
-                className="w-full justify-between h-12 text-left font-medium border-red-200 bg-red-50 hover:bg-red-100"
+                className="w-full justify-between h-12 text-left font-medium"
               >
                 <div className="flex items-center gap-2">
-                  <AlertTriangle className="h-4 w-4 text-red-600" />
-                  Previous Year Dues Management
-                  {previousYearDues.length > 0 && (
-                    <Badge variant="destructive" className="ml-2">
-                      {previousYearDues.length} students with dues
-                    </Badge>
-                  )}
+                  <PieChart className="h-4 w-4" />
+                  Fee Statistics & Overview
                 </div>
-                {showDuesManagement ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+                {showStats ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
               </Button>
             </CollapsibleTrigger>
             <CollapsibleContent className="mt-4">
-              <div className="space-y-4">
-                <PreviousYearDuesSummary
-                  allDues={previousYearDues}
-                  loading={loading}
-                  onRefresh={refetchDues}
-                  onSendBulkReminders={handleSendBulkReminders}
-                  onViewAllDetails={handleViewAllDuesDetails}
-                />
-                
-                {/* Consolidated Previous Year Dues Display */}
-                 <PreviousYearDuesConsolidated
-                  studentFees={filteredFees as any}
-                  onViewDetails={handleHistoryClick}
-                  onMakePayment={handlePaymentClick}
-                />
-              </div>
+              <EnhancedFeeStats fees={filteredFees as any} filters={filters} />
             </CollapsibleContent>
           </Collapsible>
+          )}
 
-          {/* Calculation Verification */}
-          <Collapsible open={showCalculationVerifier} onOpenChange={setShowCalculationVerifier}>
+          {/* Collapsible Advanced Reports Section */}
+          {!hideAll && (
+            <Collapsible open={showReports} onOpenChange={setShowReports}>
             <CollapsibleTrigger asChild>
               <Button 
                 variant="outline" 
@@ -292,113 +345,72 @@ export default function FeeManagement() {
               >
                 <div className="flex items-center gap-2">
                   <BarChart3 className="h-4 w-4" />
-                  Calculation Verification & Audit
-                  {calculationIssues.length > 0 && (
-                    <Badge variant="destructive" className="ml-2">
-                      {calculationIssues.length} issues
-                    </Badge>
-                  )}
+                  Advanced Reports & Export
                 </div>
-                {showCalculationVerifier ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+                {showReports ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
               </Button>
             </CollapsibleTrigger>
             <CollapsibleContent className="mt-4">
-              <DuesCalculationVerifier
-                currentAcademicYearId={currentAcademicYear?.id || ''}
-                onIssuesFound={setCalculationIssues}
+              <div className="space-y-4 p-4 border rounded-lg bg-muted/20">
+                <ExportButtons fees={filteredFees as any} filters={filters} />
+              </div>
+            </CollapsibleContent>
+          </Collapsible>
+          )}
+
+          {/* Collapsible Blocked Students Section */}
+          {!hideAll && (
+            <Collapsible open={showBlockedStudents} onOpenChange={setShowBlockedStudents}>
+            <CollapsibleTrigger asChild>
+              <Button 
+                variant="outline" 
+                className="w-full justify-between h-12 text-left font-medium"
+              >
+                <div className="flex items-center gap-2">
+                  <AlertTriangle className="h-4 w-4" />
+                  Payment Blocked Students
+                </div>
+                {showBlockedStudents ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+              </Button>
+            </CollapsibleTrigger>
+            <CollapsibleContent className="mt-4">
+              <BlockedStudentsReport 
+                fees={filteredFees as any}
+                currentAcademicYear={currentAcademicYear?.id || ''}
               />
             </CollapsibleContent>
           </Collapsible>
+          )}
 
-          {/* Original Content Starts Here */}
-          <Collapsible open={showStats} onOpenChange={setShowStats}>
-        <CollapsibleTrigger asChild>
-          <Button 
-            variant="outline" 
-            className="w-full justify-between h-12 text-left font-medium"
-          >
-            <div className="flex items-center gap-2">
-              <PieChart className="h-4 w-4" />
-              Fee Statistics & Overview
-            </div>
-            {showStats ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
-          </Button>
-        </CollapsibleTrigger>
-        <CollapsibleContent className="mt-4">
-          <EnhancedFeeStats fees={filteredFees as any} filters={filters} />
-        </CollapsibleContent>
-      </Collapsible>
-
-      {/* Collapsible Advanced Reports Section */}
-      <Collapsible open={showReports} onOpenChange={setShowReports}>
-        <CollapsibleTrigger asChild>
-          <Button 
-            variant="outline" 
-            className="w-full justify-between h-12 text-left font-medium"
-          >
-            <div className="flex items-center gap-2">
-              <BarChart3 className="h-4 w-4" />
-              Advanced Reports & Export
-            </div>
-            {showReports ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
-          </Button>
-        </CollapsibleTrigger>
-        <CollapsibleContent className="mt-4">
-          <div className="space-y-4 p-4 border rounded-lg bg-muted/20">
-            <ExportButtons fees={filteredFees as any} filters={filters} />
-          </div>
-        </CollapsibleContent>
-      </Collapsible>
-
-      {/* Collapsible Blocked Students Section */}
-      <Collapsible open={showBlockedStudents} onOpenChange={setShowBlockedStudents}>
-        <CollapsibleTrigger asChild>
-          <Button 
-            variant="outline" 
-            className="w-full justify-between h-12 text-left font-medium"
-          >
-            <div className="flex items-center gap-2">
-              <AlertTriangle className="h-4 w-4" />
-              Payment Blocked Students
-            </div>
-            {showBlockedStudents ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
-          </Button>
-        </CollapsibleTrigger>
-        <CollapsibleContent className="mt-4">
-          <BlockedStudentsReport 
-            fees={filteredFees as any}
-            currentAcademicYear={currentAcademicYear?.id || ''}
-          />
-        </CollapsibleContent>
-      </Collapsible>
-
-      {/* Collapsible Bulk Actions Section */}
-      <Collapsible open={showBulkActions} onOpenChange={setShowBulkActions}>
-        <CollapsibleTrigger asChild>
-          <Button 
-            variant="outline" 
-            className="w-full justify-between h-12 text-left font-medium"
-          >
-            <div className="flex items-center gap-2">
-              <Users className="h-4 w-4" />
-              Bulk Actions
-            </div>
-            {showBulkActions ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
-          </Button>
-        </CollapsibleTrigger>
-        <CollapsibleContent className="mt-4">
-          <BulkActionsPanel
-            fees={filteredFees as any}
-            selectedFees={selectedFees}
-            onSelectionChange={setSelectedFees}
-            onRefresh={refetchFees}
-            onBulkReminder={(feeIds) => {
-              setSelectedFees(new Set(feeIds));
-              setReminderDialogOpen(true);
-            }}
-          />
-        </CollapsibleContent>
-      </Collapsible>
+          {/* Collapsible Bulk Actions Section */}
+          {!hideAll && (
+            <Collapsible open={showBulkActions} onOpenChange={setShowBulkActions}>
+            <CollapsibleTrigger asChild>
+              <Button 
+                variant="outline" 
+                className="w-full justify-between h-12 text-left font-medium"
+              >
+                <div className="flex items-center gap-2">
+                  <Users className="h-4 w-4" />
+                  Bulk Actions
+                </div>
+                {showBulkActions ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+              </Button>
+            </CollapsibleTrigger>
+            <CollapsibleContent className="mt-4">
+              <BulkActionsPanel
+                fees={filteredFees as any}
+                selectedFees={selectedFees}
+                onSelectionChange={setSelectedFees}
+                onRefresh={refetchFees}
+                onBulkReminder={(feeIds) => {
+                  setSelectedFees(new Set(feeIds));
+                  setReminderDialogOpen(true);
+                }}
+              />
+            </CollapsibleContent>
+          </Collapsible>
+          )}
 
       <div className="space-y-4">
         <div className="flex justify-between items-center">
@@ -406,29 +418,31 @@ export default function FeeManagement() {
         </div>
 
         {/* Collapsible Search & Filters Section */}
-        <Collapsible open={showFilters} onOpenChange={setShowFilters}>
-          <CollapsibleTrigger asChild>
-            <Button 
-              variant="outline" 
-              className="w-full justify-between h-12 text-left font-medium"
-            >
-              <div className="flex items-center gap-2">
-                <Filter className="h-4 w-4" />
-                Search & Filters
-              </div>
-              {showFilters ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
-            </Button>
-          </CollapsibleTrigger>
-          <CollapsibleContent className="mt-4">
-            <EnhancedFilters
-              searchTerm={searchTerm}
-              onSearchChange={setSearchTerm}
-              filters={filters as any}
-              onFiltersChange={setFilters as any}
-              classes={classes}
-            />
-          </CollapsibleContent>
-        </Collapsible>
+        {!hideAll && (
+          <Collapsible open={showFilters} onOpenChange={setShowFilters}>
+            <CollapsibleTrigger asChild>
+              <Button 
+                variant="outline" 
+                className="w-full justify-between h-12 text-left font-medium"
+              >
+                <div className="flex items-center gap-2">
+                  <Filter className="h-4 w-4" />
+                  Search & Filters
+                </div>
+                {showFilters ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+              </Button>
+            </CollapsibleTrigger>
+            <CollapsibleContent className="mt-4">
+              <EnhancedFilters
+                searchTerm={searchTerm}
+                onSearchChange={setSearchTerm}
+                filters={filters as any}
+                onFiltersChange={setFilters as any}
+                classes={classes}
+              />
+            </CollapsibleContent>
+          </Collapsible>
+        )}
 
         <FeeTable
           fees={filteredFees}
