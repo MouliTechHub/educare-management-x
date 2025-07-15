@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
-import { ChevronDown, ChevronUp, BarChart3, AlertTriangle, Users, PieChart, Filter, Sparkles } from "lucide-react";
+import { ChevronDown, ChevronUp, BarChart3, AlertTriangle, Users, PieChart, Filter, Sparkles, EyeOff, Eye } from "lucide-react";
 import { FeeManagementHeader } from "./fee-management/FeeManagementHeader";
 import { EnhancedFeeStats } from "./fee-management/EnhancedFeeStats";
 import { BulkActionsPanel } from "./fee-management/BulkActionsPanel";
@@ -86,6 +86,7 @@ export default function FeeManagement() {
   const [selectedStudentForEnhancedHistory, setSelectedStudentForEnhancedHistory] = React.useState<any>(null);
   const [studentDetailsDialogOpen, setStudentDetailsDialogOpen] = React.useState(false);
   const [selectedStudentId, setSelectedStudentId] = React.useState<string | null>(null);
+  const [hideAll, setHideAll] = React.useState(false);
 
   // Apply filters to fees - ensure we're working with Fee[] type and handle loading state
   const filteredFees = React.useMemo(() => {
@@ -157,6 +158,30 @@ export default function FeeManagement() {
     // Implementation for clearing dues
   };
 
+  const handleHideAllToggle = () => {
+    const newHideAllState = !hideAll;
+    setHideAll(newHideAllState);
+    
+    // Close all sections when hiding, open main ones when showing
+    if (newHideAllState) {
+      setShowDuesManagement(false);
+      setShowCalculationVerifier(false);
+      setShowStats(false);
+      setShowReports(false);
+      setShowBlockedStudents(false);
+      setShowBulkActions(false);
+      setShowFilters(false);
+    } else {
+      setShowDuesManagement(true);
+      setShowCalculationVerifier(false);
+      setShowStats(true);
+      setShowReports(false);
+      setShowBlockedStudents(false);
+      setShowBulkActions(false);
+      setShowFilters(true);
+    }
+  };
+
   if (loading) {
     return (
       <div className="p-6">
@@ -207,6 +232,18 @@ export default function FeeManagement() {
         </TabsList>
 
         <TabsContent value="classic" className="space-y-6 mt-6">
+          {/* Hide All / Show All Button */}
+          <div className="flex justify-end mb-4">
+            <Button
+              variant="outline"
+              onClick={handleHideAllToggle}
+              className="flex items-center gap-2"
+            >
+              {hideAll ? <Eye className="h-4 w-4" /> : <EyeOff className="h-4 w-4" />}
+              {hideAll ? "Show All" : "Hide All"}
+            </Button>
+          </div>
+
           {/* Enhanced Previous Year Dues Management */}
           <Collapsible open={showDuesManagement} onOpenChange={setShowDuesManagement}>
             <CollapsibleTrigger asChild>
