@@ -87,8 +87,6 @@ export function PaymentDialog({
 
     try {
       const amountPaid = Number(data.amount_paid);
-      const finalFee = fee.actual_fee - fee.discount_amount;
-      const currentBalance = finalFee - fee.paid_amount;
       
       // Validate payment amount
       if (amountPaid <= 0) {
@@ -100,39 +98,33 @@ export function PaymentDialog({
         return;
       }
 
-      if (amountPaid > currentBalance) {
-        toast({
-          title: "Invalid amount",
-          description: `Payment amount cannot be greater than balance amount (₹${currentBalance.toLocaleString()})`,
-          variant: "destructive",
-        });
-        return;
+      // Get current academic year for target_academic_year_id
+      const { data: currentYear, error: yearError } = await supabase
+        .from("academic_years")
+        .select("id")
+        .eq("is_current", true)
+        .single();
+
+      if (yearError) {
+        console.error('Error fetching current academic year:', yearError);
+        throw new Error("Failed to fetch current academic year");
       }
 
-      const newTotalPaid = fee.paid_amount + amountPaid;
-      const newBalance = finalFee - newTotalPaid;
-      
-      // Determine if fee is fully paid
-      const newStatus = newBalance <= 0 ? "Paid" : "Pending";
-
-      console.log('Payment processing:', {
-        finalFee,
-        currentBalance,
+      console.log('Payment processing with FIFO allocation:', {
+        studentId: fee.student_id,
         amountPaid,
-        newTotalPaid,
-        newBalance,
-        newStatus,
+        targetAcademicYear: currentYear.id,
         academicYear: academicYearName
       });
 
-      // Create payment record with exact timestamp
+      // Create payment record with exact timestamp and target academic year
       const currentTime = new Date();
       const paymentTime = currentTime.toTimeString().split(' ')[0]; // HH:MM:SS format
 
-      const { error: paymentError } = await supabase
+      const { data: paymentRecord, error: paymentError } = await supabase
         .from('fee_payment_records')
         .insert({
-          fee_record_id: fee.id,
+          fee_record_id: fee.id, // This is just for reference, FIFO will allocate properly
           student_id: fee.student_id,
           amount_paid: amountPaid,
           payment_date: data.payment_date,
@@ -141,32 +133,22 @@ export function PaymentDialog({
           payment_receiver: data.payment_receiver,
           payment_method: data.payment_method,
           notes: data.notes || null,
-          created_by: 'Admin'
-        });
+          created_by: 'Admin',
+          target_academic_year_id: currentYear.id // This ensures FIFO allocation works correctly
+        })
+        .select()
+        .single();
 
       if (paymentError) {
         console.error('Payment record insert error:', paymentError);
         throw new Error(`Failed to record payment: ${paymentError.message}`);
       }
 
-      // Update the student fee record
-      const { error: feeUpdateError } = await supabase
-        .from("student_fee_records")
-        .update({
-          paid_amount: newTotalPaid,
-          status: newStatus,
-          updated_at: new Date().toISOString()
-        })
-        .eq("id", fee.id);
-
-      if (feeUpdateError) {
-        console.error('Fee update error:', feeUpdateError);
-        throw new Error(`Failed to update fee status: ${feeUpdateError.message}`);
-      }
+      console.log('Payment record created successfully:', paymentRecord);
 
       toast({ 
         title: "Payment recorded successfully",
-        description: `Payment recorded for ${academicYearName || 'selected academic year'}. ${newStatus === "Paid" ? "Fee fully paid" : `Remaining balance: ₹${newBalance.toLocaleString()}`}`
+        description: `Payment of ₹${amountPaid.toLocaleString()} processed with FIFO allocation for ${academicYearName || 'current academic year'}`
       });
       
       onPaymentRecorded();
