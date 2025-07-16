@@ -79,7 +79,7 @@ export default function FeeManagement() {
   const [showBlockedStudents, setShowBlockedStudents] = React.useState(false);
   const [showBulkActions, setShowBulkActions] = React.useState(false);
   const [showStats, setShowStats] = React.useState(true);
-  const [showFilters, setShowFilters] = React.useState(true);
+  const [showFilters, setShowFilters] = React.useState(false); // Default to hidden
   const [showDuesManagement, setShowDuesManagement] = React.useState(true);
   const [showCalculationVerifier, setShowCalculationVerifier] = React.useState(false);
   const [showEnhancedHistory, setShowEnhancedHistory] = React.useState(false);
