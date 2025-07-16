@@ -20,7 +20,9 @@ import {
   AlertTriangle,
   CheckCircle,
   Clock,
-  RefreshCw
+  RefreshCw,
+  ChevronDown,
+  ChevronUp
 } from "lucide-react";
 
 interface EnhancedFilterState {
@@ -64,6 +66,8 @@ export function SuperEnhancedFilters({
   onReset,
   activeFiltersCount
 }: SuperEnhancedFiltersProps) {
+  const [isCollapsed, setIsCollapsed] = React.useState(true); // Hidden by default
+
   const sections = React.useMemo(() => {
     const sectionSet = new Set<string>();
     classes.forEach(cls => {
@@ -118,232 +122,253 @@ export function SuperEnhancedFilters({
               </Badge>
             )}
           </CardTitle>
-          <Button 
-            variant="outline" 
-            size="sm"
-            onClick={onReset}
-            disabled={activeFiltersCount === 0}
-          >
-            <RefreshCw className="h-4 w-4 mr-2" />
-            Reset All
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button 
+              variant="outline" 
+              size="sm"
+              onClick={onReset}
+              disabled={activeFiltersCount === 0}
+            >
+              <RefreshCw className="h-4 w-4 mr-2" />
+              Reset All
+            </Button>
+            <Button 
+              variant="outline" 
+              size="sm"
+              onClick={() => setIsCollapsed(!isCollapsed)}
+            >
+              {isCollapsed ? (
+                <>
+                  <ChevronDown className="h-4 w-4 mr-2" />
+                  Show Filters
+                </>
+              ) : (
+                <>
+                  <ChevronUp className="h-4 w-4 mr-2" />
+                  Hide Filters
+                </>
+              )}
+            </Button>
+          </div>
         </div>
       </CardHeader>
 
-      <CardContent className="space-y-6">
-        {/* Quick Search */}
-        <div className="relative">
-          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <Input
-            placeholder="Search students, admission numbers, or phone..."
-            value={filters.search}
-            onChange={(e) => updateFilter('search', e.target.value)}
-            className="pl-10"
-          />
-        </div>
+      {!isCollapsed && (
+        <CardContent className="space-y-6">
+          {/* Quick Search */}
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input
+              placeholder="Search students, admission numbers, or phone..."
+              value={filters.search}
+              onChange={(e) => updateFilter('search', e.target.value)}
+              className="pl-10"
+            />
+          </div>
 
-        {/* Active Filters Display */}
-        {activeFilters.length > 0 && (
-          <div className="flex flex-wrap gap-2">
-            {activeFilters.map(({ key, value }) => (
-              <Badge key={String(key)} variant="secondary" className="flex items-center gap-1">
-                <span className="capitalize">{String(key).replace('_', ' ')}: {value}</span>
-                <X 
-                  className="h-3 w-3 cursor-pointer hover:bg-destructive/20 rounded" 
-                  onClick={() => clearFilter(key as keyof EnhancedFilterState)}
+          {/* Active Filters Display */}
+          {activeFilters.length > 0 && (
+            <div className="flex flex-wrap gap-2">
+              {activeFilters.map(({ key, value }) => (
+                <Badge key={String(key)} variant="secondary" className="flex items-center gap-1">
+                  <span className="capitalize">{String(key).replace('_', ' ')}: {value}</span>
+                  <X 
+                    className="h-3 w-3 cursor-pointer hover:bg-destructive/20 rounded" 
+                    onClick={() => clearFilter(key as keyof EnhancedFilterState)}
+                  />
+                </Badge>
+              ))}
+            </div>
+          )}
+
+          {/* Filter Grid */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+            {/* Academic Year Filter */}
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Academic Year</label>
+              <Select value={filters.academic_year} onValueChange={(value) => updateFilter('academic_year', value)}>
+                <SelectTrigger>
+                  <SelectValue placeholder="All Years" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Years</SelectItem>
+                  {academicYears.map((year) => (
+                    <SelectItem key={year.id} value={year.id}>
+                      {year.year_name} {year.is_current && "(Current)"}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Class Filter */}
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Class</label>
+              <Select value={filters.class_id} onValueChange={(value) => updateFilter('class_id', value)}>
+                <SelectTrigger>
+                  <SelectValue placeholder="All Classes" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Classes</SelectItem>
+                  {classes.map((cls) => (
+                    <SelectItem key={cls.id} value={cls.id}>
+                      {cls.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Section Filter */}
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Section</label>
+              <Select value={filters.section} onValueChange={(value) => updateFilter('section', value)}>
+                <SelectTrigger>
+                  <SelectValue placeholder="All Sections" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Sections</SelectItem>
+                  {sections.map((section) => (
+                    <SelectItem key={section} value={section}>
+                      {section}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Fee Type Filter */}
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Fee Type</label>
+              <Select value={filters.fee_type} onValueChange={(value) => updateFilter('fee_type', value)}>
+                <SelectTrigger>
+                  <SelectValue placeholder="All Fee Types" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Fee Types</SelectItem>
+                  {feeTypes.map((type) => (
+                    <SelectItem key={type} value={type}>
+                      {type}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Status Filter */}
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Payment Status</label>
+              <Select value={filters.status} onValueChange={(value) => updateFilter('status', value)}>
+                <SelectTrigger>
+                  <SelectValue placeholder="All Status" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Status</SelectItem>
+                  {statusOptions.map((status) => (
+                    <SelectItem key={status.value} value={status.value}>
+                      <div className="flex items-center gap-2">
+                        <status.icon className="h-4 w-4" />
+                        {status.label}
+                      </div>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Amount Range Filter */}
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Amount Range</label>
+              <Select value={filters.amount_range} onValueChange={(value) => updateFilter('amount_range', value)}>
+                <SelectTrigger>
+                  <SelectValue placeholder="All Amounts" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Amounts</SelectItem>
+                  {amountRanges.map((range) => (
+                    <SelectItem key={range.value} value={range.value}>
+                      {range.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Has Discount Filter */}
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Discount Status</label>
+              <Select value={filters.has_discount} onValueChange={(value) => updateFilter('has_discount', value)}>
+                <SelectTrigger>
+                  <SelectValue placeholder="All Records" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Records</SelectItem>
+                  <SelectItem value="yes">With Discount</SelectItem>
+                  <SelectItem value="no">No Discount</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Carry Forward Filter */}
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Carry Forward</label>
+              <Select value={filters.is_carry_forward} onValueChange={(value) => updateFilter('is_carry_forward', value)}>
+                <SelectTrigger>
+                  <SelectValue placeholder="All Records" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Records</SelectItem>
+                  <SelectItem value="yes">Carry Forward Only</SelectItem>
+                  <SelectItem value="no">Current Year Only</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+
+          {/* Date Range Filters */}
+          <div className="space-y-4">
+            <div className="flex items-center gap-2">
+              <Calendar className="h-4 w-4" />
+              <span className="text-sm font-medium">Due Date Range</span>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <label className="text-sm font-medium text-muted-foreground">From Date</label>
+                <Input
+                  type="date"
+                  value={filters.due_date_from}
+                  onChange={(e) => updateFilter('due_date_from', e.target.value)}
                 />
-              </Badge>
-            ))}
-          </div>
-        )}
-
-        {/* Filter Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-          {/* Academic Year Filter */}
-          <div className="space-y-2">
-            <label className="text-sm font-medium">Academic Year</label>
-            <Select value={filters.academic_year} onValueChange={(value) => updateFilter('academic_year', value)}>
-              <SelectTrigger>
-                <SelectValue placeholder="All Years" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Years</SelectItem>
-                {academicYears.map((year) => (
-                  <SelectItem key={year.id} value={year.id}>
-                    {year.year_name} {year.is_current && "(Current)"}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+              </div>
+              <div className="space-y-2">
+                <label className="text-sm font-medium text-muted-foreground">To Date</label>
+                <Input
+                  type="date"
+                  value={filters.due_date_to}
+                  onChange={(e) => updateFilter('due_date_to', e.target.value)}
+                />
+              </div>
+            </div>
           </div>
 
-          {/* Class Filter */}
-          <div className="space-y-2">
-            <label className="text-sm font-medium">Class</label>
-            <Select value={filters.class_id} onValueChange={(value) => updateFilter('class_id', value)}>
-              <SelectTrigger>
-                <SelectValue placeholder="All Classes" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Classes</SelectItem>
-                {classes.map((cls) => (
-                  <SelectItem key={cls.id} value={cls.id}>
-                    {cls.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-
-          {/* Section Filter */}
-          <div className="space-y-2">
-            <label className="text-sm font-medium">Section</label>
-            <Select value={filters.section} onValueChange={(value) => updateFilter('section', value)}>
-              <SelectTrigger>
-                <SelectValue placeholder="All Sections" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Sections</SelectItem>
-                {sections.map((section) => (
-                  <SelectItem key={section} value={section}>
-                    {section}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-
-          {/* Fee Type Filter */}
-          <div className="space-y-2">
-            <label className="text-sm font-medium">Fee Type</label>
-            <Select value={filters.fee_type} onValueChange={(value) => updateFilter('fee_type', value)}>
-              <SelectTrigger>
-                <SelectValue placeholder="All Fee Types" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Fee Types</SelectItem>
-                {feeTypes.map((type) => (
-                  <SelectItem key={type} value={type}>
-                    {type}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-
-          {/* Status Filter */}
-          <div className="space-y-2">
-            <label className="text-sm font-medium">Payment Status</label>
-            <Select value={filters.status} onValueChange={(value) => updateFilter('status', value)}>
-              <SelectTrigger>
-                <SelectValue placeholder="All Status" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Status</SelectItem>
-                {statusOptions.map((status) => (
-                  <SelectItem key={status.value} value={status.value}>
-                    <div className="flex items-center gap-2">
-                      <status.icon className="h-4 w-4" />
-                      {status.label}
-                    </div>
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-
-          {/* Amount Range Filter */}
-          <div className="space-y-2">
-            <label className="text-sm font-medium">Amount Range</label>
-            <Select value={filters.amount_range} onValueChange={(value) => updateFilter('amount_range', value)}>
-              <SelectTrigger>
-                <SelectValue placeholder="All Amounts" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Amounts</SelectItem>
-                {amountRanges.map((range) => (
-                  <SelectItem key={range.value} value={range.value}>
-                    {range.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-
-          {/* Has Discount Filter */}
-          <div className="space-y-2">
-            <label className="text-sm font-medium">Discount Status</label>
-            <Select value={filters.has_discount} onValueChange={(value) => updateFilter('has_discount', value)}>
-              <SelectTrigger>
-                <SelectValue placeholder="All Records" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Records</SelectItem>
-                <SelectItem value="yes">With Discount</SelectItem>
-                <SelectItem value="no">No Discount</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-
-          {/* Carry Forward Filter */}
-          <div className="space-y-2">
-            <label className="text-sm font-medium">Carry Forward</label>
-            <Select value={filters.is_carry_forward} onValueChange={(value) => updateFilter('is_carry_forward', value)}>
-              <SelectTrigger>
-                <SelectValue placeholder="All Records" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Records</SelectItem>
-                <SelectItem value="yes">Carry Forward Only</SelectItem>
-                <SelectItem value="no">Current Year Only</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-        </div>
-
-        {/* Date Range Filters */}
-        <div className="space-y-4">
-          <div className="flex items-center gap-2">
-            <Calendar className="h-4 w-4" />
-            <span className="text-sm font-medium">Due Date Range</span>
-          </div>
+          {/* Special Status Filters */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">
-              <label className="text-sm font-medium text-muted-foreground">From Date</label>
-              <Input
-                type="date"
-                value={filters.due_date_from}
-                onChange={(e) => updateFilter('due_date_from', e.target.value)}
-              />
-            </div>
-            <div className="space-y-2">
-              <label className="text-sm font-medium text-muted-foreground">To Date</label>
-              <Input
-                type="date"
-                value={filters.due_date_to}
-                onChange={(e) => updateFilter('due_date_to', e.target.value)}
-              />
+              <label className="text-sm font-medium">Payment Blocked</label>
+              <Select value={filters.payment_blocked} onValueChange={(value) => updateFilter('payment_blocked', value)}>
+                <SelectTrigger>
+                  <SelectValue placeholder="All Students" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Students</SelectItem>
+                  <SelectItem value="yes">Blocked Only</SelectItem>
+                  <SelectItem value="no">Not Blocked</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
           </div>
-        </div>
-
-        {/* Special Status Filters */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div className="space-y-2">
-            <label className="text-sm font-medium">Payment Blocked</label>
-            <Select value={filters.payment_blocked} onValueChange={(value) => updateFilter('payment_blocked', value)}>
-              <SelectTrigger>
-                <SelectValue placeholder="All Students" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Students</SelectItem>
-                <SelectItem value="yes">Blocked Only</SelectItem>
-                <SelectItem value="no">Not Blocked</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-        </div>
-      </CardContent>
+        </CardContent>
+      )}
     </Card>
   );
 }

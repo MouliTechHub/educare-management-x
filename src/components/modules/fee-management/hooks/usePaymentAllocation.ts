@@ -171,20 +171,26 @@ export function usePaymentAllocation() {
       notes?: string;
       late_fee?: number;
       reference_number?: string;
+      target_academic_year_id?: string; // Add this parameter
     }
   ) => {
     setLoading(true);
     try {
-      // Get current academic year
-      const { data: currentYear, error: yearError } = await supabase
-        .from("academic_years")
-        .select("id")
-        .eq("is_current", true)
-        .single();
+      // Use provided target academic year or get current academic year
+      let targetAcademicYearId = paymentData.target_academic_year_id;
+      
+      if (!targetAcademicYearId) {
+        const { data: currentYear, error: yearError } = await supabase
+          .from("academic_years")
+          .select("id")
+          .eq("is_current", true)
+          .single();
 
-      if (yearError) throw yearError;
+        if (yearError) throw yearError;
+        targetAcademicYearId = currentYear.id;
+      }
 
-      // Find the first available fee record (for the payment record)
+      // Find the first available fee record (for the payment record reference)
       const { data: firstFee, error: feeError } = await supabase
         .from("student_fee_records")
         .select("id")
@@ -200,7 +206,7 @@ export function usePaymentAllocation() {
       const receiptNumber = paymentData.reference_number || 
         `RCP-${Date.now()}-${Math.random().toString(36).substr(2, 4).toUpperCase()}`;
 
-      // Create payment record (this will trigger the FIFO allocation automatically)
+      // Create payment record with target academic year (this will trigger the FIFO allocation automatically)
       const { data: paymentRecord, error: paymentError } = await supabase
         .from("fee_payment_records")
         .insert({
@@ -214,6 +220,7 @@ export function usePaymentAllocation() {
           payment_receiver: paymentData.payment_receiver,
           notes: paymentData.notes,
           created_by: paymentData.payment_receiver,
+          target_academic_year_id: targetAcademicYearId, // This is critical for FIFO allocation
         })
         .select()
         .single();
