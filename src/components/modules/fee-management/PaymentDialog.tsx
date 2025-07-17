@@ -98,22 +98,14 @@ export function PaymentDialog({
         return;
       }
 
-      // Get current academic year for target_academic_year_id
-      const { data: currentYear, error: yearError } = await supabase
-        .from("academic_years")
-        .select("id")
-        .eq("is_current", true)
-        .single();
-
-      if (yearError) {
-        console.error('Error fetching current academic year:', yearError);
-        throw new Error("Failed to fetch current academic year");
-      }
+      // Use the fee's academic year as the target for payment allocation
+      // This ensures payment goes to the correct academic year
+      const targetAcademicYearId = fee.academic_year_id;
 
       console.log('Payment processing with FIFO allocation:', {
         studentId: fee.student_id,
         amountPaid,
-        targetAcademicYear: currentYear.id,
+        targetAcademicYear: targetAcademicYearId,
         academicYear: academicYearName
       });
 
@@ -134,7 +126,7 @@ export function PaymentDialog({
           payment_method: data.payment_method,
           notes: data.notes || null,
           created_by: 'Admin',
-          target_academic_year_id: currentYear.id // This ensures FIFO allocation works correctly
+          target_academic_year_id: targetAcademicYearId // Payment targets the specific academic year
         })
         .select()
         .single();
