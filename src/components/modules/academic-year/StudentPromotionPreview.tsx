@@ -151,9 +151,10 @@ export function StudentPromotionPreview({
 
       if (promotionError) throw promotionError;
 
-      // Set the target academic year as current
+      // Set the target academic year as current with better error handling
       console.log('Setting academic year as current:', targetAcademicYear.id, targetAcademicYear.year_name);
       
+      // First, set all other academic years to not current
       const { error: updateOthersError } = await supabase
         .from('academic_years')
         .update({ is_current: false })
@@ -161,9 +162,10 @@ export function StudentPromotionPreview({
 
       if (updateOthersError) {
         console.error('Error updating other academic years:', updateOthersError);
-        throw updateOthersError;
+        throw new Error(`Failed to update other academic years: ${updateOthersError.message}`);
       }
 
+      // Then, set the target academic year as current
       const { error: updateCurrentError } = await supabase
         .from('academic_years')
         .update({ is_current: true })
@@ -171,10 +173,27 @@ export function StudentPromotionPreview({
 
       if (updateCurrentError) {
         console.error('Error setting current academic year:', updateCurrentError);
-        throw updateCurrentError;
+        throw new Error(`Failed to set current academic year: ${updateCurrentError.message}`);
+      }
+
+      // Verify the update was successful
+      const { data: verifyData, error: verifyError } = await supabase
+        .from('academic_years')
+        .select('id, year_name, is_current')
+        .eq('id', targetAcademicYear.id)
+        .single();
+
+      if (verifyError) {
+        console.error('Error verifying academic year update:', verifyError);
+        throw new Error(`Failed to verify academic year update: ${verifyError.message}`);
+      }
+
+      if (!verifyData?.is_current) {
+        throw new Error('Academic year was not properly set as current');
       }
 
       console.log('Successfully updated academic year to current:', targetAcademicYear.year_name);
+      console.log('Verification result:', verifyData);
 
       const promotionResult = result as {
         promoted: number;
@@ -191,6 +210,11 @@ export function StudentPromotionPreview({
       if (promotionResult.errors && promotionResult.errors.length > 0) {
         console.warn('Promotion errors:', promotionResult.errors);
       }
+
+      // Force a page refresh to ensure all components reflect the new current academic year
+      setTimeout(() => {
+        window.location.reload();
+      }, 1000);
 
       onSuccess();
     } catch (error: any) {
