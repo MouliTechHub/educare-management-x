@@ -130,9 +130,20 @@ export function StudentPromotionIndividual({
 
       if (promotionError) throw promotionError;
 
+      // Set the target academic year as current
+      await supabase
+        .from('academic_years')
+        .update({ is_current: false })
+        .neq('id', targetAcademicYear.id);
+
+      await supabase
+        .from('academic_years')
+        .update({ is_current: true })
+        .eq('id', targetAcademicYear.id);
+
       toast({
         title: "Promotion Complete",
-        description: `Successfully processed ${students.length} students`,
+        description: `Successfully processed ${students.length} students. ${targetAcademicYear.year_name} is now the current academic year.`,
       });
 
       onSuccess();

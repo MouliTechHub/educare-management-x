@@ -106,12 +106,36 @@ export function StudentPromotionPreview({
 
       if (studentsError) throw studentsError;
 
+      // Get all classes to find next class mapping
+      const { data: allClasses, error: classesError } = await supabase
+        .from('classes')
+        .select('id, name, section')
+        .order('name');
+
+      if (classesError) throw classesError;
+
+      // Create a mapping for next class (increment class number)
+      const getNextClassId = (currentClassId: string) => {
+        const currentClass = allClasses?.find(c => c.id === currentClassId);
+        if (!currentClass) return currentClassId;
+        
+        const currentNumber = parseInt(currentClass.name.replace(/\D/g, ''));
+        const nextNumber = currentNumber + 1;
+        const nextClassName = currentClass.name.replace(/\d+/, nextNumber.toString());
+        
+        const nextClass = allClasses?.find(c => 
+          c.name === nextClassName && c.section === currentClass.section
+        );
+        
+        return nextClass?.id || currentClassId; // Fallback to same class if next class not found
+      };
+
       // Prepare promotion data
       const promotionData = studentsData?.map(student => ({
         student_id: student.id,
         from_academic_year_id: currentAcademicYear.id,
         from_class_id: student.class_id,
-        to_class_id: student.class_id, // In real scenario, this would be mapped to next class
+        to_class_id: getNextClassId(student.class_id),
         promotion_type: 'promoted',
         reason: 'Automatic bulk promotion',
         notes: `Promoted from ${currentAcademicYear.year_name} to ${targetAcademicYear.year_name}`
@@ -127,6 +151,17 @@ export function StudentPromotionPreview({
 
       if (promotionError) throw promotionError;
 
+      // Set the target academic year as current
+      await supabase
+        .from('academic_years')
+        .update({ is_current: false })
+        .neq('id', targetAcademicYear.id);
+
+      await supabase
+        .from('academic_years')
+        .update({ is_current: true })
+        .eq('id', targetAcademicYear.id);
+
       const promotionResult = result as {
         promoted: number;
         repeated: number;
@@ -136,7 +171,7 @@ export function StudentPromotionPreview({
 
       toast({
         title: "Promotion Complete",
-        description: `Successfully promoted ${promotionResult.promoted} students, ${promotionResult.repeated} repeated, ${promotionResult.dropouts} marked as dropouts`,
+        description: `Successfully promoted ${promotionResult.promoted} students. ${targetAcademicYear.year_name} is now the current academic year.`,
       });
 
       if (promotionResult.errors && promotionResult.errors.length > 0) {
