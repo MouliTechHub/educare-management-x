@@ -131,15 +131,29 @@ export function StudentPromotionIndividual({
       if (promotionError) throw promotionError;
 
       // Set the target academic year as current
-      await supabase
+      console.log('Setting academic year as current:', targetAcademicYear.id, targetAcademicYear.year_name);
+      
+      const { error: updateOthersError } = await supabase
         .from('academic_years')
         .update({ is_current: false })
         .neq('id', targetAcademicYear.id);
 
-      await supabase
+      if (updateOthersError) {
+        console.error('Error updating other academic years:', updateOthersError);
+        throw updateOthersError;
+      }
+
+      const { error: updateCurrentError } = await supabase
         .from('academic_years')
         .update({ is_current: true })
         .eq('id', targetAcademicYear.id);
+
+      if (updateCurrentError) {
+        console.error('Error setting current academic year:', updateCurrentError);
+        throw updateCurrentError;
+      }
+
+      console.log('Successfully updated academic year to current:', targetAcademicYear.year_name);
 
       toast({
         title: "Promotion Complete",
