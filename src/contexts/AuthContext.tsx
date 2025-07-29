@@ -3,6 +3,8 @@ import React, { createContext, useContext, useEffect, useState } from 'react';
 import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
+import { useSecurityEnhancements } from '@/hooks/useSecurityEnhancements';
+import { useInputValidation } from '@/hooks/useInputValidation';
 
 interface AuthContextType {
   user: User | null;
@@ -20,6 +22,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
   const { toast } = useToast();
+  const security = useSecurityEnhancements();
+  const { validateAll } = useInputValidation();
 
   useEffect(() => {
     // Set up auth state listener
@@ -74,17 +78,42 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const signIn = async (email: string, password: string) => {
     console.log('Attempting sign in for:', email);
     
+    // Check rate limiting
+    if (!security.checkRateLimit()) {
+      return { error: { message: 'Rate limited' } };
+    }
+
+    // Sanitize inputs
+    const sanitizedEmail = security.sanitizeInput(email);
+    const sanitizedPassword = security.sanitizeInput(password);
+
+    // Validate inputs
+    const isValid = validateAll({
+      email: { value: sanitizedEmail, rules: { required: true, email: true } },
+      password: { value: sanitizedPassword, rules: { required: true, minLength: 1 } }
+    });
+
+    if (!isValid) {
+      toast({
+        title: "Invalid Input",
+        description: "Please check your email and password format.",
+        variant: "destructive",
+      });
+      return { error: { message: 'Invalid input format' } };
+    }
+    
     const { error } = await supabase.auth.signInWithPassword({
-      email,
-      password,
+      email: sanitizedEmail,
+      password: sanitizedPassword,
     });
     
     if (error) {
       console.log('Sign in error:', error.message);
+      security.recordFailedAttempt();
       
       // Handle email not confirmed error for admin user
       if (error.message.includes('email_not_confirmed') || error.message.includes('Email not confirmed')) {
-        if (email === 'admin@schoolmaster.com') {
+        if (sanitizedEmail === 'admin@schoolmaster.com') {
           toast({
             title: "Admin Account Setup Required",
             description: "Please disable email confirmation in Supabase settings or check your email for the confirmation link.",
@@ -107,6 +136,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         });
       }
     } else {
+      security.recordSuccessfulAttempt();
+      security.startSessionTimeout();
       toast({
         title: "Login Successful",
         description: "Welcome to SchoolMaster!",
@@ -117,11 +148,30 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   const signUp = async (email: string, password: string) => {
+    // Sanitize inputs
+    const sanitizedEmail = security.sanitizeInput(email);
+    const sanitizedPassword = security.sanitizeInput(password);
+
+    // Validate inputs with strong password requirements
+    const isValid = validateAll({
+      email: { value: sanitizedEmail, rules: { required: true, email: true } },
+      password: { value: sanitizedPassword, rules: { required: true, password: true } }
+    });
+
+    if (!isValid) {
+      toast({
+        title: "Invalid Input",
+        description: "Please check your email format and ensure password meets security requirements.",
+        variant: "destructive",
+      });
+      return { error: { message: 'Invalid input format' } };
+    }
+
     const redirectUrl = `${window.location.origin}/`;
     
     const { error } = await supabase.auth.signUp({
-      email,
-      password,
+      email: sanitizedEmail,
+      password: sanitizedPassword,
       options: {
         emailRedirectTo: redirectUrl
       }
@@ -137,7 +187,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     } else {
       toast({
         title: "Registration Successful",
-        description: "Please check your email to confirm your account, or your email will be auto-confirmed if you're an admin.",
+        description: "Please check your email to confirm your account.",
       });
     }
     
@@ -145,6 +195,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   const signOut = async () => {
+    security.clearSessionTimeout();
     await supabase.auth.signOut();
     toast({
       title: "Signed Out",

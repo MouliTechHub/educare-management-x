@@ -137,21 +137,8 @@ export function AuthPage() {
 
           <div className="mt-6 pt-6 border-t border-gray-200">
             <p className="text-sm text-center text-gray-500">
-              For quick access, try the admin account
+              Need to set up an admin account? Use the setup section below.
             </p>
-            <div className="mt-4">
-              <Button 
-                variant="outline" 
-                className="w-full"
-                onClick={() => {
-                  setEmail("admin@schoolmaster.com");
-                  setPassword("TempPassword123!");
-                  setActiveTab("login");
-                }}
-              >
-                Use Admin Credentials (Change Password After Login)
-              </Button>
-            </div>
           </div>
         </CardContent>
       </Card>

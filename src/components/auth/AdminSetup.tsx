@@ -3,22 +3,57 @@ import { useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Copy, CheckCircle, AlertTriangle, ExternalLink } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { CheckCircle, AlertTriangle, ExternalLink, RefreshCw } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 
 export function AdminSetup() {
   const [adminCreated, setAdminCreated] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [copied, setCopied] = useState(false);
+  const [email, setEmail] = useState('admin@schoolmaster.com');
+  const [password, setPassword] = useState('');
+  const [generatedPassword, setGeneratedPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const { toast } = useToast();
 
+  // Generate a secure random password
+  const generateSecurePassword = () => {
+    const length = 16;
+    const charset = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%^&*";
+    let password = "";
+    for (let i = 0; i < length; i++) {
+      password += charset.charAt(Math.floor(Math.random() * charset.length));
+    }
+    return password;
+  };
+
   const createAdminUser = async () => {
+    if (!email.trim() || !password.trim()) {
+      toast({
+        title: "Missing Information",
+        description: "Please provide both email and password.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Validate password strength
+    if (password.length < 8) {
+      toast({
+        title: "Weak Password",
+        description: "Password must be at least 8 characters long.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     setLoading(true);
     try {
       const { data, error } = await supabase.auth.signUp({
-        email: 'admin@schoolmaster.com',
-        password: 'TempPassword123!', // User should change this immediately
+        email: email.trim(),
+        password: password,
         options: {
           emailRedirectTo: `${window.location.origin}/`,
           data: {
@@ -46,9 +81,10 @@ export function AdminSetup() {
         }
       } else {
         setAdminCreated(true);
+        setShowPassword(true);
         toast({
           title: "Admin Created Successfully",
-          description: "Admin user has been created. Use temp password: TempPassword123! (Change this immediately after login)",
+          description: "Admin user has been created. Save the credentials securely.",
         });
       }
     } catch (error: any) {
@@ -63,15 +99,24 @@ export function AdminSetup() {
     }
   };
 
+  const handleGeneratePassword = () => {
+    const newPassword = generateSecurePassword();
+    setPassword(newPassword);
+    setGeneratedPassword(newPassword);
+    toast({
+      title: "Password Generated",
+      description: "Secure password generated. Make sure to save it securely.",
+    });
+  };
+
   const copyCredentials = () => {
-    const credentialsText = `Email: admin@schoolmaster.com\nPassword: TempPassword123!\nIMPORTANT: Change this password immediately after first login`;
+    if (!email || !password) return;
+    const credentialsText = `Email: ${email}\nPassword: ${password}\nIMPORTANT: Save these credentials securely`;
     navigator.clipboard.writeText(credentialsText);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
     
     toast({
       title: "Credentials Copied",
-      description: "Admin credentials copied. Please change the password after first login.",
+      description: "Admin credentials copied to clipboard.",
     });
   };
 
@@ -85,38 +130,74 @@ export function AdminSetup() {
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
-          <Alert>
-            <AlertDescription>
-              <div className="space-y-2">
-                <p className="font-medium">Default Admin Credentials:</p>
-                <div className="bg-gray-100 p-3 rounded text-sm font-mono">
-                  <div>Email: admin@schoolmaster.com</div>
-                  <div>Password: TempPassword123!</div>
-                  <div className="text-orange-600 font-medium mt-1">⚠️ Change after first login</div>
-                </div>
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="admin-email">Admin Email</Label>
+              <Input
+                id="admin-email"
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="admin@schoolmaster.com"
+                disabled={loading || adminCreated}
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="admin-password">Admin Password</Label>
+              <div className="flex gap-2">
+                <Input
+                  id="admin-password"
+                  type={showPassword ? "text" : "password"}
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  placeholder="Enter a secure password"
+                  disabled={loading || adminCreated}
+                />
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={handleGeneratePassword}
+                  disabled={loading || adminCreated}
+                >
+                  <RefreshCw className="w-4 h-4" />
+                </Button>
               </div>
-            </AlertDescription>
-          </Alert>
+              <p className="text-xs text-gray-600">
+                Password must be at least 8 characters. Use the generate button for a secure password.
+              </p>
+            </div>
+
+            {generatedPassword && (
+              <Alert>
+                <AlertDescription>
+                  <p className="font-medium mb-2">Generated Password:</p>
+                  <div className="bg-gray-100 p-2 rounded text-sm font-mono break-all">
+                    {generatedPassword}
+                  </div>
+                  <p className="text-xs text-orange-600 mt-1">⚠️ Save this password securely before creating the admin</p>
+                </AlertDescription>
+              </Alert>
+            )}
+          </div>
 
           <div className="flex gap-2">
             <Button 
               onClick={copyCredentials}
               variant="outline"
               className="flex-1"
-              disabled={loading}
+              disabled={loading || !email || !password}
             >
-              {copied ? <CheckCircle className="w-4 h-4 mr-2" /> : <Copy className="w-4 h-4 mr-2" />}
-              {copied ? "Copied!" : "Copy Credentials"}
+              Copy Credentials
+            </Button>
+            <Button 
+              onClick={createAdminUser}
+              className="flex-1"
+              disabled={loading || adminCreated || !email || !password}
+            >
+              {loading ? "Creating..." : adminCreated ? "Admin Created ✓" : "Create Admin"}
             </Button>
           </div>
-
-          <Button 
-            onClick={createAdminUser}
-            className="w-full"
-            disabled={loading || adminCreated}
-          >
-            {loading ? "Creating..." : adminCreated ? "Admin Created ✓" : "Create Admin User"}
-          </Button>
 
           {adminCreated && (
             <Alert>
