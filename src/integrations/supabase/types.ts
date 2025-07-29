@@ -992,6 +992,42 @@ export type Database = {
         }
         Relationships: []
       }
+      security_audit_log: {
+        Row: {
+          action: string
+          details: Json | null
+          id: string
+          ip_address: unknown | null
+          performed_at: string | null
+          resource_id: string | null
+          resource_type: string | null
+          user_agent: string | null
+          user_id: string | null
+        }
+        Insert: {
+          action: string
+          details?: Json | null
+          id?: string
+          ip_address?: unknown | null
+          performed_at?: string | null
+          resource_id?: string | null
+          resource_type?: string | null
+          user_agent?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          action?: string
+          details?: Json | null
+          id?: string
+          ip_address?: unknown | null
+          performed_at?: string | null
+          resource_id?: string | null
+          resource_type?: string | null
+          user_agent?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       student_academic_records: {
         Row: {
           academic_year_id: string
@@ -1713,6 +1749,33 @@ export type Database = {
           },
         ]
       }
+      user_roles: {
+        Row: {
+          assigned_at: string | null
+          assigned_by: string | null
+          id: string
+          is_active: boolean | null
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Insert: {
+          assigned_at?: string | null
+          assigned_by?: string | null
+          id?: string
+          is_active?: boolean | null
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Update: {
+          assigned_at?: string | null
+          assigned_by?: string | null
+          id?: string
+          is_active?: boolean | null
+          role?: Database["public"]["Enums"]["app_role"]
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       class_gender_stats: {
@@ -1738,6 +1801,10 @@ export type Database = {
         }
         Returns: Json
       }
+      can_manage_finances: {
+        Args: { user_uuid?: string }
+        Returns: boolean
+      }
       carry_forward_student_fees: {
         Args: {
           p_student_id: string
@@ -1750,6 +1817,21 @@ export type Database = {
       }
       check_fee_structure_exists: {
         Args: { target_academic_year_id: string; target_class_id: string }
+        Returns: boolean
+      }
+      get_user_role: {
+        Args: { user_uuid?: string }
+        Returns: Database["public"]["Enums"]["app_role"]
+      }
+      has_role: {
+        Args: {
+          check_role: Database["public"]["Enums"]["app_role"]
+          user_uuid?: string
+        }
+        Returns: boolean
+      }
+      is_admin: {
+        Args: { user_uuid?: string }
         Returns: boolean
       }
       log_fee_audit: {
@@ -1767,6 +1849,15 @@ export type Database = {
         }
         Returns: string
       }
+      log_security_event: {
+        Args: {
+          p_action: string
+          p_resource_type?: string
+          p_resource_id?: string
+          p_details?: Json
+        }
+        Returns: string
+      }
       promote_students_with_fees: {
         Args: {
           promotion_data: Json
@@ -1781,7 +1872,7 @@ export type Database = {
       }
     }
     Enums: {
-      [_ in never]: never
+      app_role: "admin" | "teacher" | "parent" | "accountant"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -1908,6 +1999,8 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      app_role: ["admin", "teacher", "parent", "accountant"],
+    },
   },
 } as const
