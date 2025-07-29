@@ -13,47 +13,49 @@ export function AdminSetup() {
   const [copied, setCopied] = useState(false);
   const { toast } = useToast();
 
-  const adminCredentials = {
-    email: "admin@schoolmaster.com",
-    password: "SchoolMaster2024!"
-  };
-
   const createAdminUser = async () => {
     setLoading(true);
     try {
       const { data, error } = await supabase.auth.signUp({
-        email: adminCredentials.email,
-        password: adminCredentials.password,
+        email: 'admin@schoolmaster.com',
+        password: 'TempPassword123!', // User should change this immediately
         options: {
+          emailRedirectTo: `${window.location.origin}/`,
           data: {
-            first_name: "System",
-            last_name: "Administrator",
-            role: "Admin"
+            first_name: 'Admin',
+            last_name: 'User',
+            role: 'admin'
           }
         }
       });
 
       if (error) {
-        if (error.message.includes("already registered")) {
+        if (error.message.includes('already registered') || error.message.includes('User already registered')) {
           setAdminCreated(true);
           toast({
-            title: "Admin user already exists",
-            description: "You can use the credentials to log in.",
+            title: "Admin Already Exists",
+            description: "Admin user already exists. Use the login page to sign in.",
           });
         } else {
-          throw error;
+          console.error('Error creating admin:', error);
+          toast({
+            title: "Error Creating Admin",
+            description: error.message,
+            variant: "destructive",
+          });
         }
       } else {
         setAdminCreated(true);
         toast({
-          title: "Admin user created successfully",
-          description: "Please check your email or disable email confirmation in Supabase.",
+          title: "Admin Created Successfully",
+          description: "Admin user has been created. Use temp password: TempPassword123! (Change this immediately after login)",
         });
       }
     } catch (error: any) {
+      console.error('Error in createAdminUser:', error);
       toast({
-        title: "Error creating admin user",
-        description: error.message,
+        title: "Error",
+        description: "Failed to create admin user. Please try again.",
         variant: "destructive",
       });
     } finally {
@@ -62,13 +64,14 @@ export function AdminSetup() {
   };
 
   const copyCredentials = () => {
-    const credText = `Email: ${adminCredentials.email}\nPassword: ${adminCredentials.password}`;
-    navigator.clipboard.writeText(credText);
+    const credentialsText = `Email: admin@schoolmaster.com\nPassword: TempPassword123!\nIMPORTANT: Change this password immediately after first login`;
+    navigator.clipboard.writeText(credentialsText);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
+    
     toast({
-      title: "Credentials copied",
-      description: "Admin credentials copied to clipboard.",
+      title: "Credentials Copied",
+      description: "Admin credentials copied. Please change the password after first login.",
     });
   };
 
@@ -87,8 +90,9 @@ export function AdminSetup() {
               <div className="space-y-2">
                 <p className="font-medium">Default Admin Credentials:</p>
                 <div className="bg-gray-100 p-3 rounded text-sm font-mono">
-                  <div>Email: {adminCredentials.email}</div>
-                  <div>Password: {adminCredentials.password}</div>
+                  <div>Email: admin@schoolmaster.com</div>
+                  <div>Password: TempPassword123!</div>
+                  <div className="text-orange-600 font-medium mt-1">⚠️ Change after first login</div>
                 </div>
               </div>
             </AlertDescription>

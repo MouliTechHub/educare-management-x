@@ -6,6 +6,7 @@ import { AppSidebar } from "@/components/layout/AppSidebar";
 import { Header } from "@/components/layout/Header";
 import { useAuth } from "@/contexts/AuthContext";
 import { AuthPage } from "@/components/auth/AuthPage";
+import { SecurityAuditLogger } from "@/components/common/SecurityAuditLogger";
 
 // Import all the management modules
 import { StudentManagement } from "@/components/modules/StudentManagement";
@@ -107,23 +108,26 @@ const Index = () => {
   };
 
   return (
-    <SidebarProvider>
-      <div className="min-h-screen flex w-full bg-gray-50">
-        <AppSidebar
-          userRole={userData.role}
-          activeModule={activeModule}
-          onModuleChange={setActiveModule}
-        />
-        
-        <div className="flex-1 flex flex-col">
-          <Header user={userData} onLogout={handleLogout} />
+    <>
+      <SecurityAuditLogger />
+      <SidebarProvider>
+        <div className="min-h-screen flex w-full bg-gray-50">
+          <AppSidebar
+            userRole={userData.role}
+            activeModule={activeModule}
+            onModuleChange={setActiveModule}
+          />
           
-          <main className="flex-1 p-6 overflow-auto">
-            {renderActiveModule()}
-          </main>
+          <div className="flex-1 flex flex-col">
+            <Header user={userData} onLogout={handleLogout} />
+            
+            <main className="flex-1 p-6 overflow-auto">
+              {renderActiveModule()}
+            </main>
+          </div>
         </div>
-      </div>
-    </SidebarProvider>
+      </SidebarProvider>
+    </>
   );
 };
 

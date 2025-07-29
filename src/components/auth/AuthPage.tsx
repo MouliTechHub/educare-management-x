@@ -145,11 +145,11 @@ export function AuthPage() {
                 className="w-full"
                 onClick={() => {
                   setEmail("admin@schoolmaster.com");
-                  setPassword("SchoolMaster2024!");
+                  setPassword("TempPassword123!");
                   setActiveTab("login");
                 }}
               >
-                Use Admin Credentials
+                Use Admin Credentials (Change Password After Login)
               </Button>
             </div>
           </div>
