@@ -257,7 +257,10 @@ export function TeacherSalaryForm({ selectedSalary, teachers, onSubmit, onCancel
                         step="0.5"
                         min="1" 
                         max="31"
-                        onChange={(e) => field.onChange(parseFloat(e.target.value) || 26)}
+                        onChange={(e) => {
+                          const value = e.target.value;
+                          field.onChange(value === '' ? '' : parseFloat(value) || 26);
+                        }}
                         onFocus={(e) => e.target.select()}
                       />
                     </FormControl>
@@ -278,7 +281,10 @@ export function TeacherSalaryForm({ selectedSalary, teachers, onSubmit, onCancel
                         step="0.5"
                         min="0" 
                         max="31"
-                        onChange={(e) => field.onChange(parseFloat(e.target.value) || 0)}
+                        onChange={(e) => {
+                          const value = e.target.value;
+                          field.onChange(value === '' ? '' : parseFloat(value) || 0);
+                        }}
                         onFocus={(e) => e.target.select()}
                       />
                     </FormControl>
