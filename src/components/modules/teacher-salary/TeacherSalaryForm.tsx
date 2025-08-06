@@ -254,9 +254,10 @@ export function TeacherSalaryForm({ selectedSalary, teachers, onSubmit, onCancel
                       <Input 
                         {...field} 
                         type="number" 
+                        step="0.5"
                         min="1" 
                         max="31"
-                        onChange={(e) => field.onChange(parseInt(e.target.value) || 26)}
+                        onChange={(e) => field.onChange(parseFloat(e.target.value) || 26)}
                       />
                     </FormControl>
                     <FormMessage />
@@ -273,9 +274,10 @@ export function TeacherSalaryForm({ selectedSalary, teachers, onSubmit, onCancel
                       <Input 
                         {...field} 
                         type="number" 
+                        step="0.5"
                         min="0" 
                         max="31"
-                        onChange={(e) => field.onChange(parseInt(e.target.value) || 0)}
+                        onChange={(e) => field.onChange(parseFloat(e.target.value) || 0)}
                       />
                     </FormControl>
                     <FormMessage />
