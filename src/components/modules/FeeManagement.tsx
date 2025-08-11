@@ -279,6 +279,7 @@ export default function FeeManagement() {
                     studentFees={filteredFees as any}
                     onViewDetails={handleHistoryClick}
                     onMakePayment={handlePaymentClick}
+                    onApplyDiscount={handleDiscountClick}
                   />
                 </div>
               </CollapsibleContent>

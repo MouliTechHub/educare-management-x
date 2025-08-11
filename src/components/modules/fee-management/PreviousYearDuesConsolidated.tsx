@@ -2,13 +2,14 @@ import React from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { AlertTriangle, IndianRupee, Clock, Eye, CreditCard } from "lucide-react";
+import { AlertTriangle, IndianRupee, Clock, Eye, CreditCard, Percent } from "lucide-react";
 import { Fee } from "./types/feeTypes";
 
 interface PreviousYearDuesConsolidatedProps {
   studentFees: Fee[];
   onViewDetails: (student: Fee['student']) => void;
   onMakePayment: (fee: Fee) => void;
+  onApplyDiscount: (fee: Fee) => void;
   className?: string;
 }
 
@@ -16,6 +17,7 @@ export function PreviousYearDuesConsolidated({
   studentFees,
   onViewDetails,
   onMakePayment,
+  onApplyDiscount,
   className = ""
 }: PreviousYearDuesConsolidatedProps) {
   // Group fees by student
@@ -142,14 +144,26 @@ export function PreviousYearDuesConsolidated({
                     Details
                   </Button>
                   {previousYearDue && (
-                    <Button
-                      size="sm"
-                      onClick={() => onMakePayment(previousYearDue)}
-                      className="flex-1 bg-red-600 hover:bg-red-700 text-xs"
-                    >
-                      <CreditCard className="h-3 w-3 mr-1" />
-                      Pay Dues
-                    </Button>
+                    <>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => onApplyDiscount(previousYearDue)}
+                        className="flex-1 border-red-200 text-red-700 hover:bg-red-100 text-xs"
+                        title="Apply discount to Previous Year Dues"
+                      >
+                        <Percent className="h-3 w-3 mr-1" />
+                        Discount
+                      </Button>
+                      <Button
+                        size="sm"
+                        onClick={() => onMakePayment(previousYearDue)}
+                        className="flex-1 bg-red-600 hover:bg-red-700 text-xs"
+                      >
+                        <CreditCard className="h-3 w-3 mr-1" />
+                        Pay Dues
+                      </Button>
+                    </>
                   )}
                 </div>
 
