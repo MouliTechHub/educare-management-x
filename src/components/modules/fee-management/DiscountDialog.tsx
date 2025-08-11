@@ -108,15 +108,30 @@ export function DiscountDialog({ open, onOpenChange, selectedFee, onSuccess }: D
         newTotalDiscount
       });
 
-      // Apply discount atomically via RPC (updates record + logs history once)
-      const { data: rpcData, error: rpcError } = await supabase.rpc('apply_student_discount', {
-        p_fee_record_id: selectedFee.id,
-        p_type: data.type,
-        p_amount: data.amount,
-        p_reason: data.reason,
-        p_notes: data.notes,
-        p_applied_by: 'Admin'
-      });
+      // Apply discount atomically via RPC
+      let rpcData, rpcError;
+      if (selectedFee.fee_type === 'Previous Year Dues') {
+        const resp = await supabase.rpc('apply_previous_year_dues_discount', {
+          p_student_id: selectedFee.student_id,
+          p_current_year_id: selectedFee.academic_year_id,
+          p_type: data.type,
+          p_amount: data.amount,
+          p_reason: data.reason,
+          p_notes: data.notes,
+          p_approved_by: 'Admin'
+        });
+        rpcData = resp.data; rpcError = resp.error;
+      } else {
+        const resp = await supabase.rpc('apply_student_discount', {
+          p_fee_record_id: selectedFee.id,
+          p_type: data.type,
+          p_amount: data.amount,
+          p_reason: data.reason,
+          p_notes: data.notes,
+          p_applied_by: 'Admin'
+        });
+        rpcData = resp.data; rpcError = resp.error;
+      }
 
       if (rpcError) {
         console.error('❌ RPC error applying discount:', rpcError);

@@ -179,10 +179,12 @@ export type Database = {
           fee_id: string | null
           id: string
           notes: string | null
+          original_academic_year_id: string | null
           reason: string
           source_fee_id: string | null
           source_table: string | null
           student_id: string | null
+          target_academic_year_id: string | null
         }
         Insert: {
           applied_at?: string
@@ -194,10 +196,12 @@ export type Database = {
           fee_id?: string | null
           id?: string
           notes?: string | null
+          original_academic_year_id?: string | null
           reason: string
           source_fee_id?: string | null
           source_table?: string | null
           student_id?: string | null
+          target_academic_year_id?: string | null
         }
         Update: {
           applied_at?: string
@@ -209,10 +213,12 @@ export type Database = {
           fee_id?: string | null
           id?: string
           notes?: string | null
+          original_academic_year_id?: string | null
           reason?: string
           source_fee_id?: string | null
           source_table?: string | null
           student_id?: string | null
+          target_academic_year_id?: string | null
         }
         Relationships: [
           {
@@ -1798,6 +1804,18 @@ export type Database = {
           p_payment_amount: number
           p_payment_record_id: string
           p_academic_year_id: string
+        }
+        Returns: Json
+      }
+      apply_previous_year_dues_discount: {
+        Args: {
+          p_student_id: string
+          p_current_year_id: string
+          p_type: string
+          p_amount: number
+          p_reason: string
+          p_notes?: string
+          p_approved_by?: string
         }
         Returns: Json
       }

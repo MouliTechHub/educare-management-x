@@ -20,6 +20,8 @@ interface DiscountHistoryItem {
   notes?: string | null;
   applied_by: string;
   applied_at: string;
+  original_academic_year_id?: string | null;
+  target_academic_year_id?: string | null;
 }
 
 interface DiscountHistoryDialogProps {
@@ -137,6 +139,55 @@ export function DiscountHistoryDialog({
     total: totalDiscountApplied
   });
 
+  const handleExportCSV = () => {
+    const headers = [
+      'Student Name',
+      'Fee Type',
+      'Applied At',
+      'Discount Type',
+      'Discount %',
+      'Discount Amount',
+      'Reason',
+      'Applied By',
+      'Notes',
+      'Fee ID',
+      'Source Fee ID',
+      'Student ID',
+      'Original Academic Year ID',
+      'Target Academic Year ID'
+    ];
+
+    const rows = discountHistory.map((item) => [
+      JSON.stringify(studentName || ''),
+      JSON.stringify(feeType || ''),
+      new Date(item.applied_at).toISOString(),
+      JSON.stringify(item.discount_type || ''),
+      item.discount_percentage ?? '',
+      Number(item.discount_amount ?? 0),
+      JSON.stringify(item.reason || ''),
+      JSON.stringify(item.applied_by || ''),
+      JSON.stringify(item.notes || ''),
+      item.fee_id || '',
+      item.source_fee_id || '',
+      item.student_id || '',
+      item.original_academic_year_id || '',
+      item.target_academic_year_id || ''
+    ].join(','));
+
+    const csv = [headers.join(','), ...rows].join('\n');
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    const safeStudent = (studentName || 'student').replace(/[^a-z0-9-_]/gi, '_');
+    const safeFeeType = (feeType || 'fee').replace(/[^a-z0-9-_]/gi, '_');
+    link.href = url;
+    link.setAttribute('download', `discount_ledger_${safeStudent}_${safeFeeType}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  };
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-4xl max-h-[80vh] overflow-auto">
@@ -239,10 +290,16 @@ export function DiscountHistoryDialog({
             </div>
           )}
 
-          <div className="flex justify-end pt-4">
-            <Button variant="outline" onClick={() => onOpenChange(false)}>
-              Close
-            </Button>
+          <div className="flex justify-between items-center pt-4">
+            <div className="text-xs text-gray-500">
+              Export shows all fields including academic year mapping for audit.
+            </div>
+            <div className="flex items-center gap-2">
+              <Button variant="secondary" onClick={handleExportCSV}>Export CSV</Button>
+              <Button variant="outline" onClick={() => onOpenChange(false)}>
+                Close
+              </Button>
+            </div>
           </div>
         </div>
       </DialogContent>
