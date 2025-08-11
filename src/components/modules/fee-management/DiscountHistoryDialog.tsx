@@ -40,83 +40,76 @@ export function DiscountHistoryDialog({
   const [loading, setLoading] = useState(false);
   const { toast } = useToast();
 
-const fetchDiscountHistory = async () => {
-  if (!feeId && !studentId) return;
-  
-  setLoading(true);
-  try {
-    console.log('🔍 Fetching discount history for:', { feeId, studentId });
+  const fetchDiscountHistory = async () => {
+    if (!feeId && !studentId) return;
     
-    // Gather history by multiple keys
-    const [bySourceRes, byFeeRes, byStudentRes] = await Promise.all([
-      feeId
-        ? supabase
-            .from('discount_history')
-            .select('*')
-            .eq('source_fee_id', feeId)
-            .order('applied_at', { ascending: false })
-        : Promise.resolve({ data: [], error: null }),
-      feeId
-        ? supabase
-            .from('discount_history')
-            .select('*')
-            .eq('fee_id', feeId)
-            .order('applied_at', { ascending: false })
-        : Promise.resolve({ data: [], error: null }),
-      studentId
-        ? supabase
-            .from('discount_history')
-            .select('*')
-            .eq('student_id', studentId)
-            .order('applied_at', { ascending: false })
-        : Promise.resolve({ data: [], error: null })
-    ]);
+    setLoading(true);
+    try {
+      console.log('🔍 Fetching discount history for:', { feeId, studentId });
+      
+      // Build a single query with OR conditions to avoid duplicates
+      let query = supabase
+        .from('discount_history')
+        .select('*')
+        .order('applied_at', { ascending: false });
 
-    const error1 = (bySourceRes as any).error;
-    const error2 = (byFeeRes as any).error;
-    const error3 = (byStudentRes as any).error;
+      // Add conditions based on available parameters
+      if (feeId && studentId) {
+        // If we have both feeId and studentId, search by both
+        query = query.or(`source_fee_id.eq.${feeId},fee_id.eq.${feeId},student_id.eq.${studentId}`);
+      } else if (feeId) {
+        // If we only have feeId, search by fee references
+        query = query.or(`source_fee_id.eq.${feeId},fee_id.eq.${feeId}`);
+      } else if (studentId) {
+        // If we only have studentId, search by student
+        query = query.eq('student_id', studentId);
+      }
 
-    if (error1 && error2 && error3) {
-      throw error1 || error2 || error3;
+      const { data, error } = await query;
+
+      if (error) {
+        throw error;
+      }
+
+      // Remove duplicates based on ID (in case there are any)
+      const uniqueHistory = data.filter((item, index, self) => 
+        index === self.findIndex(h => h.id === item.id)
+      );
+
+      console.log('✅ Discount history found:', uniqueHistory.length, 'unique records');
+      console.log('📊 Discount amounts:', uniqueHistory.map(h => h.discount_amount));
+      
+      setDiscountHistory(uniqueHistory);
+    } catch (error: any) {
+      console.error('❌ Error fetching discount history:', error);
+      toast({
+        title: "Error",
+        description: "Failed to fetch discount history",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
     }
+  };
 
-    const historyBySourceId = (bySourceRes as any).data || [];
-    const historyByFeeId = (byFeeRes as any).data || [];
-    const historyByStudent = (byStudentRes as any).data || [];
+  useEffect(() => {
+    if (open && (feeId || studentId)) {
+      console.log('🔄 Dialog opened, fetching discount history for:', { feeId, studentId, studentName, feeType });
+      fetchDiscountHistory();
+    }
+  }, [open, feeId, studentId]);
 
-    // Combine results and remove duplicates
-    const combinedHistory = [
-      ...historyBySourceId,
-      ...historyByFeeId,
-      ...historyByStudent
-    ];
+  // Calculate total discount correctly from unique records
+  const totalDiscountApplied = discountHistory.reduce((sum, item) => {
+    const amount = Number(item.discount_amount) || 0;
+    return sum + amount;
+  }, 0);
 
-    const uniqueHistory = combinedHistory.filter((item, index, self) => 
-      index === self.findIndex(h => h.id === item.id)
-    );
-
-    console.log('✅ Discount history found:', uniqueHistory.length, 'records');
-    setDiscountHistory(uniqueHistory);
-  } catch (error: any) {
-    console.error('❌ Error fetching discount history:', error);
-    toast({
-      title: "Error",
-      description: "Failed to fetch discount history",
-      variant: "destructive",
-    });
-  } finally {
-    setLoading(false);
-  }
-};
-
-useEffect(() => {
-  if (open && (feeId || studentId)) {
-    console.log('🔄 Dialog opened, fetching discount history for:', { feeId, studentId, studentName, feeType });
-    fetchDiscountHistory();
-  }
-}, [open, feeId, studentId]);
-
-  const totalDiscountApplied = discountHistory.reduce((sum, item) => sum + item.discount_amount, 0);
+  console.log('💰 Total discount calculation:', {
+    records: discountHistory.length,
+    amounts: discountHistory.map(h => h.discount_amount),
+    total: totalDiscountApplied
+  });
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -139,10 +132,12 @@ useEffect(() => {
             <div>
               <p className="text-sm text-gray-600">Total Discounts Applied</p>
               <p className="text-xl font-bold text-green-600">₹{totalDiscountApplied.toLocaleString()}</p>
+              <p className="text-xs text-gray-500">Sum of {discountHistory.length} unique transactions</p>
             </div>
             <div>
               <p className="text-sm text-gray-600">Number of Discount Transactions</p>
               <p className="text-xl font-bold text-blue-600">{discountHistory.length}</p>
+              <p className="text-xs text-gray-500">Unique discount applications</p>
             </div>
           </div>
 
@@ -159,54 +154,63 @@ useEffect(() => {
               </p>
             </div>
           ) : (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Date & Time</TableHead>
-                  <TableHead>Discount Type</TableHead>
-                  <TableHead>Amount</TableHead>
-                  <TableHead>Reason</TableHead>
-                  <TableHead>Applied By</TableHead>
-                  <TableHead>Notes</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {discountHistory.map((item) => (
-                  <TableRow key={item.id}>
-                    <TableCell>
-                      <div>
-                        <div className="font-medium">
-                          {new Date(item.applied_at).toLocaleDateString()}
-                        </div>
-                        <div className="text-sm text-gray-500">
-                          {new Date(item.applied_at).toLocaleTimeString()}
-                        </div>
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <Badge variant="outline">
-                        {item.discount_type}
-                        {item.discount_percentage && ` (${item.discount_percentage}%)`}
-                      </Badge>
-                    </TableCell>
-                    <TableCell>
-                      <span className="font-medium text-green-600">
-                        ₹{item.discount_amount.toLocaleString()}
-                      </span>
-                    </TableCell>
-                    <TableCell>{item.reason}</TableCell>
-                    <TableCell>
-                      <Badge variant="secondary">{item.applied_by}</Badge>
-                    </TableCell>
-                    <TableCell>
-                      <span className="text-sm text-gray-600">
-                        {item.notes || 'No notes'}
-                      </span>
-                    </TableCell>
+            <div className="space-y-4">
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
+                <p className="text-sm text-blue-800">
+                  <strong>QA Validation:</strong> Showing {discountHistory.length} unique discount transactions. 
+                  Each transaction represents a separate discount application with its individual amount.
+                </p>
+              </div>
+              
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Date & Time</TableHead>
+                    <TableHead>Discount Type</TableHead>
+                    <TableHead>Amount</TableHead>
+                    <TableHead>Reason</TableHead>
+                    <TableHead>Applied By</TableHead>
+                    <TableHead>Notes</TableHead>
                   </TableRow>
-                ))}
-              </TableBody>
-            </Table>
+                </TableHeader>
+                <TableBody>
+                  {discountHistory.map((item) => (
+                    <TableRow key={item.id}>
+                      <TableCell>
+                        <div>
+                          <div className="font-medium">
+                            {new Date(item.applied_at).toLocaleDateString()}
+                          </div>
+                          <div className="text-sm text-gray-500">
+                            {new Date(item.applied_at).toLocaleTimeString()}
+                          </div>
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <Badge variant="outline">
+                          {item.discount_type}
+                          {item.discount_percentage && ` (${item.discount_percentage}%)`}
+                        </Badge>
+                      </TableCell>
+                      <TableCell>
+                        <span className="font-medium text-green-600">
+                          ₹{Number(item.discount_amount).toLocaleString()}
+                        </span>
+                      </TableCell>
+                      <TableCell>{item.reason}</TableCell>
+                      <TableCell>
+                        <Badge variant="secondary">{item.applied_by}</Badge>
+                      </TableCell>
+                      <TableCell>
+                        <span className="text-sm text-gray-600">
+                          {item.notes || 'No notes'}
+                        </span>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
           )}
 
           <div className="flex justify-end pt-4">
