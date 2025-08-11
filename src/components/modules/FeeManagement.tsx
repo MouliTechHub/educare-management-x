@@ -107,6 +107,7 @@ export default function FeeManagement() {
   }, [loading, fees, searchTerm, applyFilters]);
 
   const fetchPreviousYearDuesFees = React.useCallback(async () => {
+    console.log('[FeeManagement] Fetching Previous Year Dues fee records for', currentAcademicYear?.id);
     if (!currentAcademicYear?.id) {
       setPreviousYearDuesFees([]);
       return;
@@ -129,6 +130,8 @@ export default function FeeManagement() {
       setPreviousYearDuesFees([]);
       return;
     }
+
+    console.log('[FeeManagement] Previous Year Dues records fetched:', (data as any[])?.length || 0);
 
     const mapped: Fee[] = (data as any[]).map((f: any) => ({
       id: f.id,

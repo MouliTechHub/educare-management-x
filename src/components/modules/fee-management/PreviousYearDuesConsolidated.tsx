@@ -34,8 +34,16 @@ export function PreviousYearDuesConsolidated({
       };
     }
     
+    const itemBalance = typeof (fee as any).balance_fee === 'number'
+      ? (fee as any).balance_fee
+      : Math.max(
+          ((fee as any).actual_fee ?? (fee as any).actual_amount ?? 0)
+          - ((fee as any).discount_amount ?? 0)
+          - ((fee as any).paid_amount ?? (fee as any).total_paid ?? 0),
+        0);
+
     groups[studentId].fees.push(fee);
-    groups[studentId].totalBalance += fee.balance_fee;
+    groups[studentId].totalBalance += itemBalance;
     
     if (fee.fee_type === 'Previous Year Dues') {
       groups[studentId].hasPreviousYearDues = true;
