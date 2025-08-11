@@ -169,6 +169,7 @@ export function DiscountDialog({ open, onOpenChange, selectedFee, onSuccess }: D
   };
 
   const handleCancel = () => {
+    form.reset();
     onOpenChange(false);
   };
 

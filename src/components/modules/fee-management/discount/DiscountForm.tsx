@@ -121,7 +121,7 @@ export function DiscountForm({ form, onSubmit, loading, selectedFee, onCancel }:
         />
 
         <div className="flex justify-end space-x-2">
-          <Button variant="outline" onClick={onCancel}>
+          <Button type="button" variant="outline" onClick={(e) => { e.preventDefault(); onCancel(); }}>
             Cancel
           </Button>
           <Button type="submit" disabled={loading}>
