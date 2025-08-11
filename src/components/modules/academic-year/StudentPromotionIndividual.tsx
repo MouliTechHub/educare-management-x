@@ -73,6 +73,24 @@ export function StudentPromotionIndividual({
 
       if (classesError) throw classesError;
 
+      // Helper to compute the next class id based on class naming (e.g., "Class 1" -> "Class 2")
+      const getNextClassId = (currentClassId: string) => {
+        const currentClass = (classesData || []).find((c: any) => c.id === currentClassId);
+        if (!currentClass) return currentClassId;
+
+        const currentNumber = parseInt(String(currentClass.name).replace(/\D/g, ''));
+        const nextNumber = isNaN(currentNumber) ? NaN : currentNumber + 1;
+        const nextClassName = isNaN(nextNumber)
+          ? currentClass.name
+          : String(currentClass.name).replace(/\d+/, nextNumber.toString());
+
+        const nextClass = (classesData || []).find((c: any) => 
+          c.name === nextClassName && c.section === currentClass.section
+        );
+
+        return nextClass?.id || currentClassId; // Fallback to same class if next not found
+      };
+
       const studentRecords: StudentRecord[] = studentsData?.map(student => ({
         id: student.id,
         first_name: student.first_name,
@@ -81,7 +99,8 @@ export function StudentPromotionIndividual({
         class_id: student.class_id,
         className: `${student.classes?.name}${student.classes?.section ? ` (${student.classes.section})` : ''}`,
         promotionType: 'promoted',
-        targetClassId: student.class_id, // Default to same class
+        // Default target to the next class automatically for promoted
+        targetClassId: getNextClassId(student.class_id),
         reason: '',
         notes: ''
       })) || [];
