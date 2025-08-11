@@ -485,7 +485,7 @@ export default function FeeManagement() {
         onOpenChange={setPaymentDialogOpen}
         fee={selectedFee}
         onSuccess={refetchFees}
-        currentAcademicYear={currentAcademicYear}
+        currentAcademicYear={currentAcademicYear?.id || ''}
       />
 
       <ReminderDialog
@@ -529,7 +529,7 @@ export default function FeeManagement() {
             studentName={selectedStudentName}
             fees={selectedStudentFees as any}
             academicYears={academicYears}
-            selectedAcademicYear={currentAcademicYear}
+            selectedAcademicYear={currentAcademicYear?.id || ''}
           />
         </PaymentHistoryErrorBoundary>
       )}
