@@ -543,14 +543,22 @@ export default function FeeManagement() {
         open={discountDialogOpen}
         onOpenChange={setDiscountDialogOpen}
         selectedFee={selectedFee}
-        onSuccess={refetchFees}
+        onSuccess={() => {
+          refetchFees();
+          refetchDues();
+          fetchPreviousYearDuesFees();
+        }}
       />
 
       <PaymentRecordDialog
         open={paymentDialogOpen}
         onOpenChange={setPaymentDialogOpen}
         fee={selectedFee}
-        onSuccess={refetchFees}
+        onSuccess={() => {
+          refetchFees();
+          refetchDues();
+          fetchPreviousYearDuesFees();
+        }}
         currentAcademicYear={currentAcademicYear?.id || ''}
       />
 
