@@ -10,11 +10,14 @@ import { useToast } from "@/hooks/use-toast";
 
 interface DiscountHistoryItem {
   id: string;
+  fee_id?: string | null;
+  source_fee_id?: string | null;
+  student_id?: string | null;
   discount_amount: number;
   discount_type: string;
-  discount_percentage?: number;
+  discount_percentage?: number | null;
   reason: string;
-  notes?: string;
+  notes?: string | null;
   applied_by: string;
   applied_at: string;
 }
@@ -39,6 +42,30 @@ export function DiscountHistoryDialog({
   const [discountHistory, setDiscountHistory] = useState<DiscountHistoryItem[]>([]);
   const [loading, setLoading] = useState(false);
   const { toast } = useToast();
+
+  // Dedupe paired history records created by manual log + system log
+  const dedupeDiscountHistory = (items: DiscountHistoryItem[]) => {
+    const map = new Map<string, DiscountHistoryItem>();
+    const toKey = (it: DiscountHistoryItem) => {
+      const appliedAtMs = new Date(it.applied_at).getTime();
+      const rounded = new Date(Math.floor(appliedAtMs / 1000) * 1000).toISOString();
+      const base = it.source_fee_id || it.fee_id || 'no-source';
+      return `${base}-${it.student_id || 'no-student'}-${Number(it.discount_amount)}-${rounded}`;
+    };
+    // Sort newest first and prefer rows with a concrete fee_id
+    [...items]
+      .sort((a, b) => new Date(b.applied_at).getTime() - new Date(a.applied_at).getTime())
+      .forEach((it) => {
+        const key = toKey(it);
+        const existing = map.get(key);
+        if (!existing) {
+          map.set(key, it);
+        } else if (!existing.fee_id && it.fee_id) {
+          map.set(key, it);
+        }
+      });
+    return Array.from(map.values());
+  };
 
   const fetchDiscountHistory = async () => {
     if (!feeId && !studentId) return;
@@ -71,13 +98,12 @@ export function DiscountHistoryDialog({
         throw error;
       }
 
-      // Remove duplicates based on ID (in case there are any)
-      const uniqueHistory = data.filter((item, index, self) => 
-        index === self.findIndex(h => h.id === item.id)
-      );
-
-      console.log('✅ Discount history found:', uniqueHistory.length, 'unique records');
-      console.log('📊 Discount amounts:', uniqueHistory.map(h => h.discount_amount));
+      // Dedupe paired entries (manual + system) using source/fee/time/amount
+      const uniqueHistory = dedupeDiscountHistory((data as any) as DiscountHistoryItem[]);
+      console.log('🧹 Deduped discount history:', {
+        raw: data.length,
+        deduped: uniqueHistory.length
+      });
       
       setDiscountHistory(uniqueHistory);
     } catch (error: any) {
