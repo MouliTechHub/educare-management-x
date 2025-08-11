@@ -71,6 +71,7 @@ export default function FeeManagement() {
   const [discountHistoryDialogOpen, setDiscountHistoryDialogOpen] = React.useState(false);
   const [selectedFee, setSelectedFee] = React.useState<Fee | null>(null);
   const [selectedFees, setSelectedFees] = React.useState<Set<string>>(new Set());
+  const [previousYearDuesFees, setPreviousYearDuesFees] = React.useState<Fee[]>([]);
   const [calculationIssues, setCalculationIssues] = React.useState<any[]>([]);
   const [showDuesDetails, setShowDuesDetails] = React.useState(false);
   
@@ -105,6 +106,66 @@ export default function FeeManagement() {
     });
   }, [loading, fees, searchTerm, applyFilters]);
 
+  const fetchPreviousYearDuesFees = React.useCallback(async () => {
+    if (!currentAcademicYear?.id) {
+      setPreviousYearDuesFees([]);
+      return;
+    }
+
+    const { data, error } = await supabase
+      .from('student_fee_records')
+      .select(`
+        id, student_id, fee_type, actual_fee, discount_amount, paid_amount, final_fee, balance_fee, due_date, status, created_at, updated_at, discount_notes, discount_updated_by, discount_updated_at, academic_year_id, class_id,
+        students:students (
+          id, first_name, last_name, admission_number, class_id,
+          classes:classes ( name, section )
+        )
+      `)
+      .eq('academic_year_id', currentAcademicYear.id)
+      .eq('fee_type', 'Previous Year Dues');
+
+    if (error) {
+      console.error('❌ Error fetching Previous Year Dues fees:', error);
+      setPreviousYearDuesFees([]);
+      return;
+    }
+
+    const mapped: Fee[] = (data as any[]).map((f: any) => ({
+      id: f.id,
+      student_id: f.student_id,
+      fee_type: f.fee_type,
+      actual_fee: f.actual_fee,
+      discount_amount: f.discount_amount,
+      paid_amount: f.paid_amount,
+      final_fee: f.final_fee ?? (f.actual_fee - (f.discount_amount || 0)),
+      balance_fee: f.balance_fee ?? Math.max((f.actual_fee - (f.discount_amount || 0)) - (f.paid_amount || 0), 0),
+      due_date: f.due_date,
+      status: f.status as any,
+      created_at: f.created_at,
+      updated_at: f.updated_at,
+      discount_notes: f.discount_notes ?? undefined,
+      discount_updated_by: f.discount_updated_by ?? undefined,
+      discount_updated_at: f.discount_updated_at ?? undefined,
+      academic_year_id: f.academic_year_id,
+      class_id: f.class_id,
+      student: f.students ? {
+        id: f.students.id,
+        first_name: f.students.first_name,
+        last_name: f.students.last_name,
+        admission_number: f.students.admission_number,
+        class_name: f.students.classes?.name ?? '',
+        section: f.students.classes?.section ?? undefined,
+        class_id: f.students.class_id,
+      } : undefined,
+    }));
+
+    setPreviousYearDuesFees(mapped);
+  }, [currentAcademicYear?.id]);
+
+  React.useEffect(() => {
+    fetchPreviousYearDuesFees();
+  }, [fetchPreviousYearDuesFees]);
+
   const handleDiscountClick = (fee: any) => {
     setSelectedFee(fee as Fee);
     setDiscountDialogOpen(true);
@@ -114,7 +175,6 @@ export default function FeeManagement() {
     setSelectedFee(fee as Fee);
     setPaymentDialogOpen(true);
   };
-
   const handleStudentClick = (studentId: string) => {
     setSelectedStudentId(studentId);
     setStudentDetailsDialogOpen(true);
@@ -219,6 +279,7 @@ export default function FeeManagement() {
         onRefresh={() => {
           refetchFees();
           refetchDues();
+          fetchPreviousYearDuesFees();
         }}
       />
 
@@ -274,13 +335,13 @@ export default function FeeManagement() {
                     onViewAllDetails={handleViewAllDuesDetails}
                   />
                   
-                  {/* Consolidated Previous Year Dues Display */}
+                   {/* Consolidated Previous Year Dues Display */}
                    <PreviousYearDuesConsolidated
-                    studentFees={filteredFees as any}
-                    onViewDetails={handleHistoryClick}
-                    onMakePayment={handlePaymentClick}
-                    onApplyDiscount={handleDiscountClick}
-                  />
+                     studentFees={[...(filteredFees as any), ...previousYearDuesFees] as any}
+                     onViewDetails={handleHistoryClick}
+                     onMakePayment={handlePaymentClick}
+                     onApplyDiscount={handleDiscountClick}
+                   />
                 </div>
               </CollapsibleContent>
             </Collapsible>
