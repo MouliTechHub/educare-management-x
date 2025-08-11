@@ -499,6 +499,7 @@ export default function FeeManagement() {
         open={discountHistoryDialogOpen}
         onOpenChange={setDiscountHistoryDialogOpen}
         feeId={selectedFee?.id || ''}
+        studentId={selectedFee?.student_id || ''}
         studentName={selectedFee ? `${selectedFee.student?.first_name} ${selectedFee.student?.last_name}` : ''}
         feeType={selectedFee?.fee_type || ''}
       />

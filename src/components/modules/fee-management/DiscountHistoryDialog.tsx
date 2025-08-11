@@ -23,6 +23,7 @@ interface DiscountHistoryDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   feeId: string;
+  studentId?: string;
   studentName: string;
   feeType: string;
 }
@@ -31,6 +32,7 @@ export function DiscountHistoryDialog({
   open, 
   onOpenChange, 
   feeId, 
+  studentId,
   studentName, 
   feeType 
 }: DiscountHistoryDialogProps) {
@@ -38,65 +40,81 @@ export function DiscountHistoryDialog({
   const [loading, setLoading] = useState(false);
   const { toast } = useToast();
 
-  const fetchDiscountHistory = async () => {
-    if (!feeId) return;
+const fetchDiscountHistory = async () => {
+  if (!feeId && !studentId) return;
+  
+  setLoading(true);
+  try {
+    console.log('🔍 Fetching discount history for:', { feeId, studentId });
     
-    setLoading(true);
-    try {
-      console.log('🔍 Fetching discount history for fee ID:', feeId);
-      
-      // Try multiple approaches to find discount history
-      // 1. First try by source_fee_id (for student_fee_records)
-      const { data: historyBySourceId, error: error1 } = await supabase
-        .from('discount_history')
-        .select('*')
-        .eq('source_fee_id', feeId)
-        .order('applied_at', { ascending: false });
+    // Gather history by multiple keys
+    const [bySourceRes, byFeeRes, byStudentRes] = await Promise.all([
+      feeId
+        ? supabase
+            .from('discount_history')
+            .select('*')
+            .eq('source_fee_id', feeId)
+            .order('applied_at', { ascending: false })
+        : Promise.resolve({ data: [], error: null }),
+      feeId
+        ? supabase
+            .from('discount_history')
+            .select('*')
+            .eq('fee_id', feeId)
+            .order('applied_at', { ascending: false })
+        : Promise.resolve({ data: [], error: null }),
+      studentId
+        ? supabase
+            .from('discount_history')
+            .select('*')
+            .eq('student_id', studentId)
+            .order('applied_at', { ascending: false })
+        : Promise.resolve({ data: [], error: null })
+    ]);
 
-      // 2. Also try by fee_id (for fees table)
-      const { data: historyByFeeId, error: error2 } = await supabase
-        .from('discount_history')
-        .select('*')
-        .eq('fee_id', feeId)
-        .order('applied_at', { ascending: false });
+    const error1 = (bySourceRes as any).error;
+    const error2 = (byFeeRes as any).error;
+    const error3 = (byStudentRes as any).error;
 
-      if (error1 && error2) {
-        throw error1;
-      }
-
-      // Combine results and remove duplicates
-      const combinedHistory = [
-        ...(historyBySourceId || []),
-        ...(historyByFeeId || [])
-      ];
-
-      // Remove duplicates based on ID
-      const uniqueHistory = combinedHistory.filter((item, index, self) => 
-        index === self.findIndex(h => h.id === item.id)
-      );
-
-      console.log('✅ Discount history found:', uniqueHistory.length, 'records');
-      console.log('📊 History data:', uniqueHistory);
-
-      setDiscountHistory(uniqueHistory);
-    } catch (error: any) {
-      console.error('❌ Error fetching discount history:', error);
-      toast({
-        title: "Error",
-        description: "Failed to fetch discount history",
-        variant: "destructive",
-      });
-    } finally {
-      setLoading(false);
+    if (error1 && error2 && error3) {
+      throw error1 || error2 || error3;
     }
-  };
 
-  useEffect(() => {
-    if (open && feeId) {
-      console.log('🔄 Dialog opened, fetching discount history for:', { feeId, studentName, feeType });
-      fetchDiscountHistory();
-    }
-  }, [open, feeId]);
+    const historyBySourceId = (bySourceRes as any).data || [];
+    const historyByFeeId = (byFeeRes as any).data || [];
+    const historyByStudent = (byStudentRes as any).data || [];
+
+    // Combine results and remove duplicates
+    const combinedHistory = [
+      ...historyBySourceId,
+      ...historyByFeeId,
+      ...historyByStudent
+    ];
+
+    const uniqueHistory = combinedHistory.filter((item, index, self) => 
+      index === self.findIndex(h => h.id === item.id)
+    );
+
+    console.log('✅ Discount history found:', uniqueHistory.length, 'records');
+    setDiscountHistory(uniqueHistory);
+  } catch (error: any) {
+    console.error('❌ Error fetching discount history:', error);
+    toast({
+      title: "Error",
+      description: "Failed to fetch discount history",
+      variant: "destructive",
+    });
+  } finally {
+    setLoading(false);
+  }
+};
+
+useEffect(() => {
+  if (open && (feeId || studentId)) {
+    console.log('🔄 Dialog opened, fetching discount history for:', { feeId, studentId, studentName, feeType });
+    fetchDiscountHistory();
+  }
+}, [open, feeId, studentId]);
 
   const totalDiscountApplied = discountHistory.reduce((sum, item) => sum + item.discount_amount, 0);
 
@@ -108,9 +126,9 @@ export function DiscountHistoryDialog({
           <p className="text-sm text-gray-500">
             {studentName} - {feeType}
           </p>
-          <p className="text-xs text-gray-400">
-            Fee ID: {feeId}
-          </p>
+<p className="text-xs text-gray-400">
+  Fee ID: {feeId} {studentId ? `• Student ID: ${studentId}` : ''}
+</p>
         </DialogHeader>
 
         <div className="space-y-4">

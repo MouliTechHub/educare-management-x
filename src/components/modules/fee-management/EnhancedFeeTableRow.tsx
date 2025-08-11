@@ -180,17 +180,15 @@ export function EnhancedFeeTableRow({
           >
             <Percent className="w-3 h-3" />
           </Button>
-          {fee.discount_amount > 0 && (
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => onDiscountHistoryClick(fee)}
-              title="View discount history"
-              className="text-orange-600 border-orange-200 hover:bg-orange-50"
-            >
-              <FileText className="w-3 h-3" />
-            </Button>
-          )}
+<Button
+  variant="outline"
+  size="sm"
+  onClick={() => onDiscountHistoryClick(fee)}
+  title="View discount history"
+  className="text-orange-600 border-orange-200 hover:bg-orange-50"
+>
+  <FileText className="w-3 h-3" />
+</Button>
           {fee.balance_fee > 0 && (
             <Button
               variant="outline"
