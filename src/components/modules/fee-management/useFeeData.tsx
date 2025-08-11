@@ -4,6 +4,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAutoFeeAssignment } from './hooks/useAutoFeeAssignment';
 import { Fee, StudentFeeRecord } from './types/feeTypes';
 import { useQuery } from '@tanstack/react-query';
+import { useAcademicYear } from '@/contexts/AcademicYearContext';
 
 // Function to transform StudentFeeRecord to Fe
 function transformToFee(record: StudentFeeRecord): Fee {
@@ -42,34 +43,11 @@ function transformToFee(record: StudentFeeRecord): Fee {
 }
 
 export function useFeeData() {
-  const [currentAcademicYear, setCurrentAcademicYear] = useState<any>(null);
+  const { academicYears, selectedYearId, setManualYear } = useAcademicYear();
   const [loading, setLoading] = useState(true);
 
-  // Fetch academic years with React Query and memoization
-  const { data: academicYears = [], error: yearError, isLoading: academicYearsLoading } = useQuery({
-    queryKey: ['academic-years'],
-    queryFn: async () => {
-      console.log('📅 Fetching academic years for fee data...');
-      const { data, error } = await supabase
-        .from('academic_years')
-        .select('*')
-        .order('start_date', { ascending: false });
-      
-      if (error) {
-        console.error('❌ Error fetching academic years:', error);
-        throw error;
-      }
-      console.log('✅ Academic years fetched successfully:', data?.length || 0);
-      return data || [];
-    },
-    staleTime: 5 * 60 * 1000, // 5 minutes
-    gcTime: 10 * 60 * 1000, // 10 minutes
-  });
+  const stableAcademicYearId = selectedYearId || '';
 
-  // Stabilize the academic year ID to prevent infinite queries
-  const stableAcademicYearId = currentAcademicYear?.id || '';
-
-  // Fetch fees from student_fee_records and transform to Fee type
   const { data: fees = [], error: feesError, refetch: refetchFees, isLoading: feesLoading } = useQuery({
     queryKey: ['student-fee-records', stableAcademicYearId],
     queryFn: async (): Promise<Fee[]> => {
@@ -79,7 +57,6 @@ export function useFeeData() {
       }
 
       console.log('💰 Fetching fees from student_fee_records for year:', stableAcademicYearId);
-      
       const { data, error } = await supabase
         .from('student_fee_records')
         .select(`
@@ -100,62 +77,40 @@ export function useFeeData() {
         console.error('❌ Error fetching student fee records:', error);
         throw error;
       }
-      
-      console.log('✅ Student fee records fetched successfully:', data?.length || 0);
-      
-      // Transform the records to Fee type
+
       const transformedFees = (data || []).map(transformToFee);
-      console.log('🔄 Transformed records to Fee type:', transformedFees.length);
-      
       return transformedFees;
     },
     enabled: !!stableAcademicYearId,
-    staleTime: 0, // Always consider data stale to ensure fresh data
-    gcTime: 60 * 1000, // 1 minute cache
+    staleTime: 0,
+    gcTime: 60 * 1000,
     refetchOnWindowFocus: true,
-    refetchInterval: 30 * 1000, // Refetch every 30 seconds
+    refetchInterval: 30 * 1000,
   });
 
-  // Listen for payment events to trigger immediate refresh
   useEffect(() => {
     const handlePaymentRecorded = () => {
-      console.log('🔄 Payment recorded event received, refreshing fee data...');
       refetchFees();
     };
-
     window.addEventListener('payment-recorded', handlePaymentRecorded);
     return () => window.removeEventListener('payment-recorded', handlePaymentRecorded);
   }, [refetchFees]);
 
-  // Set current academic year when academic years are loaded (only once)
   useEffect(() => {
-    if (academicYears.length > 0 && !currentAcademicYear && !academicYearsLoading) {
-      const current = academicYears.find(year => year.is_current) || academicYears[0];
-      console.log('🎯 Setting current academic year:', current?.year_name, 'ID:', current?.id);
-      setCurrentAcademicYear(current);
-    }
-  }, [academicYears, currentAcademicYear, academicYearsLoading]);
+    setLoading(feesLoading);
+  }, [feesLoading]);
 
-  // Update loading state based on both queries
-  useEffect(() => {
-    const isLoading = academicYearsLoading || feesLoading;
-    setLoading(isLoading);
-  }, [academicYearsLoading, feesLoading]);
-
-
-  if (yearError) {
-    console.error('❌ Academic year error:', yearError);
-  }
-  
   if (feesError) {
     console.error('❌ Fees data error:', feesError);
   }
+
+  const currentAcademicYear = academicYears.find((y) => y.id === selectedYearId);
 
   return {
     fees,
     academicYears,
     currentAcademicYear,
-    setCurrentAcademicYear,
+    setCurrentAcademicYear: (year: any) => setManualYear(typeof year === 'string' ? year : year?.id),
     loading,
     refetchFees
   };
