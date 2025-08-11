@@ -450,6 +450,7 @@ export default function FeeManagement() {
           onDiscountClick={handleDiscountClick}
           onHistoryClick={handleHistoryClick}
           onStudentClick={handleStudentClick}
+          onDiscountHistoryClick={(fee: any) => handleDiscountHistoryClick(fee as Fee)}
         />
       </div>
 

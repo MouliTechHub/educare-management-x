@@ -40,9 +40,10 @@ interface FeeTableProps {
   onDiscountClick: (fee: FeeWithDues) => void;
   onHistoryClick: (student: FeeWithDues['student']) => void;
   onStudentClick: (studentId: string) => void;
+  onDiscountHistoryClick?: (fee: FeeWithDues) => void;
 }
 
-export function FeeTable({ fees, onPaymentClick, onDiscountClick, onHistoryClick, onStudentClick }: FeeTableProps) {
+export function FeeTable({ fees, onPaymentClick, onDiscountClick, onHistoryClick, onStudentClick, onDiscountHistoryClick }: FeeTableProps) {
   console.log('FeeTable rendering with fees:', fees.length);
 
   if (fees.length === 0) {
@@ -86,6 +87,7 @@ export function FeeTable({ fees, onPaymentClick, onDiscountClick, onHistoryClick
                 // This will be handled by the history dialog
               }}
               showPaymentActions={true}
+              onDiscountHistoryClick={onDiscountHistoryClick}
             />
           ))}
         </TableBody>

@@ -2,7 +2,7 @@
 import { TableCell, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { CreditCard, Percent, History, Calendar } from "lucide-react";
+import { CreditCard, Percent, History, Calendar, FileText } from "lucide-react";
 import { Fee } from "./types/feeTypes";
 
 interface FeeWithDues {
@@ -44,6 +44,7 @@ interface FeeTableRowProps {
   onHistoryClick: (student: FeeWithDues['student']) => void;
   onChangeHistoryClick: () => void;
   onStudentClick: (studentId: string) => void;
+  onDiscountHistoryClick?: (fee: FeeWithDues) => void;
   showPaymentActions: boolean;
 }
 
@@ -54,6 +55,7 @@ export function FeeTableRow({
   onHistoryClick,
   onChangeHistoryClick,
   onStudentClick,
+  onDiscountHistoryClick,
   showPaymentActions
 }: FeeTableRowProps) {
   const finalFee = fee.actual_amount - fee.discount_amount;
@@ -135,6 +137,14 @@ export function FeeTableRow({
             title="Apply discount"
           >
             <Percent className="w-3 h-3" />
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => onDiscountHistoryClick?.(fee)}
+            title="View discount history"
+          >
+            <FileText className="w-3 h-3" />
           </Button>
           {showPaymentActions && balanceAmount > 0 && (
             <Button

@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect } from "react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -123,12 +123,15 @@ useEffect(() => {
       <DialogContent className="max-w-4xl max-h-[80vh] overflow-auto">
         <DialogHeader>
           <DialogTitle>Discount History</DialogTitle>
+          <DialogDescription>
+            Detailed log of discounts applied to this fee record and student.
+          </DialogDescription>
           <p className="text-sm text-gray-500">
             {studentName} - {feeType}
           </p>
-<p className="text-xs text-gray-400">
-  Fee ID: {feeId} {studentId ? `• Student ID: ${studentId}` : ''}
-</p>
+          <p className="text-xs text-gray-400">
+            Fee ID: {feeId} {studentId ? `• Student ID: ${studentId}` : ''}
+          </p>
         </DialogHeader>
 
         <div className="space-y-4">
