@@ -52,6 +52,14 @@ export function PreviousYearDuesConsolidated({
   // Filter only students with previous year dues
   const studentsWithDues = Object.values(studentGroups).filter(group => group.hasPreviousYearDues && group.totalBalance > 0);
 
+  // Debug logs for visibility
+  React.useEffect(() => {
+    console.log('[PYD-Consolidated] received fees:', studentFees?.length || 0);
+    const prevDueCount = studentFees?.filter(f => f.fee_type === 'Previous Year Dues').length || 0;
+    console.log('[PYD-Consolidated] prev-year-due records:', prevDueCount);
+    console.log('[PYD-Consolidated] studentsWithDues:', studentsWithDues.length);
+  }, [studentFees, studentsWithDues.length]);
+
   if (studentsWithDues.length === 0) {
     return (
       <Card className={`border-green-200 bg-green-50 ${className}`}>
