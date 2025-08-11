@@ -1801,6 +1801,17 @@ export type Database = {
         }
         Returns: Json
       }
+      apply_student_discount: {
+        Args: {
+          p_fee_record_id: string
+          p_type: string
+          p_amount: number
+          p_reason: string
+          p_notes?: string
+          p_applied_by?: string
+        }
+        Returns: Json
+      }
       can_manage_finances: {
         Args: { user_uuid?: string }
         Returns: boolean

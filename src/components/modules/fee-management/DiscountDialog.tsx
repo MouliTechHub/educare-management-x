@@ -108,49 +108,26 @@ export function DiscountDialog({ open, onOpenChange, selectedFee, onSuccess }: D
         newTotalDiscount
       });
 
-      // Update ONLY the student_fee_records table
-      const { error: updateError } = await supabase
-        .from('student_fee_records')
-        .update({
-          discount_amount: newTotalDiscount,
-          discount_notes: data.notes,
-          discount_updated_by: 'Admin',
-          discount_updated_at: new Date().toISOString()
-        })
-        .eq('id', selectedFee.id);
+      // Apply discount atomically via RPC (updates record + logs history once)
+      const { data: rpcData, error: rpcError } = await supabase.rpc('apply_student_discount', {
+        p_fee_record_id: selectedFee.id,
+        p_type: data.type,
+        p_amount: data.amount,
+        p_reason: data.reason,
+        p_notes: data.notes,
+        p_applied_by: 'Admin'
+      });
 
-      if (updateError) {
-        console.error('❌ Error updating student fee record:', updateError);
-        throw updateError;
+      if (rpcError) {
+        console.error('❌ RPC error applying discount:', rpcError);
+        throw rpcError;
       }
 
-      console.log('✅ Updated student fee record with total discount:', newTotalDiscount);
-
-      // Log the discount in history (only the new discount amount being added)
-      const { error: historyError } = await supabase
-        .from('discount_history')
-        .insert({
-          source_fee_id: selectedFee.id,
-          source_table: 'student_fee_records',
-          student_id: selectedFee.student_id,
-          discount_amount: discountAmount, // This is the new discount amount being added
-          discount_type: data.type,
-          discount_percentage: data.type === 'Percentage' ? data.amount : null,
-          reason: data.reason,
-          notes: data.notes,
-          applied_by: 'Admin'
-        });
-
-      if (historyError) {
-        console.error('⚠️ Error logging discount history (non-critical):', historyError);
-        // Don't throw here, just log the error as this is not critical for the main operation
-      } else {
-        console.log('✅ Logged discount history for amount:', discountAmount);
-      }
+      console.log('✅ Discount applied via RPC:', rpcData);
 
       toast({
         title: "Discount applied successfully",
-        description: `Additional discount of ₹${discountAmount.toFixed(2)} applied. Total discount: ₹${newTotalDiscount.toFixed(2)}`
+        description: `Additional discount of ₹${discountAmount.toFixed(2)} applied.`
       });
 
       onOpenChange(false);
