@@ -2043,18 +2043,12 @@ export type Database = {
         Returns: string
       }
       promote_students_with_fees: {
-        Args:
-          | {
-              promotion_data: Json
-              target_academic_year_id: string
-              promoted_by_user: string
-            }
-          | {
-              promotion_data: Json
-              target_academic_year_id: string
-              promoted_by_user: string
-              idempotency_key?: string
-            }
+        Args: {
+          promotion_data: Json
+          target_academic_year_id: string
+          promoted_by_user: string
+          idempotency_key?: string
+        }
         Returns: Json
       }
       set_current_academic_year: {
