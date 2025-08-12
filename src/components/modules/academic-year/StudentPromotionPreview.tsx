@@ -146,7 +146,8 @@ export function StudentPromotionPreview({
         .rpc('promote_students_with_fees', {
           promotion_data: JSON.stringify(promotionData),
           target_academic_year_id: targetAcademicYear.id,
-          promoted_by_user: 'Admin' // In real app, get from auth context
+          promoted_by_user: 'Admin', // In real app, get from auth context
+          idempotency_key: `preview-bulk:${currentAcademicYear.id}:${targetAcademicYear.id}`
         });
 
       if (promotionError) throw promotionError;

@@ -144,7 +144,8 @@ export function StudentPromotionIndividual({
         .rpc('promote_students_with_fees', {
           promotion_data: JSON.stringify(promotionData),
           target_academic_year_id: targetAcademicYear.id,
-          promoted_by_user: 'Admin'
+          promoted_by_user: 'Admin',
+          idempotency_key: `individual:${currentAcademicYear.id}:${targetAcademicYear.id}:${Date.now()}`
         });
 
       if (promotionError) throw promotionError;

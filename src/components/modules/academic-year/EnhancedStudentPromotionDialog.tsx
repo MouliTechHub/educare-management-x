@@ -200,7 +200,7 @@ export function EnhancedStudentPromotionDialog({
         student_id: student.id,
         from_academic_year_id: currentAcademicYear.id,
         from_class_id: student.class_id,
-        to_class_id: student.class_id, // This would need proper class mapping logic
+        to_class_id: null, // Let DB compute next class via get_next_class_id
         promotion_type: 'promoted',
         reason: 'Automatic bulk promotion with outstanding fee handling',
         notes: `Promoted from ${currentAcademicYear.year_name} to ${targetAcademicYear.year_name}`
@@ -211,7 +211,8 @@ export function EnhancedStudentPromotionDialog({
         .rpc('promote_students_with_fees', {
           promotion_data: promotionData,
           target_academic_year_id: targetAcademicYear.id,
-          promoted_by_user: 'Admin'
+          promoted_by_user: 'Admin',
+          idempotency_key: `enhanced-bulk:${currentAcademicYear.id}:${targetAcademicYear.id}`
         });
 
       if (promotionError) throw promotionError;
