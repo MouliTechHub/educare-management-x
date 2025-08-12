@@ -32,23 +32,36 @@ export function useAcademicYearData() {
 
   // Create academic year mutation
   const createMutation = useMutation({
-    mutationFn: async (yearData: Omit<AcademicYear, 'id' | 'created_at' | 'updated_at'>) => {
-      // If marking as current, first unset all other current years
-      if (yearData.is_current) {
-        await supabase
-          .from("academic_years")
-          .update({ is_current: false })
-          .neq("id", "");
-      }
-
-      const { data, error } = await supabase
+    mutationFn: async (
+      yearData: Omit<AcademicYear, 'id' | 'created_at' | 'updated_at'>
+    ) => {
+      // Always insert first; then, if needed, set current atomically via RPC
+      const { data: inserted, error: insertError } = await supabase
         .from("academic_years")
-        .insert([yearData])
+        .insert([
+          {
+            year_name: yearData.year_name,
+            start_date: yearData.start_date,
+            end_date: yearData.end_date,
+            // insert as not current; RPC will flip it atomically if requested
+            is_current: false,
+          },
+        ])
         .select()
         .single();
 
-      if (error) throw error;
-      return data;
+      if (insertError) throw insertError;
+
+      if (yearData.is_current) {
+        const { data, error } = await (supabase.rpc as any)(
+          "set_current_academic_year",
+          { p_year_id: inserted.id }
+        );
+        if (error) throw error;
+        return data;
+      }
+
+      return inserted;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["academic-years"] });
@@ -69,23 +82,34 @@ export function useAcademicYearData() {
   // Update academic year mutation
   const updateMutation = useMutation({
     mutationFn: async (yearData: AcademicYear) => {
-      // If marking as current, first unset all other current years
-      if (yearData.is_current) {
-        await supabase
+      const { id, year_name, start_date, end_date, is_current } = yearData;
+
+      // Update non-status fields first
+      const { error: updError } = await supabase
+        .from("academic_years")
+        .update({ year_name, start_date, end_date })
+        .eq("id", id);
+      if (updError) throw updError;
+
+      if (is_current) {
+        // Atomically set this as the single current year
+        const { data, error } = await (supabase.rpc as any)(
+          "set_current_academic_year",
+          { p_year_id: id }
+        );
+        if (error) throw error;
+        return data;
+      } else {
+        // Ensure it's not current
+        const { data, error } = await supabase
           .from("academic_years")
           .update({ is_current: false })
-          .neq("id", yearData.id);
+          .eq("id", id)
+          .select()
+          .single();
+        if (error) throw error;
+        return data;
       }
-
-      const { data, error } = await supabase
-        .from("academic_years")
-        .update(yearData)
-        .eq("id", yearData.id)
-        .select()
-        .single();
-
-      if (error) throw error;
-      return data;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["academic-years"] });
