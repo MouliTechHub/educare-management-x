@@ -107,8 +107,8 @@ export function EnhancedPaymentHistoryDialog({
           allocated_amount: allocation.allocated_amount,
           fee_type: feeRecord.fee_type,
           academic_year: feeRecord.academic_years.year_name,
-          paid_to_current_year: feeRecord.academic_year_id === currentAcademicYearId && feeRecord.fee_type !== 'Previous Year Dues',
-          paid_to_previous_dues: feeRecord.fee_type === 'Previous Year Dues'
+          paid_to_current_year: feeRecord.academic_year_id === currentAcademicYearId,
+          paid_to_previous_dues: feeRecord.academic_year_id !== currentAcademicYearId
         };
       });
 

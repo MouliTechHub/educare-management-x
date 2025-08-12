@@ -67,8 +67,8 @@ export function DuesCalculationVerifier({
           ),
           academic_years!inner(year_name)
         `)
-        .eq('academic_year_id', currentAcademicYearId)
-        .eq('fee_type', 'Previous Year Dues');
+        .neq('academic_year_id', currentAcademicYearId)
+        .gt('balance_fee', 0);
 
       if (duesError) throw duesError;
 
@@ -130,8 +130,8 @@ export function DuesCalculationVerifier({
       const duplicateCheck = await supabase
         .from('student_fee_records')
         .select('student_id, academic_year_id, fee_type, count(*)')
-        .eq('academic_year_id', currentAcademicYearId)
-        .eq('fee_type', 'Previous Year Dues');
+        .neq('academic_year_id', currentAcademicYearId)
+        .gt('balance_fee', 0);
 
       // This would need to be implemented with proper SQL grouping
       // For now, we'll check in JavaScript

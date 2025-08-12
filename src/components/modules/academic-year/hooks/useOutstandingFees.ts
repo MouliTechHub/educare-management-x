@@ -75,7 +75,7 @@ export function useOutstandingFees(currentAcademicYearId: string) {
 
       console.log('📊 Total fees with outstanding balances:', feeData?.length || 0);
 
-      // Group by student and calculate outstanding amounts (Previous Year Dues + Tuition Fee only)
+      // Group by student and calculate outstanding amounts (Tuition Fee only for current year)
       const studentOutstandingMap = new Map<string, OutstandingFee>();
 
       (feeData || []).forEach((fee: any) => {
@@ -84,8 +84,8 @@ export function useOutstandingFees(currentAcademicYearId: string) {
         
         if (balanceAmount <= 0) return; // Skip if fully paid
         
-        // Only include Previous Year Dues and Tuition Fee in outstanding calculation
-        if (fee.fee_type !== 'Previous Year Dues' && fee.fee_type !== 'Tuition Fee') {
+        // Only include Tuition Fee in outstanding calculation for current year
+        if (fee.fee_type !== 'Tuition Fee') {
           return;
         }
 

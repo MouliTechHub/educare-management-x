@@ -49,6 +49,17 @@ export function DiscountDialog({ open, onOpenChange, selectedFee, onSuccess }: D
       // Get the actual fee amount from the student_fee_records
       const actualAmount = selectedFee.actual_fee || selectedFee.actual_amount || selectedFee.amount || 0;
       
+      // Prevent discounts on aggregated Previous Year Dues row
+      if (String(selectedFee.id || '').startsWith('pyd_')) {
+        toast({
+          title: "Not supported on aggregated dues",
+          description: "Apply discounts on specific prior-year fee records from Payment History.",
+          variant: "destructive",
+        });
+        setLoading(false);
+        return;
+      }
+      
       // Validation
       if (data.amount <= 0) {
         toast({
