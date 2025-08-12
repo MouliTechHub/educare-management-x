@@ -96,6 +96,33 @@ export type Database = {
           },
         ]
       }
+      cache_invalidations: {
+        Row: {
+          academic_year_id: string
+          cache_key: string | null
+          created_at: string
+          id: string
+          reason: string | null
+          student_id: string
+        }
+        Insert: {
+          academic_year_id: string
+          cache_key?: string | null
+          created_at?: string
+          id?: string
+          reason?: string | null
+          student_id: string
+        }
+        Update: {
+          academic_year_id?: string
+          cache_key?: string | null
+          created_at?: string
+          id?: string
+          reason?: string | null
+          student_id?: string
+        }
+        Relationships: []
+      }
       class_subject_links: {
         Row: {
           class_id: string
@@ -998,6 +1025,130 @@ export type Database = {
         }
         Relationships: []
       }
+      promotion_audit: {
+        Row: {
+          created_at: string
+          from_academic_year_id: string
+          from_class_id: string
+          id: string
+          notes: string | null
+          promoted_by: string
+          promotion_type: string
+          reason: string | null
+          request_id: string | null
+          student_id: string
+          to_academic_year_id: string
+          to_class_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          from_academic_year_id: string
+          from_class_id: string
+          id?: string
+          notes?: string | null
+          promoted_by: string
+          promotion_type: string
+          reason?: string | null
+          request_id?: string | null
+          student_id: string
+          to_academic_year_id: string
+          to_class_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          from_academic_year_id?: string
+          from_class_id?: string
+          id?: string
+          notes?: string | null
+          promoted_by?: string
+          promotion_type?: string
+          reason?: string | null
+          request_id?: string | null
+          student_id?: string
+          to_academic_year_id?: string
+          to_class_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "promotion_audit_request_id_fkey"
+            columns: ["request_id"]
+            isOneToOne: false
+            referencedRelation: "promotion_requests"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      promotion_events: {
+        Row: {
+          created_at: string
+          event_type: string
+          id: string
+          payload: Json
+          request_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          event_type: string
+          id?: string
+          payload: Json
+          request_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          event_type?: string
+          id?: string
+          payload?: Json
+          request_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "promotion_events_request_id_fkey"
+            columns: ["request_id"]
+            isOneToOne: false
+            referencedRelation: "promotion_requests"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      promotion_requests: {
+        Row: {
+          completed_at: string | null
+          created_at: string
+          error: string | null
+          id: string
+          idempotency_key: string
+          promoted_by_user: string
+          request_payload: Json
+          result: Json | null
+          status: string
+          target_academic_year_id: string
+        }
+        Insert: {
+          completed_at?: string | null
+          created_at?: string
+          error?: string | null
+          id?: string
+          idempotency_key: string
+          promoted_by_user: string
+          request_payload: Json
+          result?: Json | null
+          status?: string
+          target_academic_year_id: string
+        }
+        Update: {
+          completed_at?: string | null
+          created_at?: string
+          error?: string | null
+          id?: string
+          idempotency_key?: string
+          promoted_by_user?: string
+          request_payload?: Json
+          result?: Json | null
+          status?: string
+          target_academic_year_id?: string
+        }
+        Relationships: []
+      }
       security_audit_log: {
         Row: {
           action: string
@@ -1848,6 +1999,10 @@ export type Database = {
         Args: { target_academic_year_id: string; target_class_id: string }
         Returns: boolean
       }
+      get_next_class_id: {
+        Args: { current_class_id: string }
+        Returns: string
+      }
       get_user_role: {
         Args: { user_uuid?: string }
         Returns: Database["public"]["Enums"]["app_role"]
@@ -1888,11 +2043,18 @@ export type Database = {
         Returns: string
       }
       promote_students_with_fees: {
-        Args: {
-          promotion_data: Json
-          target_academic_year_id: string
-          promoted_by_user: string
-        }
+        Args:
+          | {
+              promotion_data: Json
+              target_academic_year_id: string
+              promoted_by_user: string
+            }
+          | {
+              promotion_data: Json
+              target_academic_year_id: string
+              promoted_by_user: string
+              idempotency_key?: string
+            }
         Returns: Json
       }
       update_fee_priorities: {
