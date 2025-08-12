@@ -143,14 +143,25 @@ export function StudentPromotionPreview({
 
       // Call the database function to handle promotion with fee creation
       const { data: result, error: promotionError } = await supabase
-        .rpc('promote_students_with_fees', {
-          promotion_data: JSON.stringify(promotionData),
-          target_academic_year_id: targetAcademicYear.id,
-          promoted_by_user: 'Admin', // In real app, get from auth context
-          idempotency_key: `preview-bulk:${currentAcademicYear.id}:${targetAcademicYear.id}`
+        .functions.invoke('promotions-execute', {
+          body: {
+            promotion_data: promotionData,
+            target_academic_year_id: targetAcademicYear.id,
+            promoted_by_user: 'Admin', // In real app, get from auth context
+            idempotency_key: `preview-bulk:${currentAcademicYear.id}:${targetAcademicYear.id}`,
+          },
         });
 
-      if (promotionError) throw promotionError;
+      if (promotionError) {
+        const errAny: any = promotionError as any;
+        const missing = errAny?.context?.missing as { year: string; class: string }[] | undefined;
+        if (errAny?.status === 409 && missing?.length) {
+          throw new Error(`Missing fee plans for ${missing.map(m => `${m.class} (${m.year})`).join(', ')}`);
+        }
+        throw promotionError;
+      }
+
+      
 
       // Set the target academic year as current with better error handling
       console.log('Setting academic year as current:', targetAcademicYear.id, targetAcademicYear.year_name);

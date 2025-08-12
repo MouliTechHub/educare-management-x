@@ -1,1 +1,4 @@
 project_id = "ifurbtuwhlshufowjcyc"
+
+[functions.promotions-execute]
+verify_jwt = true

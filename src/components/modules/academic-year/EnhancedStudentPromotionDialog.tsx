@@ -206,16 +206,27 @@ export function EnhancedStudentPromotionDialog({
         notes: `Promoted from ${currentAcademicYear.year_name} to ${targetAcademicYear.year_name}`
       }));
 
-      // Step 4: Execute promotion
-      const { data: result, error: promotionError } = await supabase
-        .rpc('promote_students_with_fees', {
+      // Step 4: Execute promotion via Edge Function with precondition validation
+      const { data: result, error: promotionError } = await supabase.functions.invoke('promotions-execute', {
+        body: {
           promotion_data: promotionData,
           target_academic_year_id: targetAcademicYear.id,
           promoted_by_user: 'Admin',
-          idempotency_key: `enhanced-bulk:${currentAcademicYear.id}:${targetAcademicYear.id}`
-        });
+          idempotency_key: `enhanced-bulk:${currentAcademicYear.id}:${targetAcademicYear.id}`,
+        },
+      });
 
-      if (promotionError) throw promotionError;
+      if (promotionError) {
+        // Surface missing fee plans nicely when server returns 409
+        const errAny: any = promotionError as any;
+        const missing = errAny?.context?.missing as { year: string; class: string }[] | undefined;
+        if (errAny?.status === 409 && missing?.length) {
+          throw new Error(`Missing fee plans for ${missing.map(m => `${m.class} (${m.year})`).join(', ')}`);
+        }
+        throw promotionError;
+      }
+
+      
 
       // Step 5: Log promotion audit
       await supabase.from('student_promotions').insert({

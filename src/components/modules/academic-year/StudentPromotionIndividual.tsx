@@ -141,14 +141,25 @@ export function StudentPromotionIndividual({
       }));
 
       const { data: result, error: promotionError } = await supabase
-        .rpc('promote_students_with_fees', {
-          promotion_data: JSON.stringify(promotionData),
-          target_academic_year_id: targetAcademicYear.id,
-          promoted_by_user: 'Admin',
-          idempotency_key: `individual:${currentAcademicYear.id}:${targetAcademicYear.id}:${Date.now()}`
+        .functions.invoke('promotions-execute', {
+          body: {
+            promotion_data: promotionData,
+            target_academic_year_id: targetAcademicYear.id,
+            promoted_by_user: 'Admin',
+            idempotency_key: `individual:${currentAcademicYear.id}:${targetAcademicYear.id}:${Date.now()}`,
+          },
         });
 
-      if (promotionError) throw promotionError;
+      if (promotionError) {
+        const errAny: any = promotionError as any;
+        const missing = errAny?.context?.missing as { year: string; class: string }[] | undefined;
+        if (errAny?.status === 409 && missing?.length) {
+          throw new Error(`Missing fee plans for ${missing.map(m => `${m.class} (${m.year})`).join(', ')}`);
+        }
+        throw promotionError;
+      }
+
+      
 
       // Set the target academic year as current with better error handling
       console.log('Setting academic year as current:', targetAcademicYear.id, targetAcademicYear.year_name);
