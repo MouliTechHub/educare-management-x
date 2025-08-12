@@ -180,43 +180,10 @@ export default function FeeManagement() {
   }, [currentAcademicYear?.id]);
 
   // Combine current-year fees with standalone Previous Year Dues so students without current fees still appear
+  // Only show current academic year's fee records in the main table
   const combinedFeesForTable = React.useMemo(() => {
-    const prevRows = (previousYearDuesFees || []).map((f: any) => ({
-      id: f.id,
-      student_id: f.student_id,
-      amount: f.actual_fee,
-      actual_amount: f.actual_fee,
-      discount_amount: f.discount_amount || 0,
-      total_paid: f.paid_amount || 0,
-      fee_type: f.fee_type,
-      due_date: f.due_date || '',
-      payment_date: null,
-      status: f.status as any,
-      receipt_number: null,
-      created_at: f.created_at,
-      updated_at: f.updated_at,
-      discount_notes: f.discount_notes ?? null,
-      discount_updated_by: f.discount_updated_by ?? null,
-      discount_updated_at: f.discount_updated_at ?? null,
-      academic_year_id: f.academic_year_id,
-      previous_year_dues: f.balance_fee ?? Math.max((f.actual_fee - (f.discount_amount || 0)) - (f.paid_amount || 0), 0),
-      student: f.student ? {
-        id: f.student.id,
-        first_name: f.student.first_name,
-        last_name: f.student.last_name,
-        admission_number: f.student.admission_number,
-        class_name: f.student.class_name,
-        section: f.student.section,
-        class_id: f.student.class_id,
-      } : undefined,
-    }));
-
-    const current = (filteredFees as any[]) || [];
-    const currentIds = new Set(current.map((f: any) => f.id));
-    const additional = prevRows.filter((r: any) => !currentIds.has(r.id));
-    const combined = [...current, ...additional];
-    return combined;
-  }, [filteredFees, previousYearDuesFees]);
+    return filteredFees as any[];
+  }, [filteredFees]);
 
   React.useEffect(() => {
     fetchPreviousYearDuesFees();
