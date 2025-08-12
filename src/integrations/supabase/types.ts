@@ -2047,7 +2047,7 @@ export type Database = {
           promotion_data: Json
           target_academic_year_id: string
           promoted_by_user: string
-          idempotency_key?: string
+          p_idempotency_key?: string
         }
         Returns: Json
       }
