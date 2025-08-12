@@ -130,7 +130,6 @@ serve(async (req) => {
             actual_fee: fs.amount,
             discount_amount: 0,
             paid_amount: 0,
-            balance_fee: fs.amount,
             due_date: dueDateStr,
             status: "Pending",
           });
@@ -175,7 +174,6 @@ serve(async (req) => {
             actual_fee: amount,
             discount_amount: 0,
             paid_amount: 0,
-            balance_fee: amount,
             due_date: dueDateStr,
             status: "Pending",
           });
