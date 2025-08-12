@@ -107,7 +107,7 @@ export default function FeeManagement() {
   }, [loading, fees, searchTerm, applyFilters]);
 
   const fetchPreviousYearDuesFees = React.useCallback(async () => {
-    console.log('[FeeManagement] Fetching Previous Year Dues fee records for', currentAcademicYear?.id);
+    console.log('[FeeManagement] Fetching aggregated Previous Year Dues for', currentAcademicYear?.id);
     if (!currentAcademicYear?.id) {
       setPreviousYearDuesFees([]);
       return;
@@ -116,49 +116,63 @@ export default function FeeManagement() {
     const { data, error } = await supabase
       .from('student_fee_records')
       .select(`
-        id, student_id, fee_type, actual_fee, discount_amount, paid_amount, final_fee, balance_fee, due_date, status, created_at, updated_at, discount_notes, discount_updated_by, discount_updated_at, academic_year_id, class_id,
+        id, student_id, actual_fee, discount_amount, paid_amount, balance_fee, academic_year_id, class_id,
         students:students (
           id, first_name, last_name, admission_number, class_id,
           classes:classes ( name, section )
         )
       `)
-      .eq('academic_year_id', currentAcademicYear.id)
-      .eq('fee_type', 'Previous Year Dues');
+      .neq('academic_year_id', currentAcademicYear.id)
+      .gt('balance_fee', 0);
 
     if (error) {
-      console.error('❌ Error fetching Previous Year Dues fees:', error);
+      console.error('❌ Error fetching previous year balances:', error);
       setPreviousYearDuesFees([]);
       return;
     }
 
-    console.log('[FeeManagement] Previous Year Dues records fetched:', (data as any[])?.length || 0);
+    // Group balances per student across prior academic years
+    const aggregates = new Map<string, { total: number; sample: any }>();
+    (data as any[] | null)?.forEach((row: any) => {
+      const bal = row.balance_fee ?? Math.max((row.actual_fee - (row.discount_amount || 0)) - (row.paid_amount || 0), 0);
+      if (bal <= 0) return;
+      const key = row.student_id;
+      const prev = aggregates.get(key);
+      if (prev) {
+        prev.total += bal;
+      } else {
+        aggregates.set(key, { total: bal, sample: row });
+      }
+    });
 
-    const mapped: Fee[] = (data as any[]).map((f: any) => ({
-      id: f.id,
-      student_id: f.student_id,
-      fee_type: f.fee_type,
-      actual_fee: f.actual_fee,
-      discount_amount: f.discount_amount,
-      paid_amount: f.paid_amount,
-      final_fee: f.final_fee ?? (f.actual_fee - (f.discount_amount || 0)),
-      balance_fee: f.balance_fee ?? Math.max((f.actual_fee - (f.discount_amount || 0)) - (f.paid_amount || 0), 0),
-      due_date: f.due_date,
-      status: f.status as any,
-      created_at: f.created_at,
-      updated_at: f.updated_at,
-      discount_notes: f.discount_notes ?? undefined,
-      discount_updated_by: f.discount_updated_by ?? undefined,
-      discount_updated_at: f.discount_updated_at ?? undefined,
-      academic_year_id: f.academic_year_id,
-      class_id: f.class_id,
-      student: f.students ? {
-        id: f.students.id,
-        first_name: f.students.first_name,
-        last_name: f.students.last_name,
-        admission_number: f.students.admission_number,
-        class_name: f.students.classes?.name ?? '',
-        section: f.students.classes?.section ?? undefined,
-        class_id: f.students.class_id,
+    console.log('[FeeManagement] Aggregated PYD students:', aggregates.size);
+
+    const mapped: Fee[] = Array.from(aggregates.entries()).map(([studentId, { total, sample }]) => ({
+      id: `pyd_${studentId}`,
+      student_id: studentId,
+      fee_type: 'Previous Year Dues', // UI label only; not stored in DB
+      actual_fee: total,
+      discount_amount: 0,
+      paid_amount: 0,
+      final_fee: total,
+      balance_fee: total,
+      due_date: '',
+      status: 'Pending' as any,
+      created_at: sample?.created_at || new Date().toISOString(),
+      updated_at: sample?.updated_at || new Date().toISOString(),
+      discount_notes: undefined,
+      discount_updated_by: undefined,
+      discount_updated_at: undefined,
+      academic_year_id: currentAcademicYear.id,
+      class_id: sample?.students?.class_id || sample?.class_id,
+      student: sample?.students ? {
+        id: sample.students.id,
+        first_name: sample.students.first_name,
+        last_name: sample.students.last_name,
+        admission_number: sample.students.admission_number,
+        class_name: sample.students.classes?.name ?? '',
+        section: sample.students.classes?.section ?? undefined,
+        class_id: sample.students.class_id,
       } : undefined,
     }));
 

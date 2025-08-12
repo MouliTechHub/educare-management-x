@@ -50,8 +50,7 @@ export function usePreviousYearDues(currentAcademicYearId: string | any) {
           status,
           academic_years!inner(year_name)
         `)
-        .eq('academic_year_id', stableYearId)
-        .eq('fee_type', 'Previous Year Dues')
+        .neq('academic_year_id', stableYearId)
         .gt('balance_fee', 0);
 
       if (feeError) {

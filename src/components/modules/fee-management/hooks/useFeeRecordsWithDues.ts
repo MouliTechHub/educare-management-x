@@ -84,8 +84,8 @@ export function useFeeRecordsWithDues(currentAcademicYear: string) {
       const { data: previousYearDues, error: duesError } = await supabase
         .from("student_fee_records")
         .select("student_id, balance_fee")
-        .eq("academic_year_id", currentAcademicYear)
-        .eq("fee_type", "Previous Year Dues");
+        .neq("academic_year_id", currentAcademicYear)
+        .gt("balance_fee", 0);
 
       if (duesError) {
         console.warn('⚠️ Error fetching previous year dues:', duesError);
