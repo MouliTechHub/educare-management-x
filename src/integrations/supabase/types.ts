@@ -2057,6 +2057,18 @@ export type Database = {
             }
         Returns: Json
       }
+      set_current_academic_year: {
+        Args: { p_year_id: string }
+        Returns: {
+          created_at: string
+          end_date: string
+          id: string
+          is_current: boolean
+          start_date: string
+          updated_at: string
+          year_name: string
+        }
+      }
       update_fee_priorities: {
         Args: Record<PropertyKey, never>
         Returns: undefined
