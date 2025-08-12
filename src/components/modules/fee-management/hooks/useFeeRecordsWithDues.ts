@@ -37,6 +37,7 @@ interface FeeWithDues {
 export function useFeeRecordsWithDues(currentAcademicYear: string) {
   const [fees, setFees] = useState<FeeWithDues[]>([]);
   const [loading, setLoading] = useState(true);
+  const [attemptedBackfillYear, setAttemptedBackfillYear] = useState<string | null>(null);
   const { toast } = useToast();
 
   const fetchFeesWithDues = async () => {
@@ -96,10 +97,26 @@ export function useFeeRecordsWithDues(currentAcademicYear: string) {
         duesMap.set(due.student_id, due.balance_fee || 0);
       });
 
-      console.log('✅ Current year fees fetched:', currentYearFees?.length || 0, 'records');
-      console.log('✅ Previous year dues fetched for', duesMap.size, 'students');
-      
-      // Transform the data and merge with previous year dues
+console.log('✅ Current year fees fetched:', currentYearFees?.length || 0, 'records');
+console.log('✅ Previous year dues fetched for', duesMap.size, 'students');
+
+// Auto-heal: if no fees exist for this year, try backfilling once
+if ((currentYearFees?.length || 0) === 0 && attemptedBackfillYear !== currentAcademicYear) {
+  try {
+    console.log('🛠️ No fee records found for year', currentAcademicYear, '- attempting backfill...');
+    await supabase.functions.invoke('fees-backfill', {
+      body: { target_academic_year_id: currentAcademicYear },
+    });
+    setAttemptedBackfillYear(currentAcademicYear);
+    // Re-fetch after backfill and exit this run to avoid duplicate state updates
+    await fetchFeesWithDues();
+    return;
+  } catch (bfErr: any) {
+    console.warn('⚠️ Backfill attempt failed:', bfErr?.message || bfErr);
+  }
+}
+
+// Transform the data and merge with previous year dues
       const feesWithDues: FeeWithDues[] = (currentYearFees || []).map((fee: any) => {
         const previousDues = duesMap.get(fee.student_id) || 0;
 

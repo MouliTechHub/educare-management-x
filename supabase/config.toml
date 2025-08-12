@@ -2,3 +2,6 @@ project_id = "ifurbtuwhlshufowjcyc"
 
 [functions.promotions-execute]
 verify_jwt = true
+
+[functions.fees-backfill]
+verify_jwt = true
