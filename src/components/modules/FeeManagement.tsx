@@ -546,11 +546,89 @@ export default function FeeManagement() {
           <p className="text-gray-600 mb-4">
             There are no fee records for the current academic year ({currentAcademicYear.year_name}).
           </p>
-          <p className="text-sm text-gray-500">
-            Fee records are created automatically when students are added or you can create them manually.
+          <p className="text-sm text-gray-500 mb-4">
+            Fee records are created automatically when students are added or via promotion.
           </p>
+          <Button
+            onClick={async () => {
+              try {
+                if (!currentAcademicYear?.id) return;
+                // Confirm with user
+                if (!window.confirm(`Create Tuition Fee records for ${currentAcademicYear.year_name} using each student's next class and the active fee structures?`)) {
+                  return;
+                }
+
+                // 1) Load active students
+                const { data: students, error: sErr } = await supabase
+                  .from('students')
+                  .select('id, class_id')
+                  .eq('status', 'Active');
+                if (sErr) throw sErr;
+
+                // 2) For each student, compute target class (next class) and gather inserts
+                const upserts: any[] = [];
+
+                for (const s of (students || [])) {
+                  // Compute next class id using DB helper (keeps logic centralized)
+                  const { data: nextClassId, error: nextErr } = await supabase.rpc('get_next_class_id', { current_class_id: s.class_id });
+                  if (nextErr) { console.warn('get_next_class_id failed for student', s.id, nextErr); continue; }
+
+                  // Fetch active fee structures for target year + target class
+                  const { data: fees, error: fErr } = await supabase
+                    .from('fee_structures')
+                    .select('fee_type, amount')
+                    .eq('academic_year_id', currentAcademicYear.id)
+                    .eq('is_active', true)
+                    .eq('class_id', nextClassId as string);
+                  if (fErr) { console.warn('fee_structures fetch failed', fErr); continue; }
+
+                  for (const fs of (fees || [])) {
+                    upserts.push({
+                      student_id: s.id,
+                      class_id: nextClassId as string,
+                      academic_year_id: currentAcademicYear.id,
+                      fee_type: fs.fee_type,
+                      actual_fee: fs.amount,
+                      discount_amount: 0,
+                      paid_amount: 0,
+                      due_date: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10),
+                      status: 'Pending',
+                    });
+                  }
+
+                  // Update student class to the next class (what promotion would do)
+                  const { error: uErr } = await supabase
+                    .from('students')
+                    .update({ class_id: nextClassId as string, updated_at: new Date().toISOString() })
+                    .eq('id', s.id);
+                  if (uErr) console.warn('student class update failed', uErr);
+                }
+
+                if (upserts.length === 0) {
+                  console.log('No fee structures found for any target classes. Nothing to insert.');
+                } else {
+                  // 3) Insert fee records with conflict protection
+                  const { error: iErr } = await supabase
+                    .from('student_fee_records')
+                    .upsert(upserts, { onConflict: 'student_id,class_id,academic_year_id,fee_type' });
+                  if (iErr) throw iErr;
+                }
+
+                // Refresh
+                refetchFees();
+                refetchDues();
+                fetchPreviousYearDuesFees();
+              } catch (e: any) {
+                console.error('Quick creation failed', e);
+                alert(e?.message || 'Failed to create fees');
+              }
+            }}
+          >
+            Create Tuition Fees for {currentAcademicYear.year_name}
+          </Button>
         </div>
       )}
+
 
         </TabsContent>
 
