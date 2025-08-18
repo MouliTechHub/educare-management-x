@@ -94,35 +94,54 @@ export function EnhancedStudentPromotionDialog({
 
       if (studentsError) throw studentsError;
 
-      // Get all classes that have active students
-      const classIds = [...new Set(studentsData?.map(s => s.class_id) || [])];
+      // ✅ CRITICAL FIX: Get ALL classes from Class Management, not just classes with students
+      const { data: allClassesData, error: allClassesError } = await supabase
+        .from('classes')
+        .select('id, name, section')
+        .order('name');
 
-      // Check fee structures for target academic year
+      if (allClassesError) throw allClassesError;
+
+      const allClassIds = allClassesData?.map(cls => cls.id) || [];
+
+      // Check fee structures for target academic year - MUST cover ALL classes
       const { data: feeStructuresData, error: feeError } = await supabase
         .from('fee_structures')
         .select('class_id, classes(name, section)')
         .eq('academic_year_id', targetAcademicYear.id)
-        .eq('is_active', true)
-        .in('class_id', classIds);
+        .eq('is_active', true);
 
       if (feeError) throw feeError;
 
       const feeStructureClassIds = feeStructuresData?.map(fs => fs.class_id) || [];
-      const missingFeeStructureClasses = classIds.filter(classId => 
+      
+      // Find classes that are missing fee structures for target year
+      const missingFeeStructureClassIds = allClassIds.filter(classId => 
         !feeStructureClassIds.includes(classId)
       );
 
       // Get class names for missing fee structures
-      const { data: missingClassesData, error: missingClassesError } = await supabase
-        .from('classes')
-        .select('name, section')
-        .in('id', missingFeeStructureClasses);
+      const missingFeeStructures: string[] = [];
+      if (missingFeeStructureClassIds.length > 0) {
+        const missingClasses = allClassesData?.filter(cls => 
+          missingFeeStructureClassIds.includes(cls.id)
+        ) || [];
+        
+        missingFeeStructures.push(...missingClasses.map(cls => 
+          `${cls.name}${cls.section ? ` (${cls.section})` : ''}`
+        ));
+      }
 
-      if (missingClassesError) throw missingClassesError;
-
-      const missingFeeStructures = missingClassesData?.map(cls => 
-        `${cls.name}${cls.section ? ` (${cls.section})` : ''}`
-      ) || [];
+      // Log validation results for debugging
+      console.log('🔍 Promotion Validation Results:', {
+        targetYear: targetAcademicYear.year_name,
+        totalStudents: studentsData?.length || 0,
+        totalClasses: allClassIds.length,
+        classesWithFeeStructures: feeStructureClassIds.length,
+        missingFeeStructures: missingFeeStructures,
+        isSequentialYear,
+        readyForPromotion: missingFeeStructures.length === 0 && isSequentialYear
+      });
 
       setPromotionSummary({
         totalStudents: studentsData?.length || 0,
@@ -318,15 +337,18 @@ export function EnhancedStudentPromotionDialog({
                   <Alert variant="destructive">
                     <AlertTriangle className="h-4 w-4" />
                     <AlertDescription>
-                      <div className="font-medium">Missing Fee Structures</div>
+                      <div className="font-medium">Please define fee structure for all classes in the next academic year before promotion.</div>
                       <div className="mt-1">
-                        Please define fee structures for {targetAcademicYear.year_name} for the following classes:
+                        The following classes are missing fee structures for {targetAcademicYear.year_name}:
                       </div>
                       <ul className="mt-2 list-disc list-inside">
                         {promotionSummary.missingFeeStructures.map((className, index) => (
                           <li key={index}>{className}</li>
                         ))}
                       </ul>
+                      <div className="mt-2 text-sm text-muted-foreground">
+                        Please go to Fee Structure Management and create fee structures for all missing classes before proceeding with promotion.
+                      </div>
                     </AlertDescription>
                   </Alert>
                 )}
