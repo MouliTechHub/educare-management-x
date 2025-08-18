@@ -552,79 +552,214 @@ export default function FeeManagement() {
           <Button
             onClick={async () => {
               try {
-                if (!currentAcademicYear?.id) return;
-                // Confirm with user
-                if (!window.confirm(`Create Tuition Fee records for ${currentAcademicYear.year_name} using each student's next class and the active fee structures?`)) {
+                if (!currentAcademicYear?.id) {
+                  alert('No current academic year selected');
                   return;
                 }
 
-                // 1) Load active students
+                // Show loading state
+                const button = document.activeElement as HTMLButtonElement;
+                const originalText = button.textContent;
+                button.disabled = true;
+                button.textContent = 'Creating...';
+
+                // Confirm with user
+                if (!window.confirm(`This will promote all active students to their next class and create fee records for ${currentAcademicYear.year_name}. Continue?`)) {
+                  button.disabled = false;
+                  button.textContent = originalText;
+                  return;
+                }
+
+                // Load active students with detailed info for validation
                 const { data: students, error: sErr } = await supabase
                   .from('students')
-                  .select('id, class_id')
+                  .select(`
+                    id, 
+                    first_name, 
+                    last_name, 
+                    class_id,
+                    classes!inner(name, section)
+                  `)
                   .eq('status', 'Active');
-                if (sErr) throw sErr;
+                
+                if (sErr) throw new Error(`Failed to load students: ${sErr.message}`);
+                if (!students || students.length === 0) {
+                  throw new Error('No active students found');
+                }
 
-                // 2) For each student, compute target class (next class) and gather inserts
+                console.log(`Processing ${students.length} active students for promotion and fee creation`);
+
+                const successfulPromotions: any[] = [];
+                const failedPromotions: any[] = [];
                 const upserts: any[] = [];
 
-                for (const s of (students || [])) {
-                  // Compute next class id using DB helper (keeps logic centralized)
-                  const { data: nextClassId, error: nextErr } = await supabase.rpc('get_next_class_id', { current_class_id: s.class_id });
-                  if (nextErr) { console.warn('get_next_class_id failed for student', s.id, nextErr); continue; }
+                // Process each student
+                for (const student of students) {
+                  try {
+                    // Get next class ID
+                    const { data: nextClassId, error: nextErr } = await supabase.rpc('get_next_class_id', { 
+                      current_class_id: student.class_id 
+                    });
+                    
+                    if (nextErr || !nextClassId) {
+                      failedPromotions.push({
+                        student: `${student.first_name} ${student.last_name}`,
+                        error: `Failed to determine next class: ${nextErr?.message || 'No next class found'}`
+                      });
+                      continue;
+                    }
 
-                  // Fetch active fee structures for target year + target class
-                  const { data: fees, error: fErr } = await supabase
-                    .from('fee_structures')
-                    .select('fee_type, amount')
-                    .eq('academic_year_id', currentAcademicYear.id)
-                    .eq('is_active', true)
-                    .eq('class_id', nextClassId as string);
-                  if (fErr) { console.warn('fee_structures fetch failed', fErr); continue; }
+                    // Get target class info
+                    const { data: targetClass, error: classErr } = await supabase
+                      .from('classes')
+                      .select('name, section')
+                      .eq('id', nextClassId)
+                      .single();
 
-                  for (const fs of (fees || [])) {
-                    upserts.push({
-                      student_id: s.id,
-                      class_id: nextClassId as string,
-                      academic_year_id: currentAcademicYear.id,
-                      fee_type: fs.fee_type,
-                      actual_fee: fs.amount,
-                      discount_amount: 0,
-                      paid_amount: 0,
-                      due_date: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10),
-                      status: 'Pending',
+                    if (classErr || !targetClass) {
+                      failedPromotions.push({
+                        student: `${student.first_name} ${student.last_name}`,
+                        error: `Target class not found: ${classErr?.message}`
+                      });
+                      continue;
+                    }
+
+                    // Check for fee structures in target class
+                    const { data: feeStructures, error: feeErr } = await supabase
+                      .from('fee_structures')
+                      .select('fee_type, amount')
+                      .eq('academic_year_id', currentAcademicYear.id)
+                      .eq('class_id', nextClassId)
+                      .eq('is_active', true);
+
+                    if (feeErr) {
+                      failedPromotions.push({
+                        student: `${student.first_name} ${student.last_name}`,
+                        error: `Failed to load fee structures: ${feeErr.message}`
+                      });
+                      continue;
+                    }
+
+                    if (!feeStructures || feeStructures.length === 0) {
+                      failedPromotions.push({
+                        student: `${student.first_name} ${student.last_name}`,
+                        error: `No fee structures found for target class ${targetClass.name}`
+                      });
+                      continue;
+                    }
+
+                    // Update student class
+                    const { error: updateErr } = await supabase
+                      .from('students')
+                      .update({ 
+                        class_id: nextClassId as string, 
+                        updated_at: new Date().toISOString() 
+                      })
+                      .eq('id', student.id);
+
+                    if (updateErr) {
+                      failedPromotions.push({
+                        student: `${student.first_name} ${student.last_name}`,
+                        error: `Failed to update student class: ${updateErr.message}`
+                      });
+                      continue;
+                    }
+
+                    // Create promotion record
+                    const { error: promErr } = await supabase
+                      .from('student_promotions')
+                      .insert({
+                        student_id: student.id,
+                        from_academic_year_id: currentAcademicYear.id, // Using same year for now
+                        to_academic_year_id: currentAcademicYear.id,
+                        from_class_id: student.class_id,
+                        to_class_id: nextClassId,
+                        promotion_type: 'promoted',
+                        promoted_by: 'Admin',
+                        notes: 'Auto-promoted via Fee Management'
+                      });
+
+                    if (promErr) {
+                      console.warn(`Failed to create promotion record for ${student.first_name}: ${promErr.message}`);
+                    }
+
+                    // Prepare fee records
+                    for (const fs of feeStructures) {
+                      upserts.push({
+                        student_id: student.id,
+                        class_id: nextClassId as string,
+                        academic_year_id: currentAcademicYear.id,
+                        fee_type: fs.fee_type,
+                        actual_fee: fs.amount,
+                        discount_amount: 0,
+                        paid_amount: 0,
+                        due_date: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10),
+                        status: 'Pending',
+                      });
+                    }
+
+                    successfulPromotions.push({
+                      student: `${student.first_name} ${student.last_name}`,
+                      fromClass: student.classes?.name || 'Unknown',
+                      toClass: targetClass.name,
+                      feeCount: feeStructures.length
+                    });
+
+                  } catch (studentError: any) {
+                    failedPromotions.push({
+                      student: `${student.first_name} ${student.last_name}`,
+                      error: studentError.message
                     });
                   }
-
-                  // Update student class to the next class (what promotion would do)
-                  const { error: uErr } = await supabase
-                    .from('students')
-                    .update({ class_id: nextClassId as string, updated_at: new Date().toISOString() })
-                    .eq('id', s.id);
-                  if (uErr) console.warn('student class update failed', uErr);
                 }
 
-                if (upserts.length === 0) {
-                  console.log('No fee structures found for any target classes. Nothing to insert.');
-                } else {
-                  // 3) Insert fee records with conflict protection
-                  const { error: iErr } = await supabase
+                // Insert all fee records
+                if (upserts.length > 0) {
+                  const { error: insertErr } = await supabase
                     .from('student_fee_records')
-                    .upsert(upserts, { onConflict: 'student_id,class_id,academic_year_id,fee_type' });
-                  if (iErr) throw iErr;
+                    .upsert(upserts, { 
+                      onConflict: 'student_id,class_id,academic_year_id,fee_type',
+                      ignoreDuplicates: false 
+                    });
+
+                  if (insertErr) {
+                    throw new Error(`Failed to create fee records: ${insertErr.message}`);
+                  }
                 }
 
-                // Refresh
+                // Show results
+                let message = `✅ Promotion Complete!\n\n`;
+                message += `Successful: ${successfulPromotions.length} students\n`;
+                if (failedPromotions.length > 0) {
+                  message += `Failed: ${failedPromotions.length} students\n\n`;
+                  message += `Failed students:\n${failedPromotions.map(f => `• ${f.student}: ${f.error}`).join('\n')}`;
+                }
+
+                alert(message);
+                console.log('Promotion Results:', { successfulPromotions, failedPromotions });
+
+                // Reset button and refresh data
+                button.disabled = false;
+                button.textContent = originalText;
+                
                 refetchFees();
                 refetchDues();
                 fetchPreviousYearDuesFees();
-              } catch (e: any) {
-                console.error('Quick creation failed', e);
-                alert(e?.message || 'Failed to create fees');
+
+              } catch (error: any) {
+                console.error('Promotion failed:', error);
+                alert(`❌ Promotion failed: ${error.message}`);
+                
+                // Reset button
+                const button = document.activeElement as HTMLButtonElement;
+                if (button) {
+                  button.disabled = false;
+                  button.textContent = `Create Tuition Fees for ${currentAcademicYear.year_name}`;
+                }
               }
             }}
           >
-            Create Tuition Fees for {currentAcademicYear.year_name}
+            Promote & Create Fees for {currentAcademicYear.year_name}
           </Button>
         </div>
       )}
