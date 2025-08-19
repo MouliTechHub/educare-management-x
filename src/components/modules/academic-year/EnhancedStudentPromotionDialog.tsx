@@ -201,7 +201,7 @@ export function EnhancedStudentPromotionDialog({
       const feeResults = await processOutstandingFees(targetAcademicYear.id);
       
       // ✅ 2) Call the new RPC that accepts year names and handles everything
-      const { data: result, error: promotionError } = await (supabase as any).rpc('promote_students_with_fees_by_name', {
+      const { data: result, error: promotionError } = await supabase.rpc('promote_students_with_fees_by_name', {
         source_year_name: currentAcademicYear.year_name,
         target_year_name: targetAcademicYear.year_name,
         promoted_by_user: 'Admin'
@@ -244,7 +244,7 @@ export function EnhancedStudentPromotionDialog({
       // ✅ 4) RE-QUERY AND LOG COUNTS - Verify fee records using diagnostic RPC
       await new Promise(resolve => setTimeout(resolve, 1000)); // Wait for DB consistency
       
-      const { data: feeRecordsCount, error: feeCheckError } = await (supabase as any).rpc('debug_fee_counts', {
+      const { data: feeRecordsCount, error: feeCheckError } = await supabase.rpc('debug_fee_counts', {
         p_year: targetAcademicYear.id
       });
 
