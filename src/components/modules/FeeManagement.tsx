@@ -113,6 +113,7 @@ export default function FeeManagement() {
       return;
     }
 
+    // ✅ FIX: Ensure we're using year ID, not name for previous year dues
     const { data, error } = await supabase
       .from('student_fee_records')
       .select(`
@@ -124,6 +125,8 @@ export default function FeeManagement() {
       `)
       .neq('academic_year_id', currentAcademicYear.id)
       .gt('balance_fee', 0);
+
+    console.debug('[FEE-MGMT-PYD] year=', currentAcademicYear.id, 'pyd_rows=', data?.length || 0, error);
 
     if (error) {
       console.error('❌ Error fetching previous year balances:', error);
@@ -300,6 +303,7 @@ export default function FeeManagement() {
         currentAcademicYear={currentAcademicYear}
         onYearChange={setCurrentAcademicYear}
         onRefresh={() => {
+          console.info("[FEE-MGMT] Manual refresh triggered");
           refetchFees();
           refetchDues();
           fetchPreviousYearDuesFees();

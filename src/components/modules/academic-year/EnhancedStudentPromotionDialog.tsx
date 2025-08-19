@@ -191,6 +191,11 @@ export function EnhancedStudentPromotionDialog({
 
   const executePromotion = async () => {
     setPromoting(true);
+    
+    // ✅ 1) INSTRUMENT THE PROMOTE FLOW - Log inputs
+    console.info("[PROMOTE] source=", currentAcademicYear.year_name, "target=", targetAcademicYear.year_name);
+    console.info("[PROMOTE] source_id=", currentAcademicYear.id, "target_id=", targetAcademicYear.id);
+    
     try {
       // Step 1: Process outstanding fees
       const feeResults = await processOutstandingFees(targetAcademicYear.id);
@@ -214,6 +219,8 @@ export function EnhancedStudentPromotionDialog({
         !blockedStudents.includes(student.id)
       ) || [];
 
+      console.info("[PROMOTE] students_to_promote=", studentsToPromote.length, "blocked=", blockedStudents.length);
+
       // Step 3: Prepare promotion data
       const promotionData = studentsToPromote.map(student => ({
         student_id: student.id,
@@ -236,6 +243,7 @@ export function EnhancedStudentPromotionDialog({
       });
 
       if (promotionError) {
+        console.error("[PROMOTE][ERR]", promotionError);
         // Surface missing fee plans nicely when server returns 409
         const errAny: any = promotionError as any;
         const missing = errAny?.context?.missing as { year: string; class: string }[] | undefined;
@@ -245,7 +253,55 @@ export function EnhancedStudentPromotionDialog({
         throw promotionError;
       }
 
+      console.info("[PROMOTE][OK]", result);
+
+      // ✅ 2) FORCE-REFRESH ALL CACHES - Invalidate React Query caches for Fee Management
+      // Since we don't have React Query, we'll trigger a custom event to force refresh
+      const refreshEvent = new CustomEvent('promotion-completed', {
+        detail: {
+          targetYearId: targetAcademicYear.id,
+          promotedCount: studentsToPromote.length,
+          timestamp: Date.now()
+        }
+      });
+      window.dispatchEvent(refreshEvent);
+
+      // ✅ 3) RE-QUERY AND LOG COUNTS - Verify fee records were created
+      await new Promise(resolve => setTimeout(resolve, 1000)); // Wait for DB consistency
       
+      const { data: feeRecordsCheck, error: feeCheckError } = await supabase
+        .from('student_fee_records')
+        .select('id, student_id, fee_type, actual_fee')
+        .eq('academic_year_id', targetAcademicYear.id)
+        .order('student_id');
+
+      if (!feeCheckError) {
+        console.info("[PROMOTE] post-refresh counts", { 
+          feeRecords: feeRecordsCheck?.length || 0,
+          targetYear: targetAcademicYear.year_name,
+          targetYearId: targetAcademicYear.id
+        });
+        
+        // Group by student for better logging
+        const studentFeeMap = new Map();
+        feeRecordsCheck?.forEach(fee => {
+          if (!studentFeeMap.has(fee.student_id)) {
+            studentFeeMap.set(fee.student_id, []);
+          }
+          studentFeeMap.get(fee.student_id).push(fee.fee_type);
+        });
+        
+        console.info("[PROMOTE] fee_records_by_student", {
+          totalStudentsWithFees: studentFeeMap.size,
+          promotedStudents: studentsToPromote.length,
+          feeBreakdown: Array.from(studentFeeMap.entries()).slice(0, 5).map(([studentId, feeTypes]) => ({
+            studentId,
+            feeTypes
+          }))
+        });
+      } else {
+        console.error("[PROMOTE] Failed to verify fee records:", feeCheckError);
+      }
 
       // Step 5: Log promotion audit
       await supabase.from('student_promotions').insert({

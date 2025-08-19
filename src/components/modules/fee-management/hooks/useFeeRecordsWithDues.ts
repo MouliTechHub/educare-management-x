@@ -48,12 +48,9 @@ export function useFeeRecordsWithDues(currentAcademicYear: string) {
     
     try {
       setLoading(true);
-      console.log('🔄 Fetching fees with previous year dues for academic year:', currentAcademicYear);
+      console.debug('[FEE-MGMT] year=', currentAcademicYear, 'fetching with dues...');
       
-      // Group students by their current year fees and calculate previous year dues
-      const studentFeesMap = new Map();
-      
-      // First, get all current year fees (excluding Previous Year Dues)
+      // ✅ FIX: Ensure we're using year ID, not name - Query by academic_year_id
       const { data: currentYearFees, error: currentError } = await supabase
         .from("student_fee_records")
         .select(`
@@ -73,6 +70,8 @@ export function useFeeRecordsWithDues(currentAcademicYear: string) {
         .eq("academic_year_id", currentAcademicYear)
         .neq("fee_type", "Previous Year Dues")
         .order("created_at", { ascending: false });
+
+      console.debug('[FEE-MGMT] year=', currentAcademicYear, 'rows=', currentYearFees?.length || 0, currentError);
 
       if (currentError) {
         console.error('❌ Error fetching current year fees:', currentError);
@@ -96,13 +95,12 @@ export function useFeeRecordsWithDues(currentAcademicYear: string) {
         duesMap.set(due.student_id, due.balance_fee || 0);
       });
 
-console.log('✅ Current year fees fetched:', currentYearFees?.length || 0, 'records');
-console.log('✅ Previous year dues fetched for', duesMap.size, 'students');
+      console.log('✅ Current year fees fetched:', currentYearFees?.length || 0, 'records');
+      console.log('✅ Previous year dues fetched for', duesMap.size, 'students');
 
-// No auto backfill: when no records exist, show empty state
+      // No auto backfill: when no records exist, show empty state
 
-
-// Transform the data and merge with previous year dues
+      // Transform the data and merge with previous year dues
       const feesWithDues: FeeWithDues[] = (currentYearFees || []).map((fee: any) => {
         const previousDues = duesMap.get(fee.student_id) || 0;
 
@@ -160,15 +158,25 @@ console.log('✅ Previous year dues fetched for', duesMap.size, 'students');
     }
   }, [currentAcademicYear]);
 
-  // Listen for payment events to trigger immediate refresh
+  // Listen for payment events and promotion events to trigger immediate refresh
   useEffect(() => {
     const handlePaymentRecorded = () => {
       console.log('🔄 Payment recorded event received, refreshing fees with dues...');
       fetchFeesWithDues();
     };
 
+    const handlePromotionCompleted = (event: CustomEvent) => {
+      console.log('🔄 Promotion completed event received, refreshing fees with dues...', event.detail);
+      fetchFeesWithDues();
+    };
+
     window.addEventListener('payment-recorded', handlePaymentRecorded);
-    return () => window.removeEventListener('payment-recorded', handlePaymentRecorded);
+    window.addEventListener('promotion-completed', handlePromotionCompleted as EventListener);
+    
+    return () => {
+      window.removeEventListener('payment-recorded', handlePaymentRecorded);
+      window.removeEventListener('promotion-completed', handlePromotionCompleted as EventListener);
+    };
   }, []);
 
   const refetchFees = () => {
