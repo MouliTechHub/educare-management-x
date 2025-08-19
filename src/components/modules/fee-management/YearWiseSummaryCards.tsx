@@ -18,7 +18,7 @@ interface YearWiseSummaryCardsProps {
 }
 
 export function YearWiseSummaryCards({ summary }: YearWiseSummaryCardsProps) {
-  const totalExpected = summary.totalCollected + summary.totalPending + summary.totalDiscount;
+  const totalExpected = (summary.totalCollected || 0) + (summary.totalPending || 0) + (summary.totalDiscount || 0);
 
   return (
     <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-4 mb-6">
@@ -28,7 +28,7 @@ export function YearWiseSummaryCards({ summary }: YearWiseSummaryCardsProps) {
           <DollarSign className="h-4 w-4 text-muted-foreground" />
         </CardHeader>
         <CardContent>
-          <div className="text-2xl font-bold">₹{totalExpected.toLocaleString()}</div>
+          <div className="text-2xl font-bold">₹{(totalExpected || 0).toLocaleString()}</div>
           <p className="text-xs text-muted-foreground">
             Academic Year {summary.academicYear}
           </p>
@@ -42,10 +42,10 @@ export function YearWiseSummaryCards({ summary }: YearWiseSummaryCardsProps) {
         </CardHeader>
         <CardContent>
           <div className="text-2xl font-bold text-green-600">
-            ₹{summary.totalCollected.toLocaleString()}
+            ₹{(summary.totalCollected || 0).toLocaleString()}
           </div>
           <p className="text-xs text-muted-foreground">
-            {summary.collectionRate.toFixed(1)}% collection rate
+            {(summary.collectionRate || 0).toFixed(1)}% collection rate
           </p>
         </CardContent>
       </Card>
@@ -57,10 +57,10 @@ export function YearWiseSummaryCards({ summary }: YearWiseSummaryCardsProps) {
         </CardHeader>
         <CardContent>
           <div className="text-2xl font-bold text-yellow-600">
-            ₹{summary.totalPending.toLocaleString()}
+            ₹{(summary.totalPending || 0).toLocaleString()}
           </div>
           <p className="text-xs text-muted-foreground">
-            {summary.overdueCount} overdue records
+            {summary.overdueCount || 0} overdue records
           </p>
         </CardContent>
       </Card>
@@ -72,10 +72,10 @@ export function YearWiseSummaryCards({ summary }: YearWiseSummaryCardsProps) {
         </CardHeader>
         <CardContent>
           <div className="text-2xl font-bold text-blue-600">
-            ₹{summary.totalDiscount.toLocaleString()}
+            ₹{(summary.totalDiscount || 0).toLocaleString()}
           </div>
           <p className="text-xs text-muted-foreground">
-            {totalExpected > 0 ? ((summary.totalDiscount / totalExpected) * 100).toFixed(1) : 0}% of total
+            {totalExpected > 0 ? (((summary.totalDiscount || 0) / totalExpected) * 100).toFixed(1) : 0}% of total
           </p>
         </CardContent>
       </Card>
@@ -87,7 +87,7 @@ export function YearWiseSummaryCards({ summary }: YearWiseSummaryCardsProps) {
         </CardHeader>
         <CardContent>
           <div className="text-2xl font-bold text-purple-600">
-            {summary.totalStudents}
+            {summary.totalStudents || 0}
           </div>
           <p className="text-xs text-muted-foreground">
             Active students
@@ -102,7 +102,7 @@ export function YearWiseSummaryCards({ summary }: YearWiseSummaryCardsProps) {
         </CardHeader>
         <CardContent>
           <div className="text-2xl font-bold text-indigo-600">
-            {summary.collectionRate.toFixed(0)}%
+            {(summary.collectionRate || 0).toFixed(0)}%
           </div>
           <p className="text-xs text-muted-foreground">
             Collection efficiency

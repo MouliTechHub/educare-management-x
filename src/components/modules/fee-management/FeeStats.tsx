@@ -41,9 +41,9 @@ interface FeeStatsProps {
 
 export function FeeStats({ fees }: FeeStatsProps) {
   const stats = {
-    total: fees.reduce((sum, fee) => sum + (fee.actual_amount - fee.discount_amount), 0),
-    collected: fees.reduce((sum, fee) => sum + fee.total_paid, 0),
-    pending: fees.filter(fee => fee.status === 'Pending' || fee.status === 'Partial').reduce((sum, fee) => sum + (fee.actual_amount - fee.discount_amount - fee.total_paid), 0),
+    total: fees.reduce((sum, fee) => sum + ((fee.actual_amount || 0) - (fee.discount_amount || 0)), 0),
+    collected: fees.reduce((sum, fee) => sum + (fee.total_paid || 0), 0),
+    pending: fees.filter(fee => fee.status === 'Pending' || fee.status === 'Partial').reduce((sum, fee) => sum + Math.max(0, ((fee.actual_amount || 0) - (fee.discount_amount || 0) - (fee.total_paid || 0))), 0),
     overdue: fees.filter(fee => fee.status === 'Overdue').length
   };
 
@@ -57,7 +57,7 @@ export function FeeStats({ fees }: FeeStatsProps) {
           <DollarSign className="h-4 w-4 text-muted-foreground" />
         </CardHeader>
         <CardContent>
-          <div className="text-2xl font-bold">₹{stats.total.toLocaleString()}</div>
+          <div className="text-2xl font-bold">₹{(stats.total || 0).toLocaleString()}</div>
           <p className="text-xs text-muted-foreground">All fee records</p>
         </CardContent>
       </Card>
@@ -68,7 +68,7 @@ export function FeeStats({ fees }: FeeStatsProps) {
           <CheckCircle className="h-4 w-4 text-green-600" />
         </CardHeader>
         <CardContent>
-          <div className="text-2xl font-bold text-green-600">₹{stats.collected.toLocaleString()}</div>
+          <div className="text-2xl font-bold text-green-600">₹{(stats.collected || 0).toLocaleString()}</div>
           <p className="text-xs text-muted-foreground">Successfully paid</p>
         </CardContent>
       </Card>
@@ -79,7 +79,7 @@ export function FeeStats({ fees }: FeeStatsProps) {
           <DollarSign className="h-4 w-4 text-yellow-600" />
         </CardHeader>
         <CardContent>
-          <div className="text-2xl font-bold text-yellow-600">₹{stats.pending.toLocaleString()}</div>
+          <div className="text-2xl font-bold text-yellow-600">₹{(stats.pending || 0).toLocaleString()}</div>
           <p className="text-xs text-muted-foreground">Awaiting payment</p>
         </CardContent>
       </Card>
@@ -90,7 +90,7 @@ export function FeeStats({ fees }: FeeStatsProps) {
           <AlertTriangle className="h-4 w-4 text-red-600" />
         </CardHeader>
         <CardContent>
-          <div className="text-2xl font-bold text-red-600">{stats.overdue}</div>
+          <div className="text-2xl font-bold text-red-600">{stats.overdue || 0}</div>
           <p className="text-xs text-muted-foreground">Past due date</p>
         </CardContent>
       </Card>

@@ -9,17 +9,17 @@ interface EnhancedFeeStatsProps {
 
 export function EnhancedFeeStats({ fees, filters }: EnhancedFeeStatsProps) {
   const stats = {
-    total: fees.reduce((sum, fee) => sum + (fee.actual_fee - fee.discount_amount), 0),
-    collected: fees.reduce((sum, fee) => sum + fee.paid_amount, 0),
-    pending: fees.filter(fee => fee.status === 'Pending').reduce((sum, fee) => sum + (fee.actual_fee - fee.discount_amount - fee.paid_amount), 0),
+    total: fees.reduce((sum, fee) => sum + ((fee.actual_fee || 0) - (fee.discount_amount || 0)), 0),
+    collected: fees.reduce((sum, fee) => sum + (fee.paid_amount || 0), 0),
+    pending: fees.filter(fee => fee.status === 'Pending').reduce((sum, fee) => sum + Math.max(0, ((fee.actual_fee || 0) - (fee.discount_amount || 0) - (fee.paid_amount || 0))), 0),
     overdue: fees.filter(fee => fee.status === 'Overdue').length,
-    totalDiscount: fees.reduce((sum, fee) => sum + fee.discount_amount, 0),
+    totalDiscount: fees.reduce((sum, fee) => sum + (fee.discount_amount || 0), 0),
     totalStudents: new Set(fees.map(fee => fee.student_id)).size,
-    studentsWithDiscounts: new Set(fees.filter(fee => fee.discount_amount > 0).map(fee => fee.student_id)).size
+    studentsWithDiscounts: new Set(fees.filter(fee => (fee.discount_amount || 0) > 0).map(fee => fee.student_id)).size
   };
 
   const collectionRate = stats.total > 0 ? ((stats.collected / stats.total) * 100).toFixed(1) : "0";
-  const discountRate = stats.total > 0 ? ((stats.totalDiscount / (stats.total + stats.totalDiscount)) * 100).toFixed(1) : "0";
+  const discountRate = (stats.total + stats.totalDiscount) > 0 ? ((stats.totalDiscount / (stats.total + stats.totalDiscount)) * 100).toFixed(1) : "0";
 
   return (
     <div className="space-y-4">
@@ -31,7 +31,7 @@ export function EnhancedFeeStats({ fees, filters }: EnhancedFeeStatsProps) {
             <DollarSign className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">₹{stats.total.toLocaleString()}</div>
+            <div className="text-2xl font-bold">₹{(stats.total || 0).toLocaleString()}</div>
             <p className="text-xs text-muted-foreground">All fee records</p>
           </CardContent>
         </Card>
@@ -42,7 +42,7 @@ export function EnhancedFeeStats({ fees, filters }: EnhancedFeeStatsProps) {
             <CheckCircle className="h-4 w-4 text-green-600" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-green-600">₹{stats.collected.toLocaleString()}</div>
+            <div className="text-2xl font-bold text-green-600">₹{(stats.collected || 0).toLocaleString()}</div>
             <p className="text-xs text-muted-foreground">Successfully paid</p>
           </CardContent>
         </Card>
@@ -53,7 +53,7 @@ export function EnhancedFeeStats({ fees, filters }: EnhancedFeeStatsProps) {
             <DollarSign className="h-4 w-4 text-yellow-600" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-yellow-600">₹{stats.pending.toLocaleString()}</div>
+            <div className="text-2xl font-bold text-yellow-600">₹{(stats.pending || 0).toLocaleString()}</div>
             <p className="text-xs text-muted-foreground">Awaiting payment</p>
           </CardContent>
         </Card>
@@ -64,7 +64,7 @@ export function EnhancedFeeStats({ fees, filters }: EnhancedFeeStatsProps) {
             <Percent className="h-4 w-4 text-orange-600" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-orange-600">₹{stats.totalDiscount.toLocaleString()}</div>
+            <div className="text-2xl font-bold text-orange-600">₹{(stats.totalDiscount || 0).toLocaleString()}</div>
             <p className="text-xs text-orange-700">{discountRate}% of original fees</p>
           </CardContent>
         </Card>
@@ -75,7 +75,7 @@ export function EnhancedFeeStats({ fees, filters }: EnhancedFeeStatsProps) {
             <AlertTriangle className="h-4 w-4 text-red-600" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-red-600">{stats.overdue}</div>
+            <div className="text-2xl font-bold text-red-600">{stats.overdue || 0}</div>
             <p className="text-xs text-muted-foreground">Past due date</p>
           </CardContent>
         </Card>
@@ -100,7 +100,7 @@ export function EnhancedFeeStats({ fees, filters }: EnhancedFeeStatsProps) {
             <Users className="h-4 w-4 text-blue-600" />
           </CardHeader>
           <CardContent>
-            <div className="text-xl font-bold text-blue-600">{stats.totalStudents}</div>
+            <div className="text-xl font-bold text-blue-600">{stats.totalStudents || 0}</div>
             <p className="text-xs text-blue-700">Total students in current filter</p>
           </CardContent>
         </Card>
@@ -111,7 +111,7 @@ export function EnhancedFeeStats({ fees, filters }: EnhancedFeeStatsProps) {
             <Percent className="h-4 w-4 text-purple-600" />
           </CardHeader>
           <CardContent>
-            <div className="text-xl font-bold text-purple-600">{stats.studentsWithDiscounts}</div>
+            <div className="text-xl font-bold text-purple-600">{stats.studentsWithDiscounts || 0}</div>
             <p className="text-xs text-purple-700">Students with discounts applied</p>
           </CardContent>
         </Card>
@@ -123,7 +123,7 @@ export function EnhancedFeeStats({ fees, filters }: EnhancedFeeStatsProps) {
           </CardHeader>
           <CardContent>
             <div className="text-xl font-bold text-indigo-600">
-              ₹{stats.totalStudents > 0 ? Math.round(stats.total / stats.totalStudents).toLocaleString() : "0"}
+              ₹{stats.totalStudents > 0 ? Math.round((stats.total || 0) / stats.totalStudents).toLocaleString() : "0"}
             </div>
             <p className="text-xs text-indigo-700">Per student (after discount)</p>
           </CardContent>

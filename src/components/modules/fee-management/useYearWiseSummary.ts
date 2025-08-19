@@ -58,11 +58,11 @@ export function useYearWiseSummary(fees: Fee[], academicYears: AcademicYear[], s
 
     const yearFees = fees.filter(fee => fee.academic_year_id === selectedAcademicYear);
     
-    const totalCollected = yearFees.reduce((sum, fee) => sum + fee.total_paid, 0);
-    const totalDiscount = yearFees.reduce((sum, fee) => sum + fee.discount_amount, 0);
+    const totalCollected = yearFees.reduce((sum, fee) => sum + (fee.total_paid || 0), 0);
+    const totalDiscount = yearFees.reduce((sum, fee) => sum + (fee.discount_amount || 0), 0);
     const totalPending = yearFees.reduce((sum, fee) => {
-      const finalFee = fee.actual_amount - fee.discount_amount;
-      const balance = finalFee - fee.total_paid;
+      const finalFee = (fee.actual_amount || 0) - (fee.discount_amount || 0);
+      const balance = finalFee - (fee.total_paid || 0);
       return sum + Math.max(0, balance);
     }, 0);
     
@@ -73,7 +73,7 @@ export function useYearWiseSummary(fees: Fee[], academicYears: AcademicYear[], s
     const totalStudents = uniqueStudents.size;
     
     const overdueCount = yearFees.filter(fee => 
-      fee.status === 'Pending' && new Date(fee.due_date) < new Date()
+      fee.status === 'Pending' && fee.due_date && new Date(fee.due_date) < new Date()
     ).length;
 
     return {
