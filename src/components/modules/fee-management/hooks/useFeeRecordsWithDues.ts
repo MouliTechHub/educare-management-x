@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { useYearIdResolver } from "./useYearIdResolver";
 
 interface FeeWithDues {
   id: string;
@@ -34,21 +35,24 @@ interface FeeWithDues {
   };
 }
 
-export function useFeeRecordsWithDues(currentAcademicYear: string) {
+export function useFeeRecordsWithDues(currentAcademicYearName: string | undefined) {
   const [fees, setFees] = useState<FeeWithDues[]>([]);
   const [loading, setLoading] = useState(true);
   const { toast } = useToast();
+  
+  // ✅ FIX: Resolve year name to ID for consistent querying
+  const { yearId: currentAcademicYear, loading: yearLoading, error: yearError } = useYearIdResolver(currentAcademicYearName);
 
   const fetchFeesWithDues = async () => {
     if (!currentAcademicYear) {
-      console.log('⚠️ No academic year selected, skipping fee fetch');
+      console.log('⚠️ No academic year ID available, skipping fee fetch');
       setLoading(false);
       return;
     }
     
     try {
       setLoading(true);
-      console.debug('[FEE-MGMT] year=', currentAcademicYear, 'fetching with dues...');
+      console.debug('[FEE-MGMT] year=', currentAcademicYear, 'year_name=', currentAcademicYearName, 'fetching with dues...');
       
       // ✅ FIX: Ensure we're using year ID, not name - Query by academic_year_id
       const { data: currentYearFees, error: currentError } = await supabase
@@ -151,12 +155,15 @@ export function useFeeRecordsWithDues(currentAcademicYear: string) {
   };
 
   useEffect(() => {
-    if (currentAcademicYear) {
+    if (!yearLoading && !yearError && currentAcademicYear) {
       fetchFeesWithDues();
-    } else {
+    } else if (!yearLoading && yearError) {
+      console.error('Failed to resolve academic year:', yearError);
+      setLoading(false);
+    } else if (!yearLoading && !currentAcademicYear) {
       setLoading(false);
     }
-  }, [currentAcademicYear]);
+  }, [currentAcademicYear, yearLoading, yearError]);
 
   // Listen for payment events and promotion events to trigger immediate refresh
   useEffect(() => {

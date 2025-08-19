@@ -200,46 +200,11 @@ export function EnhancedStudentPromotionDialog({
       // Step 1: Process outstanding fees
       const feeResults = await processOutstandingFees(targetAcademicYear.id);
       
-      // Step 2: Get students to promote (exclude blocked ones)
-      const { data: studentsData, error: studentsError } = await supabase
-        .from('students')
-        .select('id, class_id, classes(name)')
-        .eq('status', 'Active');
-
-      if (studentsError) throw studentsError;
-
-      // Filter out blocked students
-      const blockedStudents = feeActions instanceof Map 
-        ? Array.from(feeActions.entries())
-            .filter(([_, action]) => action.action === 'block')
-            .map(([studentId]) => studentId)
-        : [];
-
-      const studentsToPromote = studentsData?.filter(student => 
-        !blockedStudents.includes(student.id)
-      ) || [];
-
-      console.info("[PROMOTE] students_to_promote=", studentsToPromote.length, "blocked=", blockedStudents.length);
-
-      // Step 3: Prepare promotion data
-      const promotionData = studentsToPromote.map(student => ({
-        student_id: student.id,
-        from_academic_year_id: currentAcademicYear.id,
-        from_class_id: student.class_id,
-        to_class_id: null, // Let DB compute next class via get_next_class_id
-        promotion_type: 'promoted',
-        reason: 'Automatic bulk promotion with outstanding fee handling',
-        notes: `Promoted from ${currentAcademicYear.year_name} to ${targetAcademicYear.year_name}`
-      }));
-
-      // Step 4: Execute promotion via Edge Function with precondition validation
-      const { data: result, error: promotionError } = await supabase.functions.invoke('promotions-execute', {
-        body: {
-          promotion_data: promotionData,
-          target_academic_year_id: targetAcademicYear.id,
-          promoted_by_user: 'Admin',
-          idempotency_key: `enhanced-bulk:${currentAcademicYear.id}:${targetAcademicYear.id}`,
-        },
+      // ✅ 2) Call the new RPC that accepts year names and handles everything
+      const { data: result, error: promotionError } = await supabase.rpc('promote_students_with_fees_by_name', {
+        source_year_name: currentAcademicYear.year_name,
+        target_year_name: targetAcademicYear.year_name,
+        promoted_by_user: 'Admin'
       });
 
       if (promotionError) {
@@ -255,50 +220,52 @@ export function EnhancedStudentPromotionDialog({
 
       console.info("[PROMOTE][OK]", result);
 
-      // ✅ 2) FORCE-REFRESH ALL CACHES - Invalidate React Query caches for Fee Management
-      // Since we don't have React Query, we'll trigger a custom event to force refresh
+      // Cast result to expected type for type safety
+      const promotionResult = result as any as {
+        promoted_students?: number;
+        fee_rows_created?: number;
+        target_year_id?: string;
+        source_year_id?: string;
+        message?: string;
+      };
+
+      // ✅ 3) FORCE-REFRESH ALL CACHES - Invalidate caches for Fee Management
       const refreshEvent = new CustomEvent('promotion-completed', {
         detail: {
           targetYearId: targetAcademicYear.id,
-          promotedCount: studentsToPromote.length,
+          targetYearName: targetAcademicYear.year_name,
+          promotedCount: promotionResult?.promoted_students || 0,
+          feeRowsCreated: promotionResult?.fee_rows_created || 0,
           timestamp: Date.now()
         }
       });
       window.dispatchEvent(refreshEvent);
 
-      // ✅ 3) RE-QUERY AND LOG COUNTS - Verify fee records were created
+      // ✅ 4) RE-QUERY AND LOG COUNTS - Verify fee records using diagnostic RPC
       await new Promise(resolve => setTimeout(resolve, 1000)); // Wait for DB consistency
       
-      const { data: feeRecordsCheck, error: feeCheckError } = await supabase
-        .from('student_fee_records')
-        .select('id, student_id, fee_type, actual_fee')
-        .eq('academic_year_id', targetAcademicYear.id)
-        .order('student_id');
+      const { data: feeRecordsCount, error: feeCheckError } = await supabase.rpc('debug_fee_counts', {
+        p_year: targetAcademicYear.id
+      });
 
       if (!feeCheckError) {
         console.info("[PROMOTE] post-refresh counts", { 
-          feeRecords: feeRecordsCheck?.length || 0,
+          feeRecords: feeRecordsCount || 0,
           targetYear: targetAcademicYear.year_name,
-          targetYearId: targetAcademicYear.id
+          targetYearId: targetAcademicYear.id,
+          expectedStudents: promotionResult?.promoted_students || 0,
+          actualFeeRows: promotionResult?.fee_rows_created || 0
         });
         
-        // Group by student for better logging
-        const studentFeeMap = new Map();
-        feeRecordsCheck?.forEach(fee => {
-          if (!studentFeeMap.has(fee.student_id)) {
-            studentFeeMap.set(fee.student_id, []);
-          }
-          studentFeeMap.get(fee.student_id).push(fee.fee_type);
-        });
-        
-        console.info("[PROMOTE] fee_records_by_student", {
-          totalStudentsWithFees: studentFeeMap.size,
-          promotedStudents: studentsToPromote.length,
-          feeBreakdown: Array.from(studentFeeMap.entries()).slice(0, 5).map(([studentId, feeTypes]) => ({
-            studentId,
-            feeTypes
-          }))
-        });
+        // Validation check
+        if ((promotionResult?.promoted_students || 0) > 0 && (promotionResult?.fee_rows_created || 0) === 0) {
+          console.warn("[PROMOTE] WARNING: Students promoted but no fee rows created - check fee structures");
+          toast({
+            title: "Warning",
+            description: `Promoted ${promotionResult?.promoted_students} students but no fee records were created. Please check fee structures for ${targetAcademicYear.year_name}.`,
+            variant: "destructive",
+          });
+        }
       } else {
         console.error("[PROMOTE] Failed to verify fee records:", feeCheckError);
       }
@@ -312,18 +279,29 @@ export function EnhancedStudentPromotionDialog({
         to_class_id: null,
         promotion_type: 'bulk_promotion_audit',
         reason: 'Bulk promotion audit log',
-        notes: `Bulk promotion executed. Fee processing: ${feeResults.payments} payments, ${feeResults.waivers} waivers, ${feeResults.carriedForward} carried forward, ${feeResults.blocked} blocked`,
+        notes: `Bulk promotion executed via promote_students_with_fees_by_name. Promoted: ${promotionResult?.promoted_students || 0}, Fee rows created: ${promotionResult?.fee_rows_created || 0}`,
         promoted_by: 'Admin'
       });
 
+      // ✅ 7) Enhanced success toast
       toast({
         title: "Promotion Complete",
-        description: `Successfully promoted ${studentsToPromote.length} students. Fee processing: ${feeResults.payments} payments, ${feeResults.waivers} waivers, ${feeResults.carriedForward} carried forward, ${feeResults.blocked} blocked.`,
+        description: `Promoted ${promotionResult?.promoted_students || 0} students; created ${promotionResult?.fee_rows_created || 0} fee rows for ${targetAcademicYear.year_name}.`,
       });
 
       onOpenChange(false);
     } catch (error: any) {
-      console.error('Error executing promotion:', error);
+      console.error('[PROMOTE][ERR] Promotion failed:', error);
+      
+      // ✅ 8) Enhanced error toast with full error logging
+      console.error('[PROMOTE][ERR] Full error payload:', {
+        message: error.message,
+        code: error.code,
+        details: error.details,
+        hint: error.hint,
+        stack: error.stack
+      });
+      
       toast({
         title: "Error",
         description: error.message || "Failed to execute promotion",

@@ -41,7 +41,7 @@ export default function FeeManagement() {
     fees,
     loading,
     refetchFees
-  } = useFeeRecordsWithDues(currentAcademicYear?.id || '');
+  } = useFeeRecordsWithDues(currentAcademicYear?.year_name);
 
   const {
     classes,
