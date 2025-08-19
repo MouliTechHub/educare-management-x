@@ -82,11 +82,13 @@ export function useFeeRecordsWithDues(currentAcademicYearName: string | undefine
         throw currentError;
       }
 
-      // Then get all previous year dues for the same students
+      // Then get Previous Year Dues records that belong to the CURRENT academic year
+      // These are created when students are promoted and have outstanding balances
       const { data: previousYearDues, error: duesError } = await supabase
         .from("student_fee_records")
         .select("student_id, balance_fee")
-        .neq("academic_year_id", currentAcademicYear)
+        .eq("academic_year_id", currentAcademicYear)
+        .eq("fee_type", "Previous Year Dues")
         .gt("balance_fee", 0);
 
       if (duesError) {

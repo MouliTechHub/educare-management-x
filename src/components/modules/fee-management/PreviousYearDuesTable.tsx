@@ -55,7 +55,8 @@ export function PreviousYearDuesTable({ academicYearId, onRefresh }: PreviousYea
             classes(name, section)
           )
         `)
-        .neq('academic_year_id', academicYearId)
+        .eq('academic_year_id', academicYearId)
+        .eq('fee_type', 'Previous Year Dues')
         .gt('balance_fee', 0)
         .order('due_date', { ascending: true });
 

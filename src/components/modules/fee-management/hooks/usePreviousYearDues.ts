@@ -34,7 +34,7 @@ export function usePreviousYearDues(currentAcademicYearId: string | any) {
     try {
       console.log('📅 Fetching previous year dues for current year:', stableYearId);
       
-      // Fetch "Previous Year Dues" records from the current academic year
+      // Fetch "Previous Year Dues" records that belong TO the current academic year
       // These are created when students are promoted and have outstanding balances
       const { data: feeData, error: feeError } = await supabase
         .from('student_fee_records')
@@ -50,7 +50,8 @@ export function usePreviousYearDues(currentAcademicYearId: string | any) {
           status,
           academic_years!inner(year_name)
         `)
-        .neq('academic_year_id', stableYearId)
+        .eq('academic_year_id', stableYearId)
+        .eq('fee_type', 'Previous Year Dues')
         .gt('balance_fee', 0);
 
       if (feeError) {
