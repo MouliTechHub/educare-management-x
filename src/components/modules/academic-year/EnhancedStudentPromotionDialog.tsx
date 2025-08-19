@@ -224,6 +224,7 @@ export function EnhancedStudentPromotionDialog({
       const promotionResult = result as any as {
         promoted_students?: number;
         fee_rows_created?: number;
+        pyd_rows_created?: number;
         target_year_id?: string;
         source_year_id?: string;
         message?: string;
@@ -236,6 +237,7 @@ export function EnhancedStudentPromotionDialog({
           targetYearName: targetAcademicYear.year_name,
           promotedCount: promotionResult?.promoted_students || 0,
           feeRowsCreated: promotionResult?.fee_rows_created || 0,
+          pydRowsCreated: promotionResult?.pyd_rows_created || 0,
           timestamp: Date.now()
         }
       });
@@ -279,14 +281,18 @@ export function EnhancedStudentPromotionDialog({
         to_class_id: null,
         promotion_type: 'bulk_promotion_audit',
         reason: 'Bulk promotion audit log',
-        notes: `Bulk promotion executed via promote_students_with_fees_by_name. Promoted: ${promotionResult?.promoted_students || 0}, Fee rows created: ${promotionResult?.fee_rows_created || 0}`,
+        notes: `Bulk promotion executed via promote_students_with_fees_by_name. Promoted: ${promotionResult?.promoted_students || 0}, Fee rows: ${promotionResult?.fee_rows_created || 0}, PYD rows: ${promotionResult?.pyd_rows_created || 0}`,
         promoted_by: 'Admin'
       });
 
-      // ✅ 7) Enhanced success toast
+      // ✅ 7) Enhanced success toast with detailed breakdown
+      const feeRowsText = (promotionResult?.fee_rows_created || 0) > 0 ? `${promotionResult?.fee_rows_created || 0} class-fee rows` : '';
+      const pydRowsText = (promotionResult?.pyd_rows_created || 0) > 0 ? `${promotionResult?.pyd_rows_created || 0} previous-year-dues rows` : '';
+      const rowsText = [feeRowsText, pydRowsText].filter(Boolean).join(' and ');
+      
       toast({
         title: "Promotion Complete",
-        description: `Promoted ${promotionResult?.promoted_students || 0} students; created ${promotionResult?.fee_rows_created || 0} fee rows for ${targetAcademicYear.year_name}.`,
+        description: `Promoted ${promotionResult?.promoted_students || 0} students; created ${rowsText} for ${targetAcademicYear.year_name}.`,
       });
 
       onOpenChange(false);
