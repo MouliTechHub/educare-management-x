@@ -12,10 +12,11 @@ import {
   Send,
   RefreshCw
 } from "lucide-react";
-import { PreviousYearDues } from "./hooks/usePreviousYearDues";
+import { PreviousYearDues, PYDSummaryData } from "./hooks/usePreviousYearDues";
 
 interface PreviousYearDuesSummaryProps {
   allDues: PreviousYearDues[];
+  summaryData: PYDSummaryData;
   loading: boolean;
   onRefresh: () => void;
   onSendBulkReminders: () => void;
@@ -24,13 +25,21 @@ interface PreviousYearDuesSummaryProps {
 
 export function PreviousYearDuesSummary({
   allDues,
+  summaryData,
   loading,
   onRefresh,
   onSendBulkReminders,
   onViewAllDetails
 }: PreviousYearDuesSummaryProps) {
   const studentsWithDues = allDues.filter(dues => dues.totalDues > 0);
-  const totalOutstanding = studentsWithDues.reduce((sum, dues) => sum + dues.totalDues, 0);
+  
+  // Use canonical summary data with proper NaN handling
+  const safeNumber = (num: number) => isFinite(num) ? num : 0;
+  const formatCurrency = (amount: number) => new Intl.NumberFormat('en-IN', {
+    style: 'currency',
+    currency: 'INR',
+    minimumFractionDigits: 0,
+  }).format(safeNumber(amount));
   
   // Calculate by academic year
   const duesByYear = new Map<string, { count: number; amount: number }>();
@@ -38,7 +47,7 @@ export function PreviousYearDuesSummary({
     studentDues.duesDetails.forEach(due => {
       const yearData = duesByYear.get(due.academicYear) || { count: 0, amount: 0 };
       yearData.count += 1;
-      yearData.amount += due.balanceAmount;
+      yearData.amount += safeNumber(due.balanceAmount);
       duesByYear.set(due.academicYear, yearData);
     });
   });
@@ -49,19 +58,10 @@ export function PreviousYearDuesSummary({
     studentDues.duesDetails.forEach(due => {
       const typeData = duesByType.get(due.feeType) || { count: 0, amount: 0 };
       typeData.count += 1;
-      typeData.amount += due.balanceAmount;
+      typeData.amount += safeNumber(due.balanceAmount);
       duesByType.set(due.feeType, typeData);
     });
   });
-
-  const averageDuePerStudent = studentsWithDues.length > 0 
-    ? totalOutstanding / studentsWithDues.length 
-    : 0;
-
-  // Priority levels based on amount
-  const highPriorityStudents = studentsWithDues.filter(d => d.totalDues >= 25000).length;
-  const mediumPriorityStudents = studentsWithDues.filter(d => d.totalDues >= 10000 && d.totalDues < 25000).length;
-  const lowPriorityStudents = studentsWithDues.filter(d => d.totalDues < 10000).length;
 
   if (loading) {
     return (
@@ -76,16 +76,16 @@ export function PreviousYearDuesSummary({
   return (
     <div className="space-y-6">
       {/* Main Summary Card */}
-      <Card className={studentsWithDues.length > 0 ? "border-red-200 bg-red-50" : "border-green-200 bg-green-50"}>
+      <Card className={summaryData.studentsWithDues > 0 ? "border-red-200 bg-red-50" : "border-green-200 bg-green-50"}>
         <CardHeader>
           <CardTitle className="flex items-center justify-between">
             <div className="flex items-center gap-2">
-              {studentsWithDues.length > 0 ? (
+              {summaryData.studentsWithDues > 0 ? (
                 <AlertTriangle className="h-5 w-5 text-red-600" />
               ) : (
                 <IndianRupee className="h-5 w-5 text-green-600" />
               )}
-              <span className={studentsWithDues.length > 0 ? "text-red-800" : "text-green-800"}>
+              <span className={summaryData.studentsWithDues > 0 ? "text-red-800" : "text-green-800"}>
                 Previous Year Dues Summary
               </span>
             </div>
@@ -94,7 +94,7 @@ export function PreviousYearDuesSummary({
                 <RefreshCw className="h-3 w-3 mr-1" />
                 Refresh
               </Button>
-              {studentsWithDues.length > 0 && (
+              {summaryData.studentsWithDues > 0 && (
                 <>
                   <Button variant="outline" size="sm" onClick={onViewAllDetails}>
                     <FileText className="h-3 w-3 mr-1" />
@@ -110,7 +110,7 @@ export function PreviousYearDuesSummary({
           </CardTitle>
         </CardHeader>
         <CardContent>
-          {studentsWithDues.length === 0 ? (
+          {summaryData.studentsWithDues === 0 ? (
             <div className="text-center py-8">
               <div className="text-green-600 text-lg font-semibold">
                 🎉 No Previous Year Dues Outstanding!
@@ -119,18 +119,18 @@ export function PreviousYearDuesSummary({
             </div>
           ) : (
             <div className="space-y-6">
-              {/* Quick Stats Grid */}
+              {/* Quick Stats Grid - Use canonical summary data */}
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                 <div className="text-center p-4 bg-red-100 rounded-lg">
-                  <div className="text-2xl font-bold text-red-700">{studentsWithDues.length}</div>
+                  <div className="text-2xl font-bold text-red-700">{summaryData.studentsWithDues}</div>
                   <div className="text-sm text-red-600">Students with Dues</div>
                 </div>
                 <div className="text-center p-4 bg-red-100 rounded-lg">
-                  <div className="text-2xl font-bold text-red-700">₹{totalOutstanding.toLocaleString()}</div>
+                  <div className="text-2xl font-bold text-red-700">{formatCurrency(summaryData.totalOutstanding)}</div>
                   <div className="text-sm text-red-600">Total Outstanding</div>
                 </div>
                 <div className="text-center p-4 bg-orange-100 rounded-lg">
-                  <div className="text-2xl font-bold text-orange-700">₹{Math.round(averageDuePerStudent).toLocaleString()}</div>
+                  <div className="text-2xl font-bold text-orange-700">{formatCurrency(summaryData.avgPerStudent)}</div>
                   <div className="text-sm text-orange-600">Average per Student</div>
                 </div>
                 <div className="text-center p-4 bg-yellow-100 rounded-lg">
@@ -139,7 +139,7 @@ export function PreviousYearDuesSummary({
                 </div>
               </div>
 
-              {/* Priority Breakdown */}
+              {/* Priority Breakdown - Use canonical buckets */}
               <div className="space-y-3">
                 <h4 className="font-medium text-red-800 flex items-center gap-2">
                   <TrendingDown className="h-4 w-4" />
@@ -151,21 +151,21 @@ export function PreviousYearDuesSummary({
                       <div className="font-semibold text-red-900">High Priority</div>
                       <div className="text-sm text-red-700">≥₹25,000</div>
                     </div>
-                    <Badge variant="destructive">{highPriorityStudents}</Badge>
+                    <Badge variant="destructive">{summaryData.highCount}</Badge>
                   </div>
                   <div className="flex items-center justify-between p-3 bg-orange-200 rounded">
                     <div>
                       <div className="font-semibold text-orange-900">Medium Priority</div>
                       <div className="text-sm text-orange-700">₹10k - ₹25k</div>
                     </div>
-                    <Badge className="bg-orange-600">{mediumPriorityStudents}</Badge>
+                    <Badge className="bg-orange-600">{summaryData.mediumCount}</Badge>
                   </div>
                   <div className="flex items-center justify-between p-3 bg-yellow-200 rounded">
                     <div>
                       <div className="font-semibold text-yellow-900">Low Priority</div>
                       <div className="text-sm text-yellow-700">&lt;₹10,000</div>
                     </div>
-                    <Badge className="bg-yellow-600">{lowPriorityStudents}</Badge>
+                    <Badge className="bg-yellow-600">{summaryData.lowCount}</Badge>
                   </div>
                 </div>
               </div>

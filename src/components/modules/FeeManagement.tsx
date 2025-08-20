@@ -62,6 +62,7 @@ export default function FeeManagement() {
     hasOutstandingDues, 
     logPaymentBlockage, 
     previousYearDues, 
+    summaryData,
     refetch: refetchDues 
   } = usePreviousYearDues(currentAcademicYear?.id || '');
 
@@ -356,6 +357,7 @@ export default function FeeManagement() {
                 <div className="space-y-4">
                   <PreviousYearDuesSummary
                     allDues={previousYearDues}
+                    summaryData={summaryData}
                     loading={loading}
                     onRefresh={refetchDues}
                     onSendBulkReminders={handleSendBulkReminders}

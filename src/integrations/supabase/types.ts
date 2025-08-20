@@ -2091,6 +2091,13 @@ export type Database = {
           total_outstanding: number
         }[]
       }
+      get_student_pyd_details: {
+        Args: { p_student_id: string; p_year: string }
+        Returns: {
+          fee_record_id: string
+          outstanding_amount: number
+        }[]
+      }
       get_user_role: {
         Args: { user_uuid?: string }
         Returns: Database["public"]["Enums"]["app_role"]
