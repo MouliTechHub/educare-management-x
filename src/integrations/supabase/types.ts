@@ -1947,6 +1947,79 @@ export type Database = {
         }
         Relationships: []
       }
+      v_pyd: {
+        Row: {
+          academic_year_id: string | null
+          class_id: string | null
+          pyd_outstanding: number | null
+          student_id: string | null
+        }
+        Insert: {
+          academic_year_id?: string | null
+          class_id?: string | null
+          pyd_outstanding?: never
+          student_id?: string | null
+        }
+        Update: {
+          academic_year_id?: string | null
+          class_id?: string | null
+          pyd_outstanding?: never
+          student_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "student_fee_records_academic_year_id_fkey"
+            columns: ["academic_year_id"]
+            isOneToOne: false
+            referencedRelation: "academic_years"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "student_fee_records_class_id_fkey"
+            columns: ["class_id"]
+            isOneToOne: false
+            referencedRelation: "class_gender_stats"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "student_fee_records_class_id_fkey"
+            columns: ["class_id"]
+            isOneToOne: false
+            referencedRelation: "classes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "student_fee_records_student_id_fkey"
+            columns: ["student_id"]
+            isOneToOne: false
+            referencedRelation: "students"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      v_pyd_per_student: {
+        Row: {
+          academic_year_id: string | null
+          pyd_per_student: number | null
+          student_id: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "student_fee_records_academic_year_id_fkey"
+            columns: ["academic_year_id"]
+            isOneToOne: false
+            referencedRelation: "academic_years"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "student_fee_records_student_id_fkey"
+            columns: ["student_id"]
+            isOneToOne: false
+            referencedRelation: "students"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Functions: {
       allocate_payment_fifo: {
@@ -2006,6 +2079,17 @@ export type Database = {
       get_next_class_id: {
         Args: { current_class_id: string }
         Returns: string
+      }
+      get_pyd_summary: {
+        Args: { p_year: string }
+        Returns: {
+          avg_per_student: number
+          high_count: number
+          low_count: number
+          medium_count: number
+          students_with_dues: number
+          total_outstanding: number
+        }[]
       }
       get_user_role: {
         Args: { user_uuid?: string }
