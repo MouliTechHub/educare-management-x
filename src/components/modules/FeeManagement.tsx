@@ -108,13 +108,14 @@ export default function FeeManagement() {
   }, [loading, fees, searchTerm, applyFilters]);
 
   const fetchPreviousYearDuesFees = React.useCallback(async () => {
-    console.log('[FeeManagement] Fetching aggregated Previous Year Dues for', currentAcademicYear?.id);
+    console.log('[FeeManagement] Fetching scoped PYD for current year:', currentAcademicYear?.id);
     if (!currentAcademicYear?.id) {
       setPreviousYearDuesFees([]);
       return;
     }
 
-    // ✅ FIX: Ensure we're using year ID, not name for previous year dues
+    // ✅ FIX: Query PYD records that belong TO the current academic year (not from other years)
+    // These are created when students are promoted and have outstanding balances from previous years
     const { data, error } = await supabase
       .from('student_fee_records')
       .select(`
@@ -124,62 +125,54 @@ export default function FeeManagement() {
           classes:classes ( name, section )
         )
       `)
-      .neq('academic_year_id', currentAcademicYear.id)
+      .eq('academic_year_id', currentAcademicYear.id)
+      .eq('fee_type', 'Previous Year Dues')
       .gt('balance_fee', 0);
 
     console.debug('[FEE-MGMT-PYD] year=', currentAcademicYear.id, 'pyd_rows=', data?.length || 0, error);
 
     if (error) {
-      console.error('❌ Error fetching previous year balances:', error);
+      console.error('❌ Error fetching PYD for current year:', error);
       setPreviousYearDuesFees([]);
       return;
     }
 
-    // Group balances per student across prior academic years
-    const aggregates = new Map<string, { total: number; sample: any }>();
-    (data as any[] | null)?.forEach((row: any) => {
-      const bal = row.balance_fee ?? Math.max((row.actual_fee - (row.discount_amount || 0)) - (row.paid_amount || 0), 0);
-      if (bal <= 0) return;
-      const key = row.student_id;
-      const prev = aggregates.get(key);
-      if (prev) {
-        prev.total += bal;
-      } else {
-        aggregates.set(key, { total: bal, sample: row });
-      }
+    // Process PYD records that already exist in the current academic year
+    // No aggregation needed since each student should have max one PYD record per year
+    const mapped: Fee[] = (data || []).map((row: any) => {
+      const balance = row.balance_fee ?? Math.max((row.actual_fee - (row.discount_amount || 0)) - (row.paid_amount || 0), 0);
+      
+      return {
+        id: row.id,
+        student_id: row.student_id,
+        fee_type: 'Previous Year Dues',
+        actual_fee: row.actual_fee,
+        discount_amount: row.discount_amount || 0,
+        paid_amount: row.paid_amount || 0,
+        final_fee: row.actual_fee - (row.discount_amount || 0),
+        balance_fee: balance,
+        due_date: '',
+        status: balance <= 0 ? 'Paid' : 'Pending' as any,
+        created_at: row.created_at || new Date().toISOString(),
+        updated_at: row.updated_at || new Date().toISOString(),
+        discount_notes: undefined,
+        discount_updated_by: undefined,
+        discount_updated_at: undefined,
+        academic_year_id: row.academic_year_id,
+        class_id: row.class_id,
+        student: row.students ? {
+          id: row.students.id,
+          first_name: row.students.first_name,
+          last_name: row.students.last_name,
+          admission_number: row.students.admission_number,
+          class_name: row.students.classes?.name ?? '',
+          section: row.students.classes?.section ?? undefined,
+          class_id: row.students.class_id,
+        } : undefined,
+      };
     });
 
-    console.log('[FeeManagement] Aggregated PYD students:', aggregates.size);
-
-    const mapped: Fee[] = Array.from(aggregates.entries()).map(([studentId, { total, sample }]) => ({
-      id: `pyd_${studentId}`,
-      student_id: studentId,
-      fee_type: 'Previous Year Dues', // UI label only; not stored in DB
-      actual_fee: total,
-      discount_amount: 0,
-      paid_amount: 0,
-      final_fee: total,
-      balance_fee: total,
-      due_date: '',
-      status: 'Pending' as any,
-      created_at: sample?.created_at || new Date().toISOString(),
-      updated_at: sample?.updated_at || new Date().toISOString(),
-      discount_notes: undefined,
-      discount_updated_by: undefined,
-      discount_updated_at: undefined,
-      academic_year_id: currentAcademicYear.id,
-      class_id: sample?.students?.class_id || sample?.class_id,
-      student: sample?.students ? {
-        id: sample.students.id,
-        first_name: sample.students.first_name,
-        last_name: sample.students.last_name,
-        admission_number: sample.students.admission_number,
-        class_name: sample.students.classes?.name ?? '',
-        section: sample.students.classes?.section ?? undefined,
-        class_id: sample.students.class_id,
-      } : undefined,
-    }));
-
+    console.log('[FeeManagement] PYD students found in current year:', mapped.length);
     setPreviousYearDuesFees(mapped);
   }, [currentAcademicYear?.id]);
 

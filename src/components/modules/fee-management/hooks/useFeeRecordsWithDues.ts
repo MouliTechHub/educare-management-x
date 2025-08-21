@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useYearIdResolver } from "./useYearIdResolver";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 
 interface FeeWithDues {
   id: string;
@@ -39,6 +40,7 @@ export function useFeeRecordsWithDues(currentAcademicYearName: string | undefine
   const [fees, setFees] = useState<FeeWithDues[]>([]);
   const [loading, setLoading] = useState(true);
   const { toast } = useToast();
+  const queryClient = useQueryClient();
   
   // ✅ FIX: Resolve year name to ID for consistent querying
   const { yearId: currentAcademicYear, loading: yearLoading, error: yearError } = useYearIdResolver(currentAcademicYearName);
@@ -190,6 +192,8 @@ export function useFeeRecordsWithDues(currentAcademicYearName: string | undefine
 
   const refetchFees = () => {
     console.log('🔄 Manually refreshing fees with dues...');
+    // ✅ FIX: Invalidate React Query cache for this year to prevent stale data
+    queryClient.invalidateQueries({ queryKey: ['fee-records', currentAcademicYear] });
     fetchFeesWithDues();
   };
 

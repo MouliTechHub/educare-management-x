@@ -2,6 +2,7 @@
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 
 export interface PreviousYearDues {
   studentId: string;
@@ -24,42 +25,39 @@ export interface PYDSummaryData {
 
 export function usePreviousYearDues(currentAcademicYearId: string | any) {
   const [previousYearDues, setPreviousYearDues] = useState<Map<string, PreviousYearDues>>(new Map());
-  const [summaryData, setSummaryData] = useState<PYDSummaryData>({
-    studentsWithDues: 0,
-    totalOutstanding: 0,
-    avgPerStudent: 0,
-    highCount: 0,
-    mediumCount: 0,
-    lowCount: 0
-  });
   const [loading, setLoading] = useState(false);
   const { toast } = useToast();
+  const queryClient = useQueryClient();
 
   // Stabilize the currentAcademicYearId to prevent infinite re-renders
   const stableYearId = typeof currentAcademicYearId === 'string' 
     ? currentAcademicYearId 
     : (currentAcademicYearId as any)?.id || '';
 
-  const fetchPreviousYearDues = async () => {
-    if (!stableYearId || stableYearId === 'undefined') {
-      console.log('⚠️ No valid current academic year ID provided');
-      setPreviousYearDues(new Map());
-      setSummaryData({
-        studentsWithDues: 0,
-        totalOutstanding: 0,
-        avgPerStudent: 0,
-        highCount: 0,
-        mediumCount: 0,
-        lowCount: 0
-      });
-      return;
-    }
-    
-    setLoading(true);
-    try {
-      console.log('📅 Fetching previous year dues for current year:', stableYearId);
+  // ✅ FIX: Use React Query with year-scoped keys to prevent cache bleeding
+  const { data: summaryData = {
+    studentsWithDues: 0,
+    totalOutstanding: 0,
+    avgPerStudent: 0,
+    highCount: 0,
+    mediumCount: 0,
+    lowCount: 0
+  }, error: summaryError } = useQuery({
+    queryKey: ['pyd-summary', stableYearId],
+    queryFn: async () => {
+      if (!stableYearId || stableYearId === 'undefined') {
+        return {
+          studentsWithDues: 0,
+          totalOutstanding: 0,
+          avgPerStudent: 0,
+          highCount: 0,
+          mediumCount: 0,
+          lowCount: 0
+        };
+      }
+
+      console.log('📅 Fetching PYD summary for year:', stableYearId);
       
-      // Use the new canonical RPC function for summary data
       const { data: summary, error: summaryError } = await supabase
         .rpc('get_pyd_summary', { p_year: stableYearId });
 
@@ -68,7 +66,38 @@ export function usePreviousYearDues(currentAcademicYearId: string | any) {
         throw summaryError;
       }
 
-      // Fetch detailed PYD records for building the student map
+      return summary?.[0] ? {
+        studentsWithDues: summary[0].students_with_dues || 0,
+        totalOutstanding: Number(summary[0].total_outstanding) || 0,
+        avgPerStudent: Number(summary[0].avg_per_student) || 0,
+        highCount: summary[0].high_count || 0,
+        mediumCount: summary[0].medium_count || 0,
+        lowCount: summary[0].low_count || 0
+      } : {
+        studentsWithDues: 0,
+        totalOutstanding: 0,
+        avgPerStudent: 0,
+        highCount: 0,
+        mediumCount: 0,
+        lowCount: 0
+      };
+    },
+    enabled: !!stableYearId && stableYearId !== 'undefined',
+    staleTime: 30000, // 30 seconds
+  });
+
+  const fetchPreviousYearDues = async () => {
+    if (!stableYearId || stableYearId === 'undefined') {
+      console.log('⚠️ No valid current academic year ID provided');
+      setPreviousYearDues(new Map());
+      return;
+    }
+    
+    setLoading(true);
+    try {
+      console.log('📅 Fetching PYD details for current year:', stableYearId);
+      
+      // ✅ FIX: Query PYD records that belong TO the current academic year only
       const { data: feeData, error: feeError } = await supabase
         .from('student_fee_records')
         .select(`
@@ -88,24 +117,11 @@ export function usePreviousYearDues(currentAcademicYearId: string | any) {
         .gt('balance_fee', 0);
 
       if (feeError) {
-        console.error('❌ Error fetching fee data:', feeError);
+        console.error('❌ Error fetching PYD data:', feeError);
         throw feeError;
       }
 
       console.log('✅ Previous Year Dues records fetched:', feeData?.length || 0, 'records');
-      console.log('✅ PYD Summary:', summary?.[0]);
-
-      // Set summary data from RPC
-      if (summary && summary[0]) {
-        setSummaryData({
-          studentsWithDues: summary[0].students_with_dues || 0,
-          totalOutstanding: Number(summary[0].total_outstanding) || 0,
-          avgPerStudent: Number(summary[0].avg_per_student) || 0,
-          highCount: summary[0].high_count || 0,
-          mediumCount: summary[0].medium_count || 0,
-          lowCount: summary[0].low_count || 0
-        });
-      }
 
       // Group dues by student using canonical calculation
       const studentDuesMap = new Map<string, PreviousYearDues>();
@@ -148,14 +164,6 @@ export function usePreviousYearDues(currentAcademicYearId: string | any) {
         variant: "destructive",
       });
       setPreviousYearDues(new Map());
-      setSummaryData({
-        studentsWithDues: 0,
-        totalOutstanding: 0,
-        avgPerStudent: 0,
-        highCount: 0,
-        mediumCount: 0,
-        lowCount: 0
-      });
     } finally {
       setLoading(false);
     }
@@ -186,6 +194,13 @@ export function usePreviousYearDues(currentAcademicYearId: string | any) {
     }
   };
 
+  const refetch = () => {
+    console.log('🔄 Manually refreshing previous year dues...');
+    // Invalidate React Query cache for this year
+    queryClient.invalidateQueries({ queryKey: ['pyd-summary', stableYearId] });
+    fetchPreviousYearDues();
+  };
+
   useEffect(() => {
     if (stableYearId) {
       fetchPreviousYearDues();
@@ -196,12 +211,13 @@ export function usePreviousYearDues(currentAcademicYearId: string | any) {
   useEffect(() => {
     const handlePaymentRecorded = () => {
       console.log('🔄 Payment recorded event received, refreshing previous year dues...');
+      queryClient.invalidateQueries({ queryKey: ['pyd-summary', stableYearId] });
       fetchPreviousYearDues();
     };
 
     window.addEventListener('payment-recorded', handlePaymentRecorded);
     return () => window.removeEventListener('payment-recorded', handlePaymentRecorded);
-  }, []);
+  }, [stableYearId]);
 
   return {
     previousYearDues: Array.from(previousYearDues.values()),
@@ -210,6 +226,6 @@ export function usePreviousYearDues(currentAcademicYearId: string | any) {
     hasOutstandingDues,
     logPaymentBlockage,
     loading,
-    refetch: fetchPreviousYearDues
+    refetch
   };
 }
