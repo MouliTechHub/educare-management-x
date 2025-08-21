@@ -32,16 +32,16 @@ import { PreviousYearDuesConsolidated } from "./fee-management/PreviousYearDuesC
 
 export default function FeeManagement() {
   const {
+    fees,
+    loading,
+    error,
+    refetch,
     academicYears,
     currentAcademicYear,
     setCurrentAcademicYear
   } = useFeeData();
 
-  const {
-    fees,
-    loading,
-    refetchFees
-  } = useFeeRecordsWithDues(currentAcademicYear?.year_name);
+  // Remove the separate useFeeRecordsWithDues hook since useFeeData now provides everything
 
   const {
     classes,
@@ -298,7 +298,7 @@ export default function FeeManagement() {
         onYearChange={setCurrentAcademicYear}
         onRefresh={() => {
           console.info("[FEE-MGMT] Manual refresh triggered");
-          refetchFees();
+          refetch();
           refetchDues();
           fetchPreviousYearDuesFees();
         }}
@@ -486,7 +486,7 @@ export default function FeeManagement() {
                 fees={filteredFees as any}
                 selectedFees={selectedFees}
                 onSelectionChange={setSelectedFees}
-                onRefresh={refetchFees}
+                onRefresh={refetch}
                 onBulkReminder={(feeIds) => {
                   setSelectedFees(new Set(feeIds));
                   setReminderDialogOpen(true);
@@ -741,7 +741,7 @@ export default function FeeManagement() {
                 button.disabled = false;
                 button.textContent = originalText;
                 
-                refetchFees();
+                refetch();
                 refetchDues();
                 fetchPreviousYearDuesFees();
 
@@ -776,7 +776,7 @@ export default function FeeManagement() {
         onOpenChange={setDiscountDialogOpen}
         selectedFee={selectedFee}
         onSuccess={() => {
-          refetchFees();
+          refetch();
           refetchDues();
           fetchPreviousYearDuesFees();
         }}
@@ -787,7 +787,7 @@ export default function FeeManagement() {
         onOpenChange={setPaymentDialogOpen}
         fee={selectedFee}
         onSuccess={() => {
-          refetchFees();
+          refetch();
           refetchDues();
           fetchPreviousYearDuesFees();
         }}
@@ -798,7 +798,7 @@ export default function FeeManagement() {
         open={reminderDialogOpen}
         onOpenChange={setReminderDialogOpen}
         fees={filteredFees.filter(f => selectedFees.has(f.id)) as any}
-        onSuccess={refetchFees}
+        onSuccess={refetch}
       />
 
       <DiscountHistoryDialog

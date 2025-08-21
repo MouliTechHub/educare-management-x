@@ -82,7 +82,11 @@ export function useFeeRecords(currentAcademicYear: string) {
           id: data[0].id,
           student_id: data[0].student_id,
           hasStudent: !!data[0].students,
-          studentName: data[0].students ? `${data[0].students.first_name} ${data[0].students.last_name}` : 'No student data'
+          studentName: data[0].students ? 
+            (Array.isArray(data[0].students) 
+              ? `${(data[0].students as any)[0]?.first_name || ''} ${(data[0].students as any)[0]?.last_name || ''}` 
+              : `${(data[0].students as any).first_name || ''} ${(data[0].students as any).last_name || ''}`) 
+            : 'No student data'
         });
       }
 

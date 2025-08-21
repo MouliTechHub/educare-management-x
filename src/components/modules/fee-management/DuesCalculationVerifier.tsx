@@ -74,7 +74,7 @@ export function DuesCalculationVerifier({
 
       // Verify calculations for each record
       for (const record of duesData || []) {
-        const studentName = `${record.students.first_name} ${record.students.last_name}`;
+        const studentName = `${(record.students as any).first_name || (record.students as any)[0]?.first_name || ''} ${(record.students as any).last_name || (record.students as any)[0]?.last_name || ''}`;
         
         // Calculate expected values
         const expectedFinalFee = record.actual_fee - record.discount_amount;
@@ -85,7 +85,7 @@ export function DuesCalculationVerifier({
           foundIssues.push({
             studentId: record.student_id,
             studentName,
-            admissionNumber: record.students.admission_number,
+            admissionNumber: (record.students as any).admission_number || (record.students as any)[0]?.admission_number || 'Unknown',
             issueType: 'calculation_error',
             description: 'Final fee calculation is incorrect',
             expected: expectedFinalFee,
@@ -100,7 +100,7 @@ export function DuesCalculationVerifier({
           foundIssues.push({
             studentId: record.student_id,
             studentName,
-            admissionNumber: record.students.admission_number,
+            admissionNumber: (record.students as any).admission_number || (record.students as any)[0]?.admission_number || 'Unknown',
             issueType: 'incorrect_balance',
             description: 'Balance fee calculation is incorrect',
             expected: expectedBalanceFee,
@@ -115,7 +115,7 @@ export function DuesCalculationVerifier({
           foundIssues.push({
             studentId: record.student_id,
             studentName,
-            admissionNumber: record.students.admission_number,
+            admissionNumber: (record.students as any).admission_number || (record.students as any)[0]?.admission_number || 'Unknown',
             issueType: 'calculation_error',
             description: 'Negative balance fee detected',
             expected: 0,

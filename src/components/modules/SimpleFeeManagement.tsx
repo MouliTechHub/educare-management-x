@@ -172,12 +172,12 @@ export function SimpleFeeManagement() {
         due_date: record.due_date,
         status: record.status as 'Pending' | 'Paid' | 'Overdue' | 'Partial',
         student: record.students ? {
-          id: record.students.id,
-          first_name: record.students.first_name,
-          last_name: record.students.last_name,
-          admission_number: record.students.admission_number,
-          class_id: record.students.class_id,
-          classes: record.students.classes
+          id: (record.students as any).id || (record.students as any)[0]?.id || '',
+          first_name: (record.students as any).first_name || (record.students as any)[0]?.first_name || '',
+          last_name: (record.students as any).last_name || (record.students as any)[0]?.last_name || '',
+          admission_number: (record.students as any).admission_number || (record.students as any)[0]?.admission_number || '',
+          class_id: (record.students as any).class_id || (record.students as any)[0]?.class_id || '',
+          classes: (record.students as any).classes || (record.students as any)[0]?.classes || null
         } : undefined
       }));
       
