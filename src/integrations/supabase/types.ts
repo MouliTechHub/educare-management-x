@@ -483,6 +483,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "fk_audit_fee_record"
+            columns: ["fee_record_id"]
+            isOneToOne: false
+            referencedRelation: "v_fee_outstanding"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "fk_audit_student"
             columns: ["student_id"]
             isOneToOne: false
@@ -606,6 +613,13 @@ export type Database = {
             referencedRelation: "student_fee_records"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "fee_change_history_fee_record_id_fkey"
+            columns: ["fee_record_id"]
+            isOneToOne: false
+            referencedRelation: "v_fee_outstanding"
+            referencedColumns: ["id"]
+          },
         ]
       }
       fee_payment_records: {
@@ -663,6 +677,13 @@ export type Database = {
             columns: ["fee_record_id"]
             isOneToOne: false
             referencedRelation: "student_fee_records"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fee_payment_records_fee_record_id_fkey"
+            columns: ["fee_record_id"]
+            isOneToOne: false
+            referencedRelation: "v_fee_outstanding"
             referencedColumns: ["id"]
           },
           {
@@ -900,6 +921,13 @@ export type Database = {
             columns: ["fee_record_id"]
             isOneToOne: false
             referencedRelation: "student_fee_records"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_allocation_fee"
+            columns: ["fee_record_id"]
+            isOneToOne: false
+            referencedRelation: "v_fee_outstanding"
             referencedColumns: ["id"]
           },
           {
@@ -1947,23 +1975,79 @@ export type Database = {
         }
         Relationships: []
       }
-      v_pyd: {
+      v_fee_outstanding: {
         Row: {
           academic_year_id: string | null
           class_id: string | null
-          pyd_outstanding: number | null
+          fee_type: string | null
+          id: string | null
+          outstanding: number | null
           student_id: string | null
         }
         Insert: {
           academic_year_id?: string | null
           class_id?: string | null
-          pyd_outstanding?: never
+          fee_type?: string | null
+          id?: string | null
+          outstanding?: never
           student_id?: string | null
         }
         Update: {
           academic_year_id?: string | null
           class_id?: string | null
-          pyd_outstanding?: never
+          fee_type?: string | null
+          id?: string | null
+          outstanding?: never
+          student_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "student_fee_records_academic_year_id_fkey"
+            columns: ["academic_year_id"]
+            isOneToOne: false
+            referencedRelation: "academic_years"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "student_fee_records_class_id_fkey"
+            columns: ["class_id"]
+            isOneToOne: false
+            referencedRelation: "class_gender_stats"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "student_fee_records_class_id_fkey"
+            columns: ["class_id"]
+            isOneToOne: false
+            referencedRelation: "classes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "student_fee_records_student_id_fkey"
+            columns: ["student_id"]
+            isOneToOne: false
+            referencedRelation: "students"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      v_pyd: {
+        Row: {
+          academic_year_id: string | null
+          class_id: string | null
+          outstanding: number | null
+          student_id: string | null
+        }
+        Insert: {
+          academic_year_id?: string | null
+          class_id?: string | null
+          outstanding?: never
+          student_id?: string | null
+        }
+        Update: {
+          academic_year_id?: string | null
+          class_id?: string | null
+          outstanding?: never
           student_id?: string | null
         }
         Relationships: [
