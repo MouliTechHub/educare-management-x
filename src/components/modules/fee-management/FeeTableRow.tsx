@@ -5,46 +5,14 @@ import { Badge } from "@/components/ui/badge";
 import { CreditCard, Percent, History, Calendar, FileText } from "lucide-react";
 import { Fee } from "./types/feeTypes";
 
-interface FeeWithDues {
-  id: string;
-  student_id: string;
-  amount: number;
-  actual_amount: number;
-  discount_amount: number;
-  total_paid: number;
-  fee_type: string;
-  due_date: string;
-  payment_date: string | null;
-  status: 'Pending' | 'Paid' | 'Overdue';
-  receipt_number: string | null;
-  created_at: string;
-  updated_at: string;
-  discount_notes: string | null;
-  discount_updated_by: string | null;
-  discount_updated_at: string | null;
-  academic_year_id: string;
-  previous_year_dues: number;
-  student?: {
-    id: string;
-    first_name: string;
-    last_name: string;
-    admission_number: string;
-    class_name?: string;
-    section?: string;
-    parent_phone?: string;
-    parent_email?: string;
-    class_id?: string;
-  };
-}
-
 interface FeeTableRowProps {
-  fee: FeeWithDues;
-  onPaymentClick: (fee: FeeWithDues) => void;
-  onDiscountClick: (fee: FeeWithDues) => void;
-  onHistoryClick: (student: FeeWithDues['student']) => void;
+  fee: Fee;
+  onPaymentClick: (fee: Fee) => void;
+  onDiscountClick: (fee: Fee) => void;
+  onHistoryClick: (student: Fee['student']) => void;
   onChangeHistoryClick: () => void;
   onStudentClick: (studentId: string) => void;
-  onDiscountHistoryClick?: (fee: FeeWithDues) => void;
+  onDiscountHistoryClick?: (fee: Fee) => void;
   showPaymentActions: boolean;
 }
 
@@ -58,14 +26,15 @@ export function FeeTableRow({
   onDiscountHistoryClick,
   showPaymentActions
 }: FeeTableRowProps) {
-  // Safely handle potentially undefined numeric values
-  const safeActualAmount = fee.actual_amount ?? 0;
+  // Use the correct property names from Fee interface
+  const safeActualFee = fee.actual_fee ?? 0;
   const safeDiscountAmount = fee.discount_amount ?? 0;
-  const safeTotalPaid = fee.total_paid ?? 0;
-  const safePreviousYearDues = fee.previous_year_dues ?? 0;
+  const safePaidAmount = fee.paid_amount ?? 0;
+  const safeFinalFee = fee.final_fee ?? 0;
+  const safeBalanceFee = fee.balance_fee ?? 0;
   
-  const finalFee = safeActualAmount - safeDiscountAmount;
-  const balanceAmount = finalFee - safeTotalPaid;
+  // Calculate previous year dues (should be available from the view)
+  const safePreviousYearDues = 0; // This will be handled by the view's calculation
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -113,7 +82,7 @@ export function FeeTableRow({
         )}
       </TableCell>
       
-      <TableCell>₹{safeActualAmount.toLocaleString()}</TableCell>
+      <TableCell>₹{safeActualFee.toLocaleString()}</TableCell>
       <TableCell>
         {safeDiscountAmount > 0 ? (
           <span className="text-green-600">₹{safeDiscountAmount.toLocaleString()}</span>
@@ -121,10 +90,10 @@ export function FeeTableRow({
           <span className="text-gray-400">₹0</span>
         )}
       </TableCell>
-      <TableCell className="font-medium">₹{finalFee.toLocaleString()}</TableCell>
-      <TableCell className="text-blue-600">₹{safeTotalPaid.toLocaleString()}</TableCell>
-      <TableCell className={balanceAmount > 0 ? 'text-red-600' : 'text-green-600'}>
-        ₹{balanceAmount.toLocaleString()}
+      <TableCell className="font-medium">₹{safeFinalFee.toLocaleString()}</TableCell>
+      <TableCell className="text-blue-600">₹{safePaidAmount.toLocaleString()}</TableCell>
+      <TableCell className={safeBalanceFee > 0 ? 'text-red-600' : 'text-green-600'}>
+        ₹{safeBalanceFee.toLocaleString()}
       </TableCell>
       <TableCell>
         {fee.due_date ? new Date(fee.due_date).toLocaleDateString() : 'N/A'}
@@ -152,7 +121,7 @@ export function FeeTableRow({
           >
             <FileText className="w-3 h-3" />
           </Button>
-          {showPaymentActions && balanceAmount > 0 && (
+          {showPaymentActions && safeBalanceFee > 0 && (
             <Button
               variant="outline"
               size="sm"

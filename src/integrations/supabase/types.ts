@@ -98,6 +98,13 @@ export type Database = {
             foreignKeyName: "attendance_student_id_fkey"
             columns: ["student_id"]
             isOneToOne: false
+            referencedRelation: "v_fee_grid"
+            referencedColumns: ["student_id_ref"]
+          },
+          {
+            foreignKeyName: "attendance_student_id_fkey"
+            columns: ["student_id"]
+            isOneToOne: false
             referencedRelation: "v_students_with_fees"
             referencedColumns: ["student_id"]
           },
@@ -267,6 +274,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "students"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "discount_history_student_id_fkey"
+            columns: ["student_id"]
+            isOneToOne: false
+            referencedRelation: "v_fee_grid"
+            referencedColumns: ["student_id_ref"]
           },
           {
             foreignKeyName: "discount_history_student_id_fkey"
@@ -506,6 +520,13 @@ export type Database = {
             foreignKeyName: "fk_audit_fee_record"
             columns: ["fee_record_id"]
             isOneToOne: false
+            referencedRelation: "v_fee_grid"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_audit_fee_record"
+            columns: ["fee_record_id"]
+            isOneToOne: false
             referencedRelation: "v_fee_outstanding"
             referencedColumns: ["id"]
           },
@@ -529,6 +550,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "students"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_audit_student"
+            columns: ["student_id"]
+            isOneToOne: false
+            referencedRelation: "v_fee_grid"
+            referencedColumns: ["student_id_ref"]
           },
           {
             foreignKeyName: "fk_audit_student"
@@ -601,6 +629,13 @@ export type Database = {
             foreignKeyName: "fk_carry_forward_student"
             columns: ["student_id"]
             isOneToOne: false
+            referencedRelation: "v_fee_grid"
+            referencedColumns: ["student_id_ref"]
+          },
+          {
+            foreignKeyName: "fk_carry_forward_student"
+            columns: ["student_id"]
+            isOneToOne: false
             referencedRelation: "v_students_with_fees"
             referencedColumns: ["student_id"]
           },
@@ -659,6 +694,13 @@ export type Database = {
             columns: ["fee_record_id"]
             isOneToOne: false
             referencedRelation: "student_fee_records"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fee_change_history_fee_record_id_fkey"
+            columns: ["fee_record_id"]
+            isOneToOne: false
+            referencedRelation: "v_fee_grid"
             referencedColumns: ["id"]
           },
           {
@@ -745,6 +787,13 @@ export type Database = {
             foreignKeyName: "fee_payment_records_fee_record_id_fkey"
             columns: ["fee_record_id"]
             isOneToOne: false
+            referencedRelation: "v_fee_grid"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fee_payment_records_fee_record_id_fkey"
+            columns: ["fee_record_id"]
+            isOneToOne: false
             referencedRelation: "v_fee_outstanding"
             referencedColumns: ["id"]
           },
@@ -768,6 +817,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "students"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fee_payment_records_student_id_fkey"
+            columns: ["student_id"]
+            isOneToOne: false
+            referencedRelation: "v_fee_grid"
+            referencedColumns: ["student_id_ref"]
           },
           {
             foreignKeyName: "fee_payment_records_student_id_fkey"
@@ -896,6 +952,13 @@ export type Database = {
             foreignKeyName: "grades_student_id_fkey"
             columns: ["student_id"]
             isOneToOne: false
+            referencedRelation: "v_fee_grid"
+            referencedColumns: ["student_id_ref"]
+          },
+          {
+            foreignKeyName: "grades_student_id_fkey"
+            columns: ["student_id"]
+            isOneToOne: false
             referencedRelation: "v_students_with_fees"
             referencedColumns: ["student_id"]
           },
@@ -1017,6 +1080,13 @@ export type Database = {
             foreignKeyName: "fk_allocation_fee"
             columns: ["fee_record_id"]
             isOneToOne: false
+            referencedRelation: "v_fee_grid"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_allocation_fee"
+            columns: ["fee_record_id"]
+            isOneToOne: false
             referencedRelation: "v_fee_outstanding"
             referencedColumns: ["id"]
           },
@@ -1092,6 +1162,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "students"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "payment_blockage_log_student_id_fkey"
+            columns: ["student_id"]
+            isOneToOne: false
+            referencedRelation: "v_fee_grid"
+            referencedColumns: ["student_id_ref"]
           },
           {
             foreignKeyName: "payment_blockage_log_student_id_fkey"
@@ -1463,6 +1540,13 @@ export type Database = {
             foreignKeyName: "fk_se_student"
             columns: ["student_id"]
             isOneToOne: false
+            referencedRelation: "v_fee_grid"
+            referencedColumns: ["student_id_ref"]
+          },
+          {
+            foreignKeyName: "fk_se_student"
+            columns: ["student_id"]
+            isOneToOne: false
             referencedRelation: "v_students_with_fees"
             referencedColumns: ["student_id"]
           },
@@ -1500,6 +1584,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "students"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "student_enrollments_student_id_fkey"
+            columns: ["student_id"]
+            isOneToOne: false
+            referencedRelation: "v_fee_grid"
+            referencedColumns: ["student_id_ref"]
           },
           {
             foreignKeyName: "student_enrollments_student_id_fkey"
@@ -1653,6 +1744,13 @@ export type Database = {
             foreignKeyName: "student_fee_records_student_id_fkey"
             columns: ["student_id"]
             isOneToOne: false
+            referencedRelation: "v_fee_grid"
+            referencedColumns: ["student_id_ref"]
+          },
+          {
+            foreignKeyName: "student_fee_records_student_id_fkey"
+            columns: ["student_id"]
+            isOneToOne: false
             referencedRelation: "v_students_with_fees"
             referencedColumns: ["student_id"]
           },
@@ -1685,6 +1783,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "students"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "student_parent_links_student_id_fkey"
+            columns: ["student_id"]
+            isOneToOne: false
+            referencedRelation: "v_fee_grid"
+            referencedColumns: ["student_id_ref"]
           },
           {
             foreignKeyName: "student_parent_links_student_id_fkey"
@@ -1769,6 +1874,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "students"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "student_promotions_student_id_fkey"
+            columns: ["student_id"]
+            isOneToOne: false
+            referencedRelation: "v_fee_grid"
+            referencedColumns: ["student_id_ref"]
           },
           {
             foreignKeyName: "student_promotions_student_id_fkey"
@@ -2236,6 +2348,115 @@ export type Database = {
         }
         Relationships: []
       }
+      v_fee_grid: {
+        Row: {
+          academic_year_id: string | null
+          actual_fee: number | null
+          admission_number: string | null
+          balance_fee: number | null
+          class_id: string | null
+          class_name: string | null
+          created_at: string | null
+          discount_amount: number | null
+          discount_notes: string | null
+          discount_updated_at: string | null
+          discount_updated_by: string | null
+          due_date: string | null
+          enrolled_class_id: string | null
+          fee_type: string | null
+          final_fee: number | null
+          first_name: string | null
+          id: string | null
+          last_name: string | null
+          paid_amount: number | null
+          previous_year_dues: number | null
+          section: string | null
+          status: string | null
+          student_class_id: string | null
+          student_id: string | null
+          student_id_ref: string | null
+          updated_at: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fk_sfr_class"
+            columns: ["class_id"]
+            isOneToOne: false
+            referencedRelation: "class_gender_stats"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_sfr_class"
+            columns: ["class_id"]
+            isOneToOne: false
+            referencedRelation: "classes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_sfr_year"
+            columns: ["academic_year_id"]
+            isOneToOne: false
+            referencedRelation: "academic_years"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_students_class_id"
+            columns: ["student_class_id"]
+            isOneToOne: false
+            referencedRelation: "class_gender_stats"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_students_class_id"
+            columns: ["student_class_id"]
+            isOneToOne: false
+            referencedRelation: "classes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "student_fee_records_academic_year_id_fkey"
+            columns: ["academic_year_id"]
+            isOneToOne: false
+            referencedRelation: "academic_years"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "student_fee_records_class_id_fkey"
+            columns: ["class_id"]
+            isOneToOne: false
+            referencedRelation: "class_gender_stats"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "student_fee_records_class_id_fkey"
+            columns: ["class_id"]
+            isOneToOne: false
+            referencedRelation: "classes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "student_fee_records_student_id_fkey"
+            columns: ["student_id"]
+            isOneToOne: false
+            referencedRelation: "students"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "student_fee_records_student_id_fkey"
+            columns: ["student_id"]
+            isOneToOne: false
+            referencedRelation: "v_fee_grid"
+            referencedColumns: ["student_id_ref"]
+          },
+          {
+            foreignKeyName: "student_fee_records_student_id_fkey"
+            columns: ["student_id"]
+            isOneToOne: false
+            referencedRelation: "v_students_with_fees"
+            referencedColumns: ["student_id"]
+          },
+        ]
+      }
       v_fee_outstanding: {
         Row: {
           academic_year_id: string | null
@@ -2310,6 +2531,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "students"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "student_fee_records_student_id_fkey"
+            columns: ["student_id"]
+            isOneToOne: false
+            referencedRelation: "v_fee_grid"
+            referencedColumns: ["student_id_ref"]
           },
           {
             foreignKeyName: "student_fee_records_student_id_fkey"
@@ -2427,6 +2655,13 @@ export type Database = {
             foreignKeyName: "student_fee_records_student_id_fkey"
             columns: ["student_id"]
             isOneToOne: false
+            referencedRelation: "v_fee_grid"
+            referencedColumns: ["student_id_ref"]
+          },
+          {
+            foreignKeyName: "student_fee_records_student_id_fkey"
+            columns: ["student_id"]
+            isOneToOne: false
             referencedRelation: "v_students_with_fees"
             referencedColumns: ["student_id"]
           },
@@ -2466,6 +2701,13 @@ export type Database = {
             columns: ["fee_record_id"]
             isOneToOne: false
             referencedRelation: "student_fee_records"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fee_payment_records_fee_record_id_fkey"
+            columns: ["fee_record_id"]
+            isOneToOne: false
+            referencedRelation: "v_fee_grid"
             referencedColumns: ["id"]
           },
           {
@@ -2516,6 +2758,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "students"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "student_fee_records_student_id_fkey"
+            columns: ["student_id"]
+            isOneToOne: false
+            referencedRelation: "v_fee_grid"
+            referencedColumns: ["student_id_ref"]
           },
           {
             foreignKeyName: "student_fee_records_student_id_fkey"
@@ -2599,6 +2848,13 @@ export type Database = {
             foreignKeyName: "student_fee_records_student_id_fkey"
             columns: ["student_id"]
             isOneToOne: false
+            referencedRelation: "v_fee_grid"
+            referencedColumns: ["student_id_ref"]
+          },
+          {
+            foreignKeyName: "student_fee_records_student_id_fkey"
+            columns: ["student_id"]
+            isOneToOne: false
             referencedRelation: "v_students_with_fees"
             referencedColumns: ["student_id"]
           },
@@ -2631,6 +2887,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "students"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "student_fee_records_student_id_fkey"
+            columns: ["student_id"]
+            isOneToOne: false
+            referencedRelation: "v_fee_grid"
+            referencedColumns: ["student_id_ref"]
           },
           {
             foreignKeyName: "student_fee_records_student_id_fkey"

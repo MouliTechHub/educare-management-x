@@ -3,20 +3,17 @@ import { supabase } from '@/integrations/supabase/client';
 import { useEffect, useState } from 'react';
 import { Fee, AcademicYear } from './types/feeTypes';
 
-// Transform function to convert database record to Fee interface
+// Transform function to convert v_fee_grid record to Fee interface
 function transformToFee(record: any): Fee {
-  const student = record.student;
-  const studentData = Array.isArray(student) ? student[0] : student;
-  
   return {
     id: record.id,
     student_id: record.student_id,
     fee_type: record.fee_type,
-    actual_fee: record.actual_fee,
-    discount_amount: record.discount_amount,
-    paid_amount: record.paid_amount,
-    final_fee: record.final_fee || (record.actual_fee - record.discount_amount),
-    balance_fee: record.balance_fee || ((record.actual_fee - record.discount_amount) - record.paid_amount),
+    actual_fee: record.actual_fee ?? 0,
+    discount_amount: record.discount_amount ?? 0,
+    paid_amount: record.paid_amount ?? 0,
+    final_fee: record.final_fee ?? 0,
+    balance_fee: record.balance_fee ?? 0,
     due_date: record.due_date,
     status: record.status as 'Pending' | 'Paid' | 'Overdue' | 'Partial',
     created_at: record.created_at,
@@ -26,19 +23,19 @@ function transformToFee(record: any): Fee {
     discount_updated_at: record.discount_updated_at,
     academic_year_id: record.academic_year_id,
     class_id: record.class_id,
-    student: studentData ? {
-      id: studentData.id || '',
-      first_name: studentData.first_name || '',
-      last_name: studentData.last_name || '',
-      admission_number: studentData.admission_number || '',
-      class_name: studentData.classes?.name || 'Unknown',
-      section: studentData.classes?.section,
-      class_id: studentData.class_id || '',
+    student: {
+      id: record.student_id_ref || record.student_id,
+      first_name: record.first_name || '',
+      last_name: record.last_name || '',
+      admission_number: record.admission_number || '',
+      class_name: record.class_name || 'Unknown',
+      section: record.section,
+      class_id: record.student_class_id || record.class_id,
       gender: undefined,
       status: undefined,
       parent_phone: undefined,
       parent_email: undefined,
-    } : undefined,
+    },
   };
 }
 
@@ -54,32 +51,31 @@ export function useFeeData() {
     error,
     refetch
   } = useQuery({
-    queryKey: ['student-fee-records', stableAcademicYearId],
+    queryKey: ['fee-grid', stableAcademicYearId],
     queryFn: async () => {
-      console.log('🔄 Fetching student fee records for year:', stableAcademicYearId);
+      console.log('🔄 Fetching fee grid data for year:', stableAcademicYearId);
       
       const { data, error } = await supabase
-        .from('student_fee_records')
-        .select(`
-          *,
-          student:students!student_id (
-            id,
-            first_name,
-            last_name,
-            admission_number,
-            class_id,
-            classes:class_id (
-              name,
-              section
-            )
-          )
-        `)
+        .from('v_fee_grid')
+        .select('*')
         .eq('academic_year_id', stableAcademicYearId)
-        .order('created_at', { ascending: false });
+        .order('due_date', { ascending: true });
 
       if (error) {
-        console.error('❌ Error fetching student fee records:', error);
+        console.error('❌ Error fetching fee grid data:', error);
         throw error;
+      }
+
+      // Sanity check logging - log one sample record
+      if (data && data.length > 0) {
+        console.debug('[FeeGrid] sample', {
+          id: data[0].id,
+          actual_fee: data[0].actual_fee,
+          discount_amount: data[0].discount_amount,
+          paid_amount: data[0].paid_amount,
+          final_fee: data[0].final_fee,
+          balance_fee: data[0].balance_fee,
+        });
       }
 
       const transformedFees = (data || []).map(transformToFee);
