@@ -6,6 +6,7 @@ import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { DiscountForm } from "./discount/DiscountForm";
 import { DiscountSummary } from "./discount/DiscountSummary";
+import { PYDDiscountDialog } from "./PYDDiscountDialog";
 
 interface DiscountFormData {
   type: string;
@@ -24,6 +25,18 @@ interface DiscountDialogProps {
 export function DiscountDialog({ open, onOpenChange, selectedFee, onSuccess }: DiscountDialogProps) {
   const { toast } = useToast();
   const [loading, setLoading] = React.useState(false);
+
+  // ✅ FIX: Use PYDDiscountDialog for Previous Year Dues
+  if (selectedFee?.fee_type === 'Previous Year Dues') {
+    return (
+      <PYDDiscountDialog
+        open={open}
+        onOpenChange={onOpenChange}
+        selectedFee={selectedFee}
+        onSuccess={onSuccess}
+      />
+    );
+  }
 
   const form = useForm<DiscountFormData>({
     defaultValues: {

@@ -3,6 +3,7 @@ import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useYearScopedCache } from "./useYearScopedCache";
 
 export interface PreviousYearDues {
   studentId: string;
@@ -28,6 +29,7 @@ export function usePreviousYearDues(currentAcademicYearId: string | any) {
   const [loading, setLoading] = useState(false);
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const { invalidateYearCache, invalidateAfterPayment } = useYearScopedCache();
 
   // Stabilize the currentAcademicYearId to prevent infinite re-renders
   const stableYearId = typeof currentAcademicYearId === 'string' 
@@ -59,7 +61,7 @@ export function usePreviousYearDues(currentAcademicYearId: string | any) {
       console.log('📅 Fetching PYD summary for year:', stableYearId);
       
       const { data: summary, error: summaryError } = await supabase
-        .rpc('get_pyd_summary', { p_year: stableYearId });
+        .rpc('get_pyd_summary_enhanced', { p_year: stableYearId });
 
       if (summaryError) {
         console.error('❌ Error fetching PYD summary:', summaryError);
@@ -196,8 +198,8 @@ export function usePreviousYearDues(currentAcademicYearId: string | any) {
 
   const refetch = () => {
     console.log('🔄 Manually refreshing previous year dues...');
-    // Invalidate React Query cache for this year
-    queryClient.invalidateQueries({ queryKey: ['pyd-summary', stableYearId] });
+    // Invalidate React Query cache for this year using year-scoped cache
+    invalidateYearCache(stableYearId, ['pyd-summary', 'pyd-list']);
     fetchPreviousYearDues();
   };
 
@@ -209,15 +211,28 @@ export function usePreviousYearDues(currentAcademicYearId: string | any) {
 
   // Listen for payment events to trigger immediate refresh
   useEffect(() => {
-    const handlePaymentRecorded = () => {
-      console.log('🔄 Payment recorded event received, refreshing previous year dues...');
-      queryClient.invalidateQueries({ queryKey: ['pyd-summary', stableYearId] });
+    const handlePaymentRecorded = (event: CustomEvent) => {
+      console.log('🔄 Payment recorded event received, refreshing previous year dues...', event.detail);
+      invalidateYearCache(stableYearId, ['pyd-summary', 'pyd-list']);
       fetchPreviousYearDues();
     };
 
-    window.addEventListener('payment-recorded', handlePaymentRecorded);
-    return () => window.removeEventListener('payment-recorded', handlePaymentRecorded);
-  }, [stableYearId]);
+    const handlePYDPaymentRecorded = (event: CustomEvent) => {
+      console.log('🔄 PYD payment recorded, targeted refresh...', event.detail);
+      if (event.detail.yearId === stableYearId) {
+        invalidateYearCache(stableYearId, ['pyd-summary', 'pyd-list']);
+        fetchPreviousYearDues();
+      }
+    };
+
+    window.addEventListener('payment-recorded', handlePaymentRecorded as EventListener);
+    window.addEventListener('pyd-payment-recorded', handlePYDPaymentRecorded as EventListener);
+    
+    return () => {
+      window.removeEventListener('payment-recorded', handlePaymentRecorded as EventListener);
+      window.removeEventListener('pyd-payment-recorded', handlePYDPaymentRecorded as EventListener);
+    };
+  }, [stableYearId, invalidateYearCache]);
 
   return {
     previousYearDues: Array.from(previousYearDues.values()),

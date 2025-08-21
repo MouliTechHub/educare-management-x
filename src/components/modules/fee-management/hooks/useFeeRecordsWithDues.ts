@@ -3,6 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useYearIdResolver } from "./useYearIdResolver";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useYearScopedCache } from "./useYearScopedCache";
 
 interface FeeWithDues {
   id: string;
@@ -41,6 +42,7 @@ export function useFeeRecordsWithDues(currentAcademicYearName: string | undefine
   const [loading, setLoading] = useState(true);
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const { invalidateYearCache, invalidateAfterPromotion } = useYearScopedCache();
   
   // ✅ FIX: Resolve year name to ID for consistent querying
   const { yearId: currentAcademicYear, loading: yearLoading, error: yearError } = useYearIdResolver(currentAcademicYearName);
@@ -56,7 +58,7 @@ export function useFeeRecordsWithDues(currentAcademicYearName: string | undefine
       setLoading(true);
       console.debug('[FEE-MGMT] year=', currentAcademicYear, 'year_name=', currentAcademicYearName, 'fetching with dues...');
       
-      // ✅ FIX: Ensure we're using year ID, not name - Query by academic_year_id
+      // ✅ FIX: Join with student_enrollments for year-scoped class data
       const { data: currentYearFees, error: currentError } = await supabase
         .from("student_fee_records")
         .select(`
@@ -65,7 +67,9 @@ export function useFeeRecordsWithDues(currentAcademicYearName: string | undefine
             id,
             first_name,
             last_name,
-            admission_number,
+            admission_number
+          ),
+          student_enrollments!inner (
             class_id,
             classes (
               name,
@@ -74,6 +78,7 @@ export function useFeeRecordsWithDues(currentAcademicYearName: string | undefine
           )
         `)
         .eq("academic_year_id", currentAcademicYear)
+        .eq("student_enrollments.academic_year_id", currentAcademicYear)
         .neq("fee_type", "Previous Year Dues")
         .order("created_at", { ascending: false });
 
@@ -136,9 +141,9 @@ export function useFeeRecordsWithDues(currentAcademicYearName: string | undefine
             first_name: fee.students.first_name,
             last_name: fee.students.last_name,
             admission_number: fee.students.admission_number,
-            class_name: fee.students.classes?.name,
-            section: fee.students.classes?.section,
-            class_id: fee.students.class_id
+            class_name: fee.student_enrollments?.[0]?.classes?.name,
+            section: fee.student_enrollments?.[0]?.classes?.section,
+            class_id: fee.student_enrollments?.[0]?.class_id
           } : undefined
         };
       });
@@ -173,12 +178,17 @@ export function useFeeRecordsWithDues(currentAcademicYearName: string | undefine
   useEffect(() => {
     const handlePaymentRecorded = () => {
       console.log('🔄 Payment recorded event received, refreshing fees with dues...');
+      invalidateYearCache(currentAcademicYear || '', ['fee-records']);
       fetchFeesWithDues();
     };
 
     const handlePromotionCompleted = (event: CustomEvent) => {
       console.log('🔄 Promotion completed event received, refreshing fees with dues...', event.detail);
-      fetchFeesWithDues();
+      const { sourceYearId, targetYearId } = event.detail;
+      if (targetYearId === currentAcademicYear) {
+        invalidateAfterPromotion(sourceYearId, targetYearId);
+        fetchFeesWithDues();
+      }
     };
 
     window.addEventListener('payment-recorded', handlePaymentRecorded);
@@ -188,12 +198,12 @@ export function useFeeRecordsWithDues(currentAcademicYearName: string | undefine
       window.removeEventListener('payment-recorded', handlePaymentRecorded);
       window.removeEventListener('promotion-completed', handlePromotionCompleted as EventListener);
     };
-  }, []);
+  }, [currentAcademicYear, invalidateYearCache, invalidateAfterPromotion]);
 
   const refetchFees = () => {
     console.log('🔄 Manually refreshing fees with dues...');
-    // ✅ FIX: Invalidate React Query cache for this year to prevent stale data
-    queryClient.invalidateQueries({ queryKey: ['fee-records', currentAcademicYear] });
+    // ✅ FIX: Invalidate React Query cache for this year using year-scoped cache
+    invalidateYearCache(currentAcademicYear || '', ['fee-records']);
     fetchFeesWithDues();
   };
 
