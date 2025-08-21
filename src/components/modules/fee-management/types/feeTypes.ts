@@ -17,6 +17,7 @@ export interface Fee {
   discount_updated_at?: string;
   academic_year_id: string;
   class_id: string;
+  previous_year_dues?: number;
   student?: {
     id: string;
     first_name: string;

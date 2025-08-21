@@ -23,6 +23,7 @@ function transformToFee(record: any): Fee {
     discount_updated_at: record.discount_updated_at,
     academic_year_id: record.academic_year_id,
     class_id: record.class_id,
+    previous_year_dues: record.previous_year_dues ?? 0,
     student: {
       id: record.student_id_ref || record.student_id,
       first_name: record.first_name || '',

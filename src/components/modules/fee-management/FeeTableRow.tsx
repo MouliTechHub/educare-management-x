@@ -33,8 +33,8 @@ export function FeeTableRow({
   const safeFinalFee = fee.final_fee ?? 0;
   const safeBalanceFee = fee.balance_fee ?? 0;
   
-  // Calculate previous year dues (should be available from the view)
-  const safePreviousYearDues = 0; // This will be handled by the view's calculation
+  // Use previous year dues from the fee data
+  const safePreviousYearDues = fee.previous_year_dues ?? 0;
 
   const getStatusColor = (status: string) => {
     switch (status) {
