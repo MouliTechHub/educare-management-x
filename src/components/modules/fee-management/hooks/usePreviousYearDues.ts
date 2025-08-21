@@ -36,7 +36,7 @@ export function usePreviousYearDues(currentAcademicYearId: string | any) {
     ? currentAcademicYearId 
     : (currentAcademicYearId as any)?.id || '';
 
-  // ✅ FIX: Use React Query with year-scoped keys to prevent cache bleeding
+  // ✅ FIX: Always call useQuery to maintain consistent hook count
   const { data: summaryData = {
     studentsWithDues: 0,
     totalOutstanding: 0,
@@ -45,7 +45,7 @@ export function usePreviousYearDues(currentAcademicYearId: string | any) {
     mediumCount: 0,
     lowCount: 0
   }, error: summaryError } = useQuery({
-    queryKey: ['pyd-summary', stableYearId],
+    queryKey: ['pyd-summary', stableYearId || 'no-year'],
     queryFn: async () => {
       if (!stableYearId || stableYearId === 'undefined') {
         return {
@@ -84,7 +84,6 @@ export function usePreviousYearDues(currentAcademicYearId: string | any) {
         lowCount: 0
       };
     },
-    enabled: !!stableYearId && stableYearId !== 'undefined',
     staleTime: 30000, // 30 seconds
   });
 
