@@ -30,6 +30,10 @@ function transformToFee(record: any): Fee {
     // Optional totals
     final_fee_with_pyd: record.final_fee_with_pyd ?? 0,
     balance_fee_with_pyd: record.balance_fee_with_pyd ?? 0,
+    // Fee type flags for the unified grid
+    has_tuition: record.has_tuition,
+    has_pyd: record.has_pyd,
+    fee_type_label: record.fee_type_label,
     student: {
       id: record.student_id_ref || record.student_id,
       first_name: record.first_name || '',

@@ -24,6 +24,10 @@ export interface Fee {
   // Optional totals
   final_fee_with_pyd?: number;
   balance_fee_with_pyd?: number;
+  // Fee type flags for the unified grid
+  has_tuition?: boolean;
+  has_pyd?: boolean;
+  fee_type_label?: string;
   student?: {
     id: string;
     first_name: string;

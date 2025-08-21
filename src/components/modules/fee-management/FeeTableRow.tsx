@@ -5,6 +5,28 @@ import { Badge } from "@/components/ui/badge";
 import { CreditCard, Percent, History, Calendar, FileText } from "lucide-react";
 import { Fee } from "./types/feeTypes";
 
+const FeeTypeCell = ({ fee }: { fee: Fee }) => {
+  const tags = [];
+  
+  if (fee.has_tuition) tags.push('Tuition Fee');
+  if (fee.has_pyd) tags.push('Previous Year Dues');
+  if (tags.length === 0) tags.push('N/A');
+
+  return (
+    <div className="flex flex-col gap-1">
+      {tags.map(tag => (
+        <Badge 
+          key={tag} 
+          variant={tag === 'Tuition Fee' ? 'default' : tag === 'Previous Year Dues' ? 'secondary' : 'outline'}
+          className="text-xs"
+        >
+          {tag}
+        </Badge>
+      ))}
+    </div>
+  );
+};
+
 interface FeeTableRowProps {
   fee: Fee;
   onPaymentClick: (fee: Fee) => void;
@@ -66,6 +88,10 @@ export function FeeTableRow({
       <TableCell>
         {fee.student?.class_name}
         {fee.student?.section && ` - ${fee.student.section}`}
+      </TableCell>
+      
+      <TableCell>
+        <FeeTypeCell fee={fee} />
       </TableCell>
       
       <TableCell>
