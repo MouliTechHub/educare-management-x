@@ -61,7 +61,7 @@ export function usePreviousYearDues(currentAcademicYearId: string | any) {
       console.log('📅 Fetching PYD summary for year:', stableYearId);
       
       const { data: summary, error: summaryError } = await supabase
-        .rpc('get_pyd_summary_enhanced', { p_year: stableYearId });
+        .rpc('get_pyd_summary', { p_year: stableYearId });
 
       if (summaryError) {
         console.error('❌ Error fetching PYD summary:', summaryError);
@@ -99,7 +99,7 @@ export function usePreviousYearDues(currentAcademicYearId: string | any) {
     try {
       console.log('📅 Fetching PYD details for current year:', stableYearId);
       
-      // ✅ FIX: Query PYD records that belong TO the current academic year only
+      // ✅ FIX: Query PYD records using explicit relationship name to avoid ambiguity
       const { data: feeData, error: feeError } = await supabase
         .from('student_fee_records')
         .select(`
@@ -112,7 +112,7 @@ export function usePreviousYearDues(currentAcademicYearId: string | any) {
           balance_fee,
           academic_year_id,
           status,
-          academic_years!inner(year_name)
+          academic_years!student_fee_records_academic_year_id_fkey(year_name)
         `)
         .eq('academic_year_id', stableYearId)
         .eq('fee_type', 'Previous Year Dues')
