@@ -1041,6 +1041,13 @@ export type Database = {
             referencedRelation: "fee_payment_records"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "fk_allocation_payment"
+            columns: ["payment_record_id"]
+            isOneToOne: false
+            referencedRelation: "v_payments_enriched"
+            referencedColumns: ["id"]
+          },
         ]
       }
       payment_blockage_log: {
@@ -1606,20 +1613,6 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "classes"
             referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "fk_sfr_student"
-            columns: ["student_id"]
-            isOneToOne: false
-            referencedRelation: "students"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "fk_sfr_student"
-            columns: ["student_id"]
-            isOneToOne: false
-            referencedRelation: "v_students_with_fees"
-            referencedColumns: ["student_id"]
           },
           {
             foreignKeyName: "fk_sfr_year"
@@ -2284,20 +2277,6 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "fk_sfr_student"
-            columns: ["student_id"]
-            isOneToOne: false
-            referencedRelation: "students"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "fk_sfr_student"
-            columns: ["student_id"]
-            isOneToOne: false
-            referencedRelation: "v_students_with_fees"
-            referencedColumns: ["student_id"]
-          },
-          {
             foreignKeyName: "fk_sfr_year"
             columns: ["academic_year_id"]
             isOneToOne: false
@@ -2403,20 +2382,6 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "fk_sfr_student"
-            columns: ["student_id"]
-            isOneToOne: false
-            referencedRelation: "students"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "fk_sfr_student"
-            columns: ["student_id"]
-            isOneToOne: false
-            referencedRelation: "v_students_with_fees"
-            referencedColumns: ["student_id"]
-          },
-          {
             foreignKeyName: "fk_sfr_year"
             columns: ["academic_year_id"]
             isOneToOne: false
@@ -2449,6 +2414,100 @@ export type Database = {
             columns: ["class_id"]
             isOneToOne: false
             referencedRelation: "classes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "student_fee_records_student_id_fkey"
+            columns: ["student_id"]
+            isOneToOne: false
+            referencedRelation: "students"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "student_fee_records_student_id_fkey"
+            columns: ["student_id"]
+            isOneToOne: false
+            referencedRelation: "v_students_with_fees"
+            referencedColumns: ["student_id"]
+          },
+        ]
+      }
+      v_payments_enriched: {
+        Row: {
+          academic_year_id: string | null
+          actual_fee: number | null
+          admission_number: string | null
+          amount_paid: number | null
+          class_name: string | null
+          class_section: string | null
+          created_at: string | null
+          created_by: string | null
+          discount_amount: number | null
+          fee_balance: number | null
+          fee_paid_amount: number | null
+          fee_record_id: string | null
+          fee_type: string | null
+          first_name: string | null
+          id: string | null
+          last_name: string | null
+          late_fee: number | null
+          notes: string | null
+          payment_date: string | null
+          payment_method: string | null
+          payment_receiver: string | null
+          payment_time: string | null
+          receipt_number: string | null
+          student_id: string | null
+          target_academic_year_id: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fee_payment_records_fee_record_id_fkey"
+            columns: ["fee_record_id"]
+            isOneToOne: false
+            referencedRelation: "student_fee_records"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fee_payment_records_fee_record_id_fkey"
+            columns: ["fee_record_id"]
+            isOneToOne: false
+            referencedRelation: "v_fee_outstanding"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fee_payment_records_fee_record_id_fkey"
+            columns: ["fee_record_id"]
+            isOneToOne: false
+            referencedRelation: "v_fee_records_with_enrollment"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fee_payment_records_fee_record_id_fkey"
+            columns: ["fee_record_id"]
+            isOneToOne: false
+            referencedRelation: "v_students_with_fees"
+            referencedColumns: ["fee_record_id"]
+          },
+          {
+            foreignKeyName: "fee_payment_records_target_academic_year_id_fkey"
+            columns: ["target_academic_year_id"]
+            isOneToOne: false
+            referencedRelation: "academic_years"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_sfr_year"
+            columns: ["academic_year_id"]
+            isOneToOne: false
+            referencedRelation: "academic_years"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "student_fee_records_academic_year_id_fkey"
+            columns: ["academic_year_id"]
+            isOneToOne: false
+            referencedRelation: "academic_years"
             referencedColumns: ["id"]
           },
           {
@@ -2502,20 +2561,6 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "fk_sfr_student"
-            columns: ["student_id"]
-            isOneToOne: false
-            referencedRelation: "students"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "fk_sfr_student"
-            columns: ["student_id"]
-            isOneToOne: false
-            referencedRelation: "v_students_with_fees"
-            referencedColumns: ["student_id"]
-          },
-          {
             foreignKeyName: "fk_sfr_year"
             columns: ["academic_year_id"]
             isOneToOne: false
@@ -2566,20 +2611,6 @@ export type Database = {
           student_id: string | null
         }
         Relationships: [
-          {
-            foreignKeyName: "fk_sfr_student"
-            columns: ["student_id"]
-            isOneToOne: false
-            referencedRelation: "students"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "fk_sfr_student"
-            columns: ["student_id"]
-            isOneToOne: false
-            referencedRelation: "v_students_with_fees"
-            referencedColumns: ["student_id"]
-          },
           {
             foreignKeyName: "fk_sfr_year"
             columns: ["academic_year_id"]

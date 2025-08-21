@@ -52,18 +52,18 @@ export function PaymentTable({ payments }: PaymentTableProps) {
           {payments.map((payment) => (
             <TableRow key={payment.id}>
               <TableCell className="font-medium">
-                {payment.student_fee_records?.students?.first_name} {payment.student_fee_records?.students?.last_name}
+                {payment.first_name} {payment.last_name}
                 <div className="text-sm text-gray-500">
-                  {payment.student_fee_records?.students?.admission_number}
+                  {payment.admission_number}
                 </div>
               </TableCell>
               <TableCell>
-                {payment.student_fee_records?.students?.classes?.name} 
-                {payment.student_fee_records?.students?.classes?.section && ` - ${payment.student_fee_records?.students?.classes?.section}`}
+                {payment.class_name} 
+                {payment.class_section && ` - ${payment.class_section}`}
               </TableCell>
               <TableCell>
                 <Badge variant="outline">
-                  {payment.student_fee_records?.fee_type}
+                  {payment.fee_type}
                 </Badge>
               </TableCell>
               <TableCell className="font-medium">

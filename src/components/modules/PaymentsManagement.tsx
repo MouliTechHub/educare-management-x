@@ -31,21 +31,10 @@ export function PaymentsManagement() {
       setLoading(true);
       console.log('🔄 Fetching payments data...');
       
-      // Fetch payments from fee_payment_records with related data
+      // Fetch payments using the enriched view to avoid FK embedding issues
       const { data: paymentsData, error: paymentsError } = await supabase
-        .from("fee_payment_records")
-        .select(`
-          *,
-          student_fee_records!fee_record_id(
-            fee_type,
-            students!student_id(
-              first_name, 
-              last_name, 
-              admission_number,
-              classes(name, section)
-            )
-          )
-        `)
+        .from("v_payments_enriched")
+        .select("*")
         .order("created_at", { ascending: false });
 
       if (paymentsError) {
@@ -151,10 +140,10 @@ export function PaymentsManagement() {
   };
 
   const filteredPayments = payments.filter((payment) =>
-    payment.student_fee_records?.students?.first_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    payment.student_fee_records?.students?.last_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    payment.student_fee_records?.students?.admission_number?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    payment.student_fee_records?.fee_type?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    payment.first_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    payment.last_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    payment.admission_number?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    payment.fee_type?.toLowerCase().includes(searchTerm.toLowerCase()) ||
     payment.receipt_number?.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
