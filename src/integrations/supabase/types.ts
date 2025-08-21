@@ -2382,20 +2382,6 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "fk_se_class"
-            columns: ["enrolled_class_id"]
-            isOneToOne: false
-            referencedRelation: "class_gender_stats"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "fk_se_class"
-            columns: ["enrolled_class_id"]
-            isOneToOne: false
-            referencedRelation: "classes"
-            referencedColumns: ["id"]
-          },
-          {
             foreignKeyName: "fk_se_year"
             columns: ["enrolled_year_id"]
             isOneToOne: false
@@ -2442,20 +2428,6 @@ export type Database = {
             columns: ["enrolled_year_id"]
             isOneToOne: false
             referencedRelation: "academic_years"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "student_enrollments_class_id_fkey"
-            columns: ["enrolled_class_id"]
-            isOneToOne: false
-            referencedRelation: "class_gender_stats"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "student_enrollments_class_id_fkey"
-            columns: ["enrolled_class_id"]
-            isOneToOne: false
-            referencedRelation: "classes"
             referencedColumns: ["id"]
           },
           {
