@@ -2876,6 +2876,23 @@ export type Database = {
           },
         ]
       }
+      v_payment_history: {
+        Row: {
+          amount: number | null
+          created_at: string | null
+          entry_type: string | null
+          fee_record_id: string | null
+          fee_type: string | null
+          method: string | null
+          notes: string | null
+          payment_date: string | null
+          payment_id: string | null
+          processed_by: string | null
+          reference_no: string | null
+          student_id: string | null
+        }
+        Relationships: []
+      }
       v_payments_enriched: {
         Row: {
           academic_year_id: string | null
