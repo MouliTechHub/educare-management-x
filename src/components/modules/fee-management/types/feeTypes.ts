@@ -2,7 +2,7 @@
 export interface Fee {
   id: string;
   student_id: string;
-  fee_type: string;
+  fee_type?: string; // Optional since we're consolidating
   actual_fee: number;
   discount_amount: number;
   paid_amount: number;
@@ -18,6 +18,12 @@ export interface Fee {
   academic_year_id: string;
   class_id: string;
   previous_year_dues?: number;
+  // Record IDs for actions
+  tuition_fee_record_id?: string;
+  pyd_fee_record_id?: string;
+  // Optional totals
+  final_fee_with_pyd?: number;
+  balance_fee_with_pyd?: number;
   student?: {
     id: string;
     first_name: string;

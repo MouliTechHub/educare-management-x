@@ -67,7 +67,6 @@ export function FeeTableRow({
         {fee.student?.class_name}
         {fee.student?.section && ` - ${fee.student.section}`}
       </TableCell>
-      <TableCell>{fee.fee_type}</TableCell>
       
       <TableCell>
         {safePreviousYearDues > 0 ? (

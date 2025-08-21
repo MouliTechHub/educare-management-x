@@ -6,9 +6,9 @@ import { Fee, AcademicYear } from './types/feeTypes';
 // Transform function to convert v_fee_grid record to Fee interface
 function transformToFee(record: any): Fee {
   return {
-    id: record.id,
+    id: record.tuition_fee_record_id || record.pyd_fee_record_id || '', // Use primary record ID
     student_id: record.student_id,
-    fee_type: record.fee_type,
+    fee_type: 'Consolidated', // Since we're showing consolidated data
     actual_fee: record.actual_fee ?? 0,
     discount_amount: record.discount_amount ?? 0,
     paid_amount: record.paid_amount ?? 0,
@@ -24,6 +24,12 @@ function transformToFee(record: any): Fee {
     academic_year_id: record.academic_year_id,
     class_id: record.class_id,
     previous_year_dues: record.previous_year_dues ?? 0,
+    // Record IDs for actions
+    tuition_fee_record_id: record.tuition_fee_record_id,
+    pyd_fee_record_id: record.pyd_fee_record_id,
+    // Optional totals
+    final_fee_with_pyd: record.final_fee_with_pyd ?? 0,
+    balance_fee_with_pyd: record.balance_fee_with_pyd ?? 0,
     student: {
       id: record.student_id_ref || record.student_id,
       first_name: record.first_name || '',
@@ -57,7 +63,7 @@ export function useFeeData() {
       console.log('🔄 Fetching fee grid data for year:', stableAcademicYearId);
       
       const { data, error } = await supabase
-        .from('v_fee_grid')
+        .from('v_fee_grid_consolidated')
         .select('*')
         .eq('academic_year_id', stableAcademicYearId)
         .order('due_date', { ascending: true });
@@ -70,12 +76,13 @@ export function useFeeData() {
       // Sanity check logging - log one sample record
       if (data && data.length > 0) {
         console.debug('[FeeGrid] sample', {
-          id: data[0].id,
+          id: data[0].tuition_fee_record_id || data[0].pyd_fee_record_id,
           actual_fee: data[0].actual_fee,
           discount_amount: data[0].discount_amount,
           paid_amount: data[0].paid_amount,
           final_fee: data[0].final_fee,
           balance_fee: data[0].balance_fee,
+          previous_year_dues: data[0].previous_year_dues,
         });
       }
 
