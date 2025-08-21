@@ -199,6 +199,7 @@ export type Database = {
         Row: {
           applied_at: string
           applied_by: string
+          applies_to: string | null
           created_at: string
           discount_amount: number
           discount_percentage: number | null
@@ -211,11 +212,13 @@ export type Database = {
           source_fee_id: string | null
           source_table: string | null
           student_id: string | null
+          tag: string | null
           target_academic_year_id: string | null
         }
         Insert: {
           applied_at?: string
           applied_by?: string
+          applies_to?: string | null
           created_at?: string
           discount_amount: number
           discount_percentage?: number | null
@@ -228,11 +231,13 @@ export type Database = {
           source_fee_id?: string | null
           source_table?: string | null
           student_id?: string | null
+          tag?: string | null
           target_academic_year_id?: string | null
         }
         Update: {
           applied_at?: string
           applied_by?: string
+          applies_to?: string | null
           created_at?: string
           discount_amount?: number
           discount_percentage?: number | null
@@ -245,6 +250,7 @@ export type Database = {
           source_fee_id?: string | null
           source_table?: string | null
           student_id?: string | null
+          tag?: string | null
           target_academic_year_id?: string | null
         }
         Relationships: [
@@ -1291,6 +1297,65 @@ export type Database = {
           },
         ]
       }
+      student_enrollments: {
+        Row: {
+          academic_year_id: string
+          class_id: string
+          created_at: string
+          enrollment_date: string
+          id: string
+          student_id: string
+          updated_at: string
+        }
+        Insert: {
+          academic_year_id: string
+          class_id: string
+          created_at?: string
+          enrollment_date?: string
+          id?: string
+          student_id: string
+          updated_at?: string
+        }
+        Update: {
+          academic_year_id?: string
+          class_id?: string
+          created_at?: string
+          enrollment_date?: string
+          id?: string
+          student_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "student_enrollments_academic_year_id_fkey"
+            columns: ["academic_year_id"]
+            isOneToOne: false
+            referencedRelation: "academic_years"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "student_enrollments_class_id_fkey"
+            columns: ["class_id"]
+            isOneToOne: false
+            referencedRelation: "class_gender_stats"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "student_enrollments_class_id_fkey"
+            columns: ["class_id"]
+            isOneToOne: false
+            referencedRelation: "classes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "student_enrollments_student_id_fkey"
+            columns: ["student_id"]
+            isOneToOne: false
+            referencedRelation: "students"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       student_fee_records: {
         Row: {
           academic_year_id: string
@@ -2175,6 +2240,17 @@ export type Database = {
           total_outstanding: number
         }[]
       }
+      get_pyd_summary_enhanced: {
+        Args: { p_year: string }
+        Returns: {
+          avg_per_student: number
+          high_count: number
+          low_count: number
+          medium_count: number
+          students_with_dues: number
+          total_outstanding: number
+        }[]
+      }
       get_student_pyd_details: {
         Args: { p_student_id: string; p_year: string }
         Returns: {
@@ -2231,6 +2307,14 @@ export type Database = {
         Returns: Json
       }
       promote_students_with_fees_by_name: {
+        Args: {
+          promoted_by_user?: string
+          source_year_name: string
+          target_year_name: string
+        }
+        Returns: Json
+      }
+      promote_students_with_fees_safe: {
         Args: {
           promoted_by_user?: string
           source_year_name: string
