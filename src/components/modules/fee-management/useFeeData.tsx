@@ -61,7 +61,7 @@ export function useFeeData() {
         .from('student_fee_records')
         .select(`
           *,
-          student:students(
+          student:students!fk_sfr_student(
             id,
             first_name,
             last_name,

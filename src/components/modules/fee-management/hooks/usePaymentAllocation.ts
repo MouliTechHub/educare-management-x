@@ -29,11 +29,11 @@ export function usePaymentAllocation() {
         .from("payment_allocations")
         .select(`
           *,
-          fee_record:student_fee_records (
+          fee_record:student_fee_records!fk_allocation_fee (
             fee_type,
             academic_year_id,
             due_date,
-            academic_years (
+            academic_years!fk_sfr_year (
               year_name
             )
           )
@@ -68,11 +68,11 @@ export function usePaymentAllocation() {
             receipt_number,
             amount_paid
           ),
-          student_fee_records (
+          student_fee_records!fk_allocation_fee (
             fee_type,
             academic_year_id,
             due_date,
-            academic_years (
+            academic_years!fk_sfr_year (
               year_name
             )
           )
@@ -109,7 +109,7 @@ export function usePaymentAllocation() {
           balance_fee,
           due_date,
           academic_year_id,
-          academic_years (
+          academic_years!fk_sfr_year (
             year_name
           )
         `)

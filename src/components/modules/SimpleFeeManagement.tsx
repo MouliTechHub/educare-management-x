@@ -149,7 +149,7 @@ export function SimpleFeeManagement() {
         .from('student_fee_records')
         .select(`
           *,
-          students!inner(
+          students!fk_sfr_student(
             id, first_name, last_name, admission_number, class_id,
             classes(name, section)
           )

@@ -58,27 +58,11 @@ export function useFeeRecordsWithDues(currentAcademicYearName: string | undefine
       setLoading(true);
       console.debug('[FEE-MGMT] year=', currentAcademicYear, 'year_name=', currentAcademicYearName, 'fetching with dues...');
       
-      // ✅ FIX: Join with student_enrollments for year-scoped class data
+      // ✅ Use the new view that properly joins with enrollments
       const { data: currentYearFees, error: currentError } = await supabase
-        .from("student_fee_records")
-        .select(`
-          *,
-          students (
-            id,
-            first_name,
-            last_name,
-            admission_number
-          ),
-          student_enrollments!inner (
-            class_id,
-            classes (
-              name,
-              section
-            )
-          )
-        `)
+        .from("v_fee_records_with_enrollment")
+        .select("*")
         .eq("academic_year_id", currentAcademicYear)
-        .eq("student_enrollments.academic_year_id", currentAcademicYear)
         .neq("fee_type", "Previous Year Dues")
         .order("created_at", { ascending: false });
 
@@ -88,6 +72,15 @@ export function useFeeRecordsWithDues(currentAcademicYearName: string | undefine
         console.error('❌ Error fetching current year fees:', currentError);
         throw currentError;
       }
+
+      // Get student details separately to avoid relationship conflicts
+      const studentIds = [...new Set((currentYearFees || []).map(fee => fee.student_id))];
+      const { data: studentsData } = await supabase
+        .from("students")
+        .select("id, first_name, last_name, admission_number")
+        .in("id", studentIds);
+
+      const studentsMap = new Map(studentsData?.map(student => [student.id, student]) || []);
 
       // Then get Previous Year Dues records that belong to the CURRENT academic year
       // These are created when students are promoted and have outstanding balances
@@ -116,6 +109,7 @@ export function useFeeRecordsWithDues(currentAcademicYearName: string | undefine
       // Transform the data and merge with previous year dues
       const feesWithDues: FeeWithDues[] = (currentYearFees || []).map((fee: any) => {
         const previousDues = duesMap.get(fee.student_id) || 0;
+        const studentData = studentsMap.get(fee.student_id);
 
         return {
           id: fee.id,
@@ -136,14 +130,14 @@ export function useFeeRecordsWithDues(currentAcademicYearName: string | undefine
           discount_updated_at: fee.discount_updated_at,
           academic_year_id: fee.academic_year_id,
           previous_year_dues: previousDues,
-          student: fee.students ? {
-            id: fee.students.id,
-            first_name: fee.students.first_name,
-            last_name: fee.students.last_name,
-            admission_number: fee.students.admission_number,
-            class_name: fee.student_enrollments?.[0]?.classes?.name,
-            section: fee.student_enrollments?.[0]?.classes?.section,
-            class_id: fee.student_enrollments?.[0]?.class_id
+          student: studentData ? {
+            id: studentData.id,
+            first_name: studentData.first_name,
+            last_name: studentData.last_name,
+            admission_number: studentData.admission_number,
+            class_name: fee.enrolled_class_name,
+            section: fee.enrolled_class_section,
+            class_id: fee.enrolled_class_id
           } : undefined
         };
       });

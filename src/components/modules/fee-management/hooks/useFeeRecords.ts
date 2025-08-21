@@ -55,7 +55,7 @@ export function useFeeRecords(currentAcademicYear: string) {
         .from("student_fee_records")
         .select(`
           *,
-          students (
+          students!fk_sfr_student (
             id,
             first_name,
             last_name,

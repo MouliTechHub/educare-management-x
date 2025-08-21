@@ -60,12 +60,12 @@ export function DuesCalculationVerifier({
           final_fee,
           fee_type,
           academic_year_id,
-          students!inner(
+          students!fk_sfr_student(
             first_name,
             last_name,
             admission_number
           ),
-          academic_years!inner(year_name)
+          academic_years!fk_sfr_year(year_name)
         `)
         .neq('academic_year_id', currentAcademicYearId)
         .gt('balance_fee', 0);
