@@ -24,7 +24,7 @@ export const useStudentFetcher = () => {
               email
             )
           ),
-          student_fee_records(
+          student_fee_records:student_fee_records!student_fee_records_student_id_fkey(
             id,
             fee_type,
             actual_fee,
