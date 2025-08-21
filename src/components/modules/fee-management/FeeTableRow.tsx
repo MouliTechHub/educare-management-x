@@ -58,8 +58,14 @@ export function FeeTableRow({
   onDiscountHistoryClick,
   showPaymentActions
 }: FeeTableRowProps) {
-  const finalFee = fee.actual_amount - fee.discount_amount;
-  const balanceAmount = finalFee - fee.total_paid;
+  // Safely handle potentially undefined numeric values
+  const safeActualAmount = fee.actual_amount ?? 0;
+  const safeDiscountAmount = fee.discount_amount ?? 0;
+  const safeTotalPaid = fee.total_paid ?? 0;
+  const safePreviousYearDues = fee.previous_year_dues ?? 0;
+  
+  const finalFee = safeActualAmount - safeDiscountAmount;
+  const balanceAmount = finalFee - safeTotalPaid;
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -95,9 +101,9 @@ export function FeeTableRow({
       <TableCell>{fee.fee_type}</TableCell>
       
       <TableCell>
-        {fee.previous_year_dues > 0 ? (
+        {safePreviousYearDues > 0 ? (
           <div className="text-red-600 font-medium">
-            ₹{fee.previous_year_dues.toLocaleString()}
+            ₹{safePreviousYearDues.toLocaleString()}
             <Badge variant="destructive" className="ml-2 text-xs">
               Blocked
             </Badge>
@@ -107,16 +113,16 @@ export function FeeTableRow({
         )}
       </TableCell>
       
-      <TableCell>₹{fee.actual_amount.toLocaleString()}</TableCell>
+      <TableCell>₹{safeActualAmount.toLocaleString()}</TableCell>
       <TableCell>
-        {fee.discount_amount > 0 ? (
-          <span className="text-green-600">₹{fee.discount_amount.toLocaleString()}</span>
+        {safeDiscountAmount > 0 ? (
+          <span className="text-green-600">₹{safeDiscountAmount.toLocaleString()}</span>
         ) : (
           <span className="text-gray-400">₹0</span>
         )}
       </TableCell>
       <TableCell className="font-medium">₹{finalFee.toLocaleString()}</TableCell>
-      <TableCell className="text-blue-600">₹{fee.total_paid.toLocaleString()}</TableCell>
+      <TableCell className="text-blue-600">₹{safeTotalPaid.toLocaleString()}</TableCell>
       <TableCell className={balanceAmount > 0 ? 'text-red-600' : 'text-green-600'}>
         ₹{balanceAmount.toLocaleString()}
       </TableCell>
