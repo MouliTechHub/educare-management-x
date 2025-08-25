@@ -754,6 +754,94 @@ export type Database = {
           },
         ]
       }
+      fee_ledger: {
+        Row: {
+          academic_year_id: string
+          amount: number
+          class_id: string | null
+          created_at: string
+          created_by: string | null
+          direction: string
+          entry_date: string
+          entry_type: string
+          id: string
+          note: string | null
+          reference_id: string | null
+          student_id: string
+        }
+        Insert: {
+          academic_year_id: string
+          amount: number
+          class_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          direction: string
+          entry_date?: string
+          entry_type: string
+          id?: string
+          note?: string | null
+          reference_id?: string | null
+          student_id: string
+        }
+        Update: {
+          academic_year_id?: string
+          amount?: number
+          class_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          direction?: string
+          entry_date?: string
+          entry_type?: string
+          id?: string
+          note?: string | null
+          reference_id?: string | null
+          student_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fee_ledger_academic_year_id_fkey"
+            columns: ["academic_year_id"]
+            isOneToOne: false
+            referencedRelation: "academic_years"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fee_ledger_class_id_fkey"
+            columns: ["class_id"]
+            isOneToOne: false
+            referencedRelation: "class_gender_stats"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fee_ledger_class_id_fkey"
+            columns: ["class_id"]
+            isOneToOne: false
+            referencedRelation: "classes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fee_ledger_student_id_fkey"
+            columns: ["student_id"]
+            isOneToOne: false
+            referencedRelation: "students"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fee_ledger_student_id_fkey"
+            columns: ["student_id"]
+            isOneToOne: false
+            referencedRelation: "v_fee_grid"
+            referencedColumns: ["student_id_ref"]
+          },
+          {
+            foreignKeyName: "fee_ledger_student_id_fkey"
+            columns: ["student_id"]
+            isOneToOne: false
+            referencedRelation: "v_students_with_fees"
+            referencedColumns: ["student_id"]
+          },
+        ]
+      }
       fee_payment_records: {
         Row: {
           amount_paid: number
@@ -1657,6 +1745,85 @@ export type Database = {
           },
         ]
       }
+      student_enrollments_hist: {
+        Row: {
+          academic_year_id: string
+          class_id: string
+          created_at: string
+          created_by: string | null
+          id: string
+          status: string
+          student_id: string
+          valid_from: string
+          valid_to: string | null
+        }
+        Insert: {
+          academic_year_id: string
+          class_id: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          status: string
+          student_id: string
+          valid_from?: string
+          valid_to?: string | null
+        }
+        Update: {
+          academic_year_id?: string
+          class_id?: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          status?: string
+          student_id?: string
+          valid_from?: string
+          valid_to?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "student_enrollments_hist_academic_year_id_fkey"
+            columns: ["academic_year_id"]
+            isOneToOne: false
+            referencedRelation: "academic_years"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "student_enrollments_hist_class_id_fkey"
+            columns: ["class_id"]
+            isOneToOne: false
+            referencedRelation: "class_gender_stats"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "student_enrollments_hist_class_id_fkey"
+            columns: ["class_id"]
+            isOneToOne: false
+            referencedRelation: "classes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "student_enrollments_hist_student_id_fkey"
+            columns: ["student_id"]
+            isOneToOne: false
+            referencedRelation: "students"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "student_enrollments_hist_student_id_fkey"
+            columns: ["student_id"]
+            isOneToOne: false
+            referencedRelation: "v_fee_grid"
+            referencedColumns: ["student_id_ref"]
+          },
+          {
+            foreignKeyName: "student_enrollments_hist_student_id_fkey"
+            columns: ["student_id"]
+            isOneToOne: false
+            referencedRelation: "v_students_with_fees"
+            referencedColumns: ["student_id"]
+          },
+        ]
+      }
       student_fee_records: {
         Row: {
           academic_year_id: string
@@ -2404,6 +2571,139 @@ export type Database = {
         }
         Relationships: []
       }
+      v_enrollments_current: {
+        Row: {
+          academic_year_id: string | null
+          class_id: string | null
+          created_at: string | null
+          created_by: string | null
+          id: string | null
+          status: string | null
+          student_id: string | null
+          valid_from: string | null
+          valid_to: string | null
+        }
+        Insert: {
+          academic_year_id?: string | null
+          class_id?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          id?: string | null
+          status?: string | null
+          student_id?: string | null
+          valid_from?: string | null
+          valid_to?: string | null
+        }
+        Update: {
+          academic_year_id?: string | null
+          class_id?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          id?: string | null
+          status?: string | null
+          student_id?: string | null
+          valid_from?: string | null
+          valid_to?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "student_enrollments_hist_academic_year_id_fkey"
+            columns: ["academic_year_id"]
+            isOneToOne: false
+            referencedRelation: "academic_years"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "student_enrollments_hist_class_id_fkey"
+            columns: ["class_id"]
+            isOneToOne: false
+            referencedRelation: "class_gender_stats"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "student_enrollments_hist_class_id_fkey"
+            columns: ["class_id"]
+            isOneToOne: false
+            referencedRelation: "classes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "student_enrollments_hist_student_id_fkey"
+            columns: ["student_id"]
+            isOneToOne: false
+            referencedRelation: "students"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "student_enrollments_hist_student_id_fkey"
+            columns: ["student_id"]
+            isOneToOne: false
+            referencedRelation: "v_fee_grid"
+            referencedColumns: ["student_id_ref"]
+          },
+          {
+            foreignKeyName: "student_enrollments_hist_student_id_fkey"
+            columns: ["student_id"]
+            isOneToOne: false
+            referencedRelation: "v_students_with_fees"
+            referencedColumns: ["student_id"]
+          },
+        ]
+      }
+      v_fee_balances: {
+        Row: {
+          academic_year_id: string | null
+          balance_fee: number | null
+          class_id: string | null
+          credits: number | null
+          debits: number | null
+          student_id: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fee_ledger_academic_year_id_fkey"
+            columns: ["academic_year_id"]
+            isOneToOne: false
+            referencedRelation: "academic_years"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fee_ledger_class_id_fkey"
+            columns: ["class_id"]
+            isOneToOne: false
+            referencedRelation: "class_gender_stats"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fee_ledger_class_id_fkey"
+            columns: ["class_id"]
+            isOneToOne: false
+            referencedRelation: "classes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fee_ledger_student_id_fkey"
+            columns: ["student_id"]
+            isOneToOne: false
+            referencedRelation: "students"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fee_ledger_student_id_fkey"
+            columns: ["student_id"]
+            isOneToOne: false
+            referencedRelation: "v_fee_grid"
+            referencedColumns: ["student_id_ref"]
+          },
+          {
+            foreignKeyName: "fee_ledger_student_id_fkey"
+            columns: ["student_id"]
+            isOneToOne: false
+            referencedRelation: "v_students_with_fees"
+            referencedColumns: ["student_id"]
+          },
+        ]
+      }
       v_fee_grid: {
         Row: {
           academic_year_id: string | null
@@ -3121,6 +3421,16 @@ export type Database = {
       debug_fee_counts: {
         Args: { p_year: string }
         Returns: number
+      }
+      enrollment_upsert: {
+        Args: {
+          p_actor?: string
+          p_class: string
+          p_status: string
+          p_student: string
+          p_year: string
+        }
+        Returns: undefined
       }
       get_next_class_id: {
         Args: { current_class_id: string }
