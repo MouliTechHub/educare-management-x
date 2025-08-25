@@ -3,7 +3,7 @@ import { useState, useEffect } from "react";
 import { Student, Class } from "@/types/database";
 import { useStudentFetcher } from "./utils/studentFetcher";
 import { useClassFetcher } from "./utils/classFetcher";
-import { useStudentDeleter } from "./utils/studentDeleter";
+import { useStudentArchiver } from "./utils/studentDeleter";
 import { useDatabaseConnection } from "./utils/databaseConnection";
 
 export function useStudentData() {
@@ -13,7 +13,7 @@ export function useStudentData() {
 
   const { fetchStudents } = useStudentFetcher();
   const { fetchClasses } = useClassFetcher();
-  const { deleteStudent: deleteStudentUtil } = useStudentDeleter();
+  const { archiveStudent: archiveStudentUtil } = useStudentArchiver();
   const { testDatabaseConnection } = useDatabaseConnection();
 
   const loadStudents = async () => {
@@ -36,8 +36,8 @@ export function useStudentData() {
     }
   };
 
-  const handleDeleteStudent = async (id: string) => {
-    await deleteStudentUtil(id);
+  const handleArchiveStudent = async (id: string) => {
+    await archiveStudentUtil(id);
     loadStudents();
   };
 
@@ -52,6 +52,6 @@ export function useStudentData() {
     classes,
     loading,
     fetchStudents: loadStudents,
-    deleteStudent: handleDeleteStudent,
+    archiveStudent: handleArchiveStudent,
   };
 }

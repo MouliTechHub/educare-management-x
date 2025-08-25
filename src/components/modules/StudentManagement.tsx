@@ -23,7 +23,7 @@ export function StudentManagement({ onNavigateToParent }: StudentManagementProps
   const [selectedAcademicYear, setSelectedAcademicYear] = useState<string>("current");
   const [academicYears, setAcademicYears] = useState<any[]>([]);
 
-  const { students, classes, loading, fetchStudents, deleteStudent } = useStudentData();
+  const { students, classes, loading, fetchStudents, archiveStudent } = useStudentData();
 
   const openEditDialog = (student: Student) => {
     console.log('Opening edit dialog for student:', student);
@@ -71,10 +71,9 @@ export function StudentManagement({ onNavigateToParent }: StudentManagementProps
 
     try {
       let query = supabase
-        .from('students')
+        .from('v_active_students')
         .select(`
           *,
-          classes(name, section),
           student_parent_links(
             parent_id,
             parents(
@@ -87,7 +86,6 @@ export function StudentManagement({ onNavigateToParent }: StudentManagementProps
             )
           )
         `)
-        .eq('status', 'Active')
         .order('first_name');
 
       if (selectedAcademicYear === "current") {
@@ -228,7 +226,7 @@ export function StudentManagement({ onNavigateToParent }: StudentManagementProps
           <StudentTable
             students={filteredStudents}
             onEditStudent={openEditDialog}
-            onDeleteStudent={deleteStudent}
+            onArchiveStudent={archiveStudent}
             onViewParent={handleViewParent}
           />
         </CardContent>

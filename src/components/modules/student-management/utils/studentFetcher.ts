@@ -8,12 +8,11 @@ export const useStudentFetcher = () => {
 
   const fetchStudents = async (): Promise<Student[]> => {
     try {
-      console.log('Fetching students with parent and financial information...');
+      console.log('Fetching active students with parent and financial information...');
       const { data, error } = await supabase
-        .from("students")
+        .from("v_active_students")
         .select(`
           *,
-          classes(id, name, section),
           student_parent_links(
             parents(
               id,
