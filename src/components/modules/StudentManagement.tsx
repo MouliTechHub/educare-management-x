@@ -5,11 +5,14 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogTrigger } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Plus, Search, Calendar } from "lucide-react";
 import { Student } from "@/types/database";
 import { useStudentData } from "./student-management/useStudentData";
+import { useArchivedStudentData } from "./student-management/useArchivedStudentData";
 import { StudentForm } from "./student-management/StudentForm";
 import { StudentTable } from "./student-management/StudentTable";
+import { ArchivedStudentsTable } from "./student-management/ArchivedStudentsTable";
 import { supabase } from "@/integrations/supabase/client";
 
 interface StudentManagementProps {
@@ -22,8 +25,10 @@ export function StudentManagement({ onNavigateToParent }: StudentManagementProps
   const [selectedStudent, setSelectedStudent] = useState<Student | null>(null);
   const [selectedAcademicYear, setSelectedAcademicYear] = useState<string>("current");
   const [academicYears, setAcademicYears] = useState<any[]>([]);
+  const [activeTab, setActiveTab] = useState("active");
 
   const { students, classes, loading, fetchStudents, archiveStudent } = useStudentData();
+  const { archivedStudents, loading: archivedLoading, fetchArchivedStudents, restoreStudent } = useArchivedStudentData();
 
   const openEditDialog = (student: Student) => {
     console.log('Opening edit dialog for student:', student);
@@ -39,6 +44,9 @@ export function StudentManagement({ onNavigateToParent }: StudentManagementProps
 
   const handleStudentSaved = () => {
     fetchStudents();
+    if (activeTab === "archived") {
+      fetchArchivedStudents();
+    }
     setSelectedStudent(null);
   };
 
@@ -46,6 +54,28 @@ export function StudentManagement({ onNavigateToParent }: StudentManagementProps
     if (onNavigateToParent) {
       onNavigateToParent(parentId);
     }
+  };
+
+  const handleArchiveStudent = async (id: string) => {
+    await archiveStudent(id);
+    if (activeTab === "archived") {
+      fetchArchivedStudents();
+    }
+  };
+
+  const handleRestoreStudent = async (id: string) => {
+    await restoreStudent(id);
+    fetchStudents(); // Refresh active students
+  };
+
+  const handleViewFeeHistory = (studentId: string) => {
+    // Navigate to fee management with student filter
+    window.open(`/fee-management?studentId=${studentId}`, '_blank');
+  };
+
+  const handleViewPaymentHistory = (studentId: string) => {
+    // Navigate to payments management with student filter
+    window.open(`/payments-management?studentId=${studentId}`, '_blank');
   };
 
   const loadAcademicYears = async () => {
@@ -153,7 +183,7 @@ export function StudentManagement({ onNavigateToParent }: StudentManagementProps
     student.admission_number.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
-  if (loading) {
+  if (loading && archivedLoading) {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
@@ -189,8 +219,8 @@ export function StudentManagement({ onNavigateToParent }: StudentManagementProps
         <CardHeader>
           <div className="flex items-center justify-between">
             <div>
-              <CardTitle>Students</CardTitle>
-              <CardDescription>Manage student enrollment</CardDescription>
+              <CardTitle>Student Management</CardTitle>
+              <CardDescription>Manage active and archived students</CardDescription>
             </div>
             <div className="flex items-center space-x-4">
               <div className="flex items-center space-x-2">
@@ -223,12 +253,42 @@ export function StudentManagement({ onNavigateToParent }: StudentManagementProps
           </div>
         </CardHeader>
         <CardContent>
-          <StudentTable
-            students={filteredStudents}
-            onEditStudent={openEditDialog}
-            onArchiveStudent={archiveStudent}
-            onViewParent={handleViewParent}
-          />
+          <Tabs value={activeTab} onValueChange={setActiveTab}>
+            <TabsList className="grid w-full grid-cols-2 mb-6">
+              <TabsTrigger value="active">Active Students ({students.length})</TabsTrigger>
+              <TabsTrigger value="archived">Archived Students ({archivedStudents.length})</TabsTrigger>
+            </TabsList>
+            
+            <TabsContent value="active" className="space-y-4">
+              {loading ? (
+                <div className="flex items-center justify-center py-8">
+                  <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary"></div>
+                </div>
+              ) : (
+                <StudentTable
+                  students={filteredStudents}
+                  onEditStudent={openEditDialog}
+                  onArchiveStudent={handleArchiveStudent}
+                  onViewParent={handleViewParent}
+                />
+              )}
+            </TabsContent>
+            
+            <TabsContent value="archived" className="space-y-4">
+              {archivedLoading ? (
+                <div className="flex items-center justify-center py-8">
+                  <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary"></div>
+                </div>
+              ) : (
+                <ArchivedStudentsTable
+                  students={archivedStudents}
+                  onRestoreStudent={handleRestoreStudent}
+                  onViewFeeHistory={handleViewFeeHistory}
+                  onViewPaymentHistory={handleViewPaymentHistory}
+                />
+              )}
+            </TabsContent>
+          </Tabs>
         </CardContent>
       </Card>
     </div>
