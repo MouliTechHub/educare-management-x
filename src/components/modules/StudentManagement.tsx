@@ -23,6 +23,7 @@ interface StudentManagementProps {
 }
 
 export function StudentManagement({ onNavigateToParent }: StudentManagementProps) {
+  console.log('StudentManagement component loaded successfully');
   const [searchTerm, setSearchTerm] = useState("");
   const [dialogOpen, setDialogOpen] = useState(false);
   const [selectedStudent, setSelectedStudent] = useState<Student | null>(null);
