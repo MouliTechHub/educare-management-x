@@ -9,10 +9,11 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Plus, Search, Calendar } from "lucide-react";
 import { Student } from "@/types/database";
 import { useStudentData } from "./student-management/useStudentData";
-import { useArchivedStudentData } from "./student-management/useArchivedStudentData";
+import { useInactiveStudentData } from "./student-management/useInactiveStudentData";
 import { StudentForm } from "./student-management/StudentForm";
 import { StudentTable } from "./student-management/StudentTable";
-import { ArchivedStudentsTable } from "./student-management/ArchivedStudentsTable";
+import { InactiveStudentsTable } from "./student-management/InactiveStudentsTable";
+import { StudentStatusDialog } from "./student-management/StudentStatusDialog";
 import { supabase } from "@/integrations/supabase/client";
 
 interface StudentManagementProps {
@@ -26,9 +27,11 @@ export function StudentManagement({ onNavigateToParent }: StudentManagementProps
   const [selectedAcademicYear, setSelectedAcademicYear] = useState<string>("current");
   const [academicYears, setAcademicYears] = useState<any[]>([]);
   const [activeTab, setActiveTab] = useState("active");
+  const [statusDialogOpen, setStatusDialogOpen] = useState(false);
+  const [selectedStudentForStatus, setSelectedStudentForStatus] = useState<Student | null>(null);
 
-  const { students, classes, loading, fetchStudents, archiveStudent } = useStudentData();
-  const { archivedStudents, loading: archivedLoading, fetchArchivedStudents, restoreStudent } = useArchivedStudentData();
+  const { students, classes, loading, fetchStudents } = useStudentData();
+  const { inactiveStudents, loading: inactiveLoading, fetchInactiveStudents, reactivateStudent } = useInactiveStudentData();
 
   const openEditDialog = (student: Student) => {
     console.log('Opening edit dialog for student:', student);
@@ -44,8 +47,8 @@ export function StudentManagement({ onNavigateToParent }: StudentManagementProps
 
   const handleStudentSaved = () => {
     fetchStudents();
-    if (activeTab === "archived") {
-      fetchArchivedStudents();
+    if (activeTab === "inactive") {
+      fetchInactiveStudents();
     }
     setSelectedStudent(null);
   };
@@ -56,15 +59,20 @@ export function StudentManagement({ onNavigateToParent }: StudentManagementProps
     }
   };
 
-  const handleArchiveStudent = async (id: string) => {
-    await archiveStudent(id);
-    if (activeTab === "archived") {
-      fetchArchivedStudents();
+  const handleChangeStatus = (student: Student) => {
+    setSelectedStudentForStatus(student);
+    setStatusDialogOpen(true);
+  };
+
+  const handleStatusChanged = () => {
+    fetchStudents(); // Refresh active students
+    if (activeTab === "inactive") {
+      fetchInactiveStudents();
     }
   };
 
-  const handleRestoreStudent = async (id: string) => {
-    await restoreStudent(id);
+  const handleReactivateStudent = async (id: string) => {
+    await reactivateStudent(id);
     fetchStudents(); // Refresh active students
   };
 
@@ -183,7 +191,7 @@ export function StudentManagement({ onNavigateToParent }: StudentManagementProps
     student.admission_number.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
-  if (loading && archivedLoading) {
+  if (loading && inactiveLoading) {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
@@ -256,7 +264,7 @@ export function StudentManagement({ onNavigateToParent }: StudentManagementProps
           <Tabs value={activeTab} onValueChange={setActiveTab}>
             <TabsList className="grid w-full grid-cols-2 mb-6">
               <TabsTrigger value="active">Active Students ({students.length})</TabsTrigger>
-              <TabsTrigger value="archived">Archived Students ({archivedStudents.length})</TabsTrigger>
+              <TabsTrigger value="inactive">Inactive Students ({inactiveStudents.length})</TabsTrigger>
             </TabsList>
             
             <TabsContent value="active" className="space-y-4">
@@ -268,21 +276,21 @@ export function StudentManagement({ onNavigateToParent }: StudentManagementProps
                 <StudentTable
                   students={filteredStudents}
                   onEditStudent={openEditDialog}
-                  onArchiveStudent={handleArchiveStudent}
+                  onChangeStatus={handleChangeStatus}
                   onViewParent={handleViewParent}
                 />
               )}
             </TabsContent>
             
-            <TabsContent value="archived" className="space-y-4">
-              {archivedLoading ? (
+            <TabsContent value="inactive" className="space-y-4">
+              {inactiveLoading ? (
                 <div className="flex items-center justify-center py-8">
                   <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary"></div>
                 </div>
               ) : (
-                <ArchivedStudentsTable
-                  students={archivedStudents}
-                  onRestoreStudent={handleRestoreStudent}
+                <InactiveStudentsTable
+                  students={inactiveStudents}
+                  onReactivateStudent={handleReactivateStudent}
                   onViewFeeHistory={handleViewFeeHistory}
                   onViewPaymentHistory={handleViewPaymentHistory}
                 />
@@ -291,6 +299,13 @@ export function StudentManagement({ onNavigateToParent }: StudentManagementProps
           </Tabs>
         </CardContent>
       </Card>
+
+      <StudentStatusDialog
+        open={statusDialogOpen}
+        onOpenChange={setStatusDialogOpen}
+        student={selectedStudentForStatus}
+        onStatusChanged={handleStatusChanged}
+      />
     </div>
   );
 }

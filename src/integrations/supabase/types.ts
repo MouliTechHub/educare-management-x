@@ -2394,12 +2394,88 @@ export type Database = {
           },
         ]
       }
+      student_status_audit: {
+        Row: {
+          actor: string | null
+          anonymized: boolean | null
+          created_at: string
+          exit_date: string | null
+          exit_feedback: string | null
+          exit_reason: string | null
+          id: string
+          new_status: string
+          old_status: string | null
+          student_id: string
+        }
+        Insert: {
+          actor?: string | null
+          anonymized?: boolean | null
+          created_at?: string
+          exit_date?: string | null
+          exit_feedback?: string | null
+          exit_reason?: string | null
+          id?: string
+          new_status: string
+          old_status?: string | null
+          student_id: string
+        }
+        Update: {
+          actor?: string | null
+          anonymized?: boolean | null
+          created_at?: string
+          exit_date?: string | null
+          exit_feedback?: string | null
+          exit_reason?: string | null
+          id?: string
+          new_status?: string
+          old_status?: string | null
+          student_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "student_status_audit_student_id_fkey"
+            columns: ["student_id"]
+            isOneToOne: false
+            referencedRelation: "students"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "student_status_audit_student_id_fkey"
+            columns: ["student_id"]
+            isOneToOne: false
+            referencedRelation: "v_active_students"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "student_status_audit_student_id_fkey"
+            columns: ["student_id"]
+            isOneToOne: false
+            referencedRelation: "v_archived_students"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "student_status_audit_student_id_fkey"
+            columns: ["student_id"]
+            isOneToOne: false
+            referencedRelation: "v_fee_grid"
+            referencedColumns: ["student_id_ref"]
+          },
+          {
+            foreignKeyName: "student_status_audit_student_id_fkey"
+            columns: ["student_id"]
+            isOneToOne: false
+            referencedRelation: "v_students_with_fees"
+            referencedColumns: ["student_id"]
+          },
+        ]
+      }
       students: {
         Row: {
           aadhaar_number: string | null
           address_line1: string | null
           address_line2: string | null
           admission_number: string
+          anonymized: boolean | null
           blood_group: string | null
           caste_category: string | null
           city: string | null
@@ -2412,9 +2488,13 @@ export type Database = {
           emergency_contact_name: string | null
           emergency_contact_phone: string | null
           emergency_contact_relation: string | null
+          exit_date: string | null
+          exit_feedback: string | null
+          exit_reason: string | null
           first_name: string
           gender: string
           id: string
+          inactive_at: string | null
           last_name: string
           medical_information: string | null
           mother_tongue: string | null
@@ -2422,6 +2502,7 @@ export type Database = {
           photo_url: string | null
           pin_code: string | null
           previous_school: string | null
+          reactivated_at: string | null
           religion: string | null
           state: string | null
           status: string
@@ -2435,6 +2516,7 @@ export type Database = {
           address_line1?: string | null
           address_line2?: string | null
           admission_number: string
+          anonymized?: boolean | null
           blood_group?: string | null
           caste_category?: string | null
           city?: string | null
@@ -2447,9 +2529,13 @@ export type Database = {
           emergency_contact_name?: string | null
           emergency_contact_phone?: string | null
           emergency_contact_relation?: string | null
+          exit_date?: string | null
+          exit_feedback?: string | null
+          exit_reason?: string | null
           first_name: string
           gender: string
           id?: string
+          inactive_at?: string | null
           last_name: string
           medical_information?: string | null
           mother_tongue?: string | null
@@ -2457,6 +2543,7 @@ export type Database = {
           photo_url?: string | null
           pin_code?: string | null
           previous_school?: string | null
+          reactivated_at?: string | null
           religion?: string | null
           state?: string | null
           status?: string
@@ -2470,6 +2557,7 @@ export type Database = {
           address_line1?: string | null
           address_line2?: string | null
           admission_number?: string
+          anonymized?: boolean | null
           blood_group?: string | null
           caste_category?: string | null
           city?: string | null
@@ -2482,9 +2570,13 @@ export type Database = {
           emergency_contact_name?: string | null
           emergency_contact_phone?: string | null
           emergency_contact_relation?: string | null
+          exit_date?: string | null
+          exit_feedback?: string | null
+          exit_reason?: string | null
           first_name?: string
           gender?: string
           id?: string
+          inactive_at?: string | null
           last_name?: string
           medical_information?: string | null
           mother_tongue?: string | null
@@ -2492,6 +2584,7 @@ export type Database = {
           photo_url?: string | null
           pin_code?: string | null
           previous_school?: string | null
+          reactivated_at?: string | null
           religion?: string | null
           state?: string | null
           status?: string
@@ -4005,6 +4098,10 @@ export type Database = {
         }
         Returns: Json
       }
+      reactivate_student: {
+        Args: { p_student_id: string }
+        Returns: undefined
+      }
       record_ledger_entry: {
         Args: {
           p_academic_year_id: string
@@ -4034,6 +4131,27 @@ export type Database = {
           year_name: string
         }
       }
+      set_student_inactive: {
+        Args: {
+          p_anonymize?: boolean
+          p_exit_date?: string
+          p_exit_feedback?: string
+          p_exit_reason: string
+          p_student_id: string
+        }
+        Returns: undefined
+      }
+      set_student_status: {
+        Args: {
+          p_anonymize?: boolean
+          p_exit_date?: string
+          p_exit_feedback?: string
+          p_exit_reason?: string
+          p_new_status: string
+          p_student_id: string
+        }
+        Returns: undefined
+      }
       update_fee_priorities: {
         Args: Record<PropertyKey, never>
         Returns: undefined
@@ -4041,6 +4159,12 @@ export type Database = {
     }
     Enums: {
       app_role: "admin" | "teacher" | "parent" | "accountant"
+      student_status:
+        | "Active"
+        | "Inactive"
+        | "Alumni"
+        | "Transferred"
+        | "Withdrawn"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -4169,6 +4293,13 @@ export const Constants = {
   public: {
     Enums: {
       app_role: ["admin", "teacher", "parent", "accountant"],
+      student_status: [
+        "Active",
+        "Inactive",
+        "Alumni",
+        "Transferred",
+        "Withdrawn",
+      ],
     },
   },
 } as const

@@ -1,20 +1,19 @@
-
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { Edit, Archive, User, Calendar, Users, DollarSign, History, ExternalLink } from "lucide-react";
+import { Edit, UserX, User, Calendar, ExternalLink } from "lucide-react";
 import { Student } from "@/types/database";
 import { StudentPaymentHistory } from "./StudentPaymentHistory";
 
 interface StudentTableProps {
   students: Student[];
   onEditStudent: (student: Student) => void;
-  onArchiveStudent: (id: string) => void;
+  onChangeStatus: (student: Student) => void;
   onViewParent?: (parentId: string) => void;
 }
 
-export function StudentTable({ students, onEditStudent, onArchiveStudent, onViewParent }: StudentTableProps) {
+export function StudentTable({ students, onEditStudent, onChangeStatus, onViewParent }: StudentTableProps) {
   const [selectedStudent, setSelectedStudent] = useState<Student | null>(null);
   const [historyOpen, setHistoryOpen] = useState(false);
 
@@ -119,10 +118,10 @@ export function StudentTable({ students, onEditStudent, onArchiveStudent, onView
                   <Button
                     variant="outline"
                     size="sm"
-                    onClick={() => onArchiveStudent(student.id)}
-                    title="Archive Student"
+                    onClick={() => onChangeStatus(student)}
+                    title="Change Student Status"
                   >
-                    <Archive className="w-4 h-4" />
+                    <UserX className="w-4 h-4" />
                   </Button>
                 </div>
               </TableCell>
