@@ -2491,6 +2491,7 @@ export type Database = {
           exit_date: string | null
           exit_feedback: string | null
           exit_reason: string | null
+          feedback_notes: string | null
           first_name: string
           gender: string
           id: string
@@ -2532,6 +2533,7 @@ export type Database = {
           exit_date?: string | null
           exit_feedback?: string | null
           exit_reason?: string | null
+          feedback_notes?: string | null
           first_name: string
           gender: string
           id?: string
@@ -2573,6 +2575,7 @@ export type Database = {
           exit_date?: string | null
           exit_feedback?: string | null
           exit_reason?: string | null
+          feedback_notes?: string | null
           first_name?: string
           gender?: string
           id?: string
@@ -4145,8 +4148,8 @@ export type Database = {
         Args: {
           p_anonymize?: boolean
           p_exit_date?: string
-          p_exit_feedback?: string
           p_exit_reason?: string
+          p_feedback_notes?: string
           p_new_status: string
           p_student_id: string
         }

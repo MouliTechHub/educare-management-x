@@ -18,8 +18,9 @@ interface StudentStatusDialogProps {
 }
 
 const EXIT_REASONS = [
-  { value: "Completed Education", label: "Completed Education" },
-  { value: "Transfer to Other School", label: "Transfer to Other School" },
+  { value: "Transfer", label: "Transfer to Other School" },
+  { value: "Dropout", label: "Dropout" },  
+  { value: "Completed", label: "Completed Education" },
   { value: "Family Relocation", label: "Family Relocation" },
   { value: "Financial Reasons", label: "Financial Reasons" },
   { value: "Performance Concerns", label: "Performance Concerns" },
@@ -71,7 +72,7 @@ export function StudentStatusDialog({ open, onOpenChange, student, onStatusChang
         p_student_id: student.id,
         p_new_status: status,
         p_exit_reason: exitReason,
-        p_exit_feedback: exitFeedback || null,
+        p_feedback_notes: exitFeedback || null,
         p_exit_date: exitDate,
         p_anonymize: anonymize,
       });

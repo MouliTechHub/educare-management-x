@@ -6,14 +6,16 @@ import { Input } from "@/components/ui/input";
 import { Dialog, DialogTrigger } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Plus, Search, Calendar } from "lucide-react";
+import { Plus, Search, Calendar, Users, GraduationCap, ArrowLeftRight, UserX } from "lucide-react";
 import { Student } from "@/types/database";
 import { useStudentData } from "./student-management/useStudentData";
-import { useInactiveStudentData } from "./student-management/useInactiveStudentData";
+import { useStatusBasedStudents } from "./student-management/hooks/useStatusBasedStudents";
 import { StudentForm } from "./student-management/StudentForm";
 import { StudentTable } from "./student-management/StudentTable";
-import { InactiveStudentsTable } from "./student-management/InactiveStudentsTable";
+import { StatusBasedStudentsTable } from "./student-management/StatusBasedStudentsTable";
 import { StudentStatusDialog } from "./student-management/StudentStatusDialog";
+import { StudentDetailsDialog } from "./student-management/StudentDetailsDialog";
+import { StudentWithStatus } from "./student-management/utils/statusBasedStudentFetcher";
 import { supabase } from "@/integrations/supabase/client";
 
 interface StudentManagementProps {
@@ -28,10 +30,35 @@ export function StudentManagement({ onNavigateToParent }: StudentManagementProps
   const [academicYears, setAcademicYears] = useState<any[]>([]);
   const [activeTab, setActiveTab] = useState("active");
   const [statusDialogOpen, setStatusDialogOpen] = useState(false);
+  const [detailsDialogOpen, setDetailsDialogOpen] = useState(false);
   const [selectedStudentForStatus, setSelectedStudentForStatus] = useState<Student | null>(null);
+  const [selectedStudentForDetails, setSelectedStudentForDetails] = useState<StudentWithStatus | null>(null);
 
   const { students, classes, loading, fetchStudents } = useStudentData();
-  const { inactiveStudents, loading: inactiveLoading, fetchInactiveStudents, reactivateStudent } = useInactiveStudentData();
+  const { 
+    students: inactiveStudents, 
+    loading: inactiveLoading, 
+    refreshStudents: refreshInactiveStudents, 
+    reactivateStudent 
+  } = useStatusBasedStudents('Inactive');
+  const { 
+    students: alumniStudents, 
+    loading: alumniLoading, 
+    refreshStudents: refreshAlumniStudents,
+    reactivateStudent: reactivateAlumni 
+  } = useStatusBasedStudents('Alumni');
+  const { 
+    students: transferredStudents, 
+    loading: transferredLoading, 
+    refreshStudents: refreshTransferredStudents,
+    reactivateStudent: reactivateTransferred 
+  } = useStatusBasedStudents('Transferred');
+  const { 
+    students: withdrawnStudents, 
+    loading: withdrawnLoading, 
+    refreshStudents: refreshWithdrawnStudents,
+    reactivateStudent: reactivateWithdrawn 
+  } = useStatusBasedStudents('Withdrawn');
 
   const openEditDialog = (student: Student) => {
     console.log('Opening edit dialog for student:', student);
@@ -47,9 +74,10 @@ export function StudentManagement({ onNavigateToParent }: StudentManagementProps
 
   const handleStudentSaved = () => {
     fetchStudents();
-    if (activeTab === "inactive") {
-      fetchInactiveStudents();
-    }
+    refreshInactiveStudents();
+    refreshAlumniStudents();
+    refreshTransferredStudents();
+    refreshWithdrawnStudents();
     setSelectedStudent(null);
   };
 
@@ -66,24 +94,33 @@ export function StudentManagement({ onNavigateToParent }: StudentManagementProps
 
   const handleStatusChanged = () => {
     fetchStudents(); // Refresh active students
-    if (activeTab === "inactive") {
-      fetchInactiveStudents();
-    }
+    refreshInactiveStudents();
+    refreshAlumniStudents();
+    refreshTransferredStudents();
+    refreshWithdrawnStudents();
   };
 
-  const handleReactivateStudent = async (id: string) => {
-    await reactivateStudent(id);
+  const handleReactivateStudent = async (id: string, status: string) => {
+    switch (status) {
+      case 'Inactive':
+        await reactivateStudent(id);
+        break;
+      case 'Alumni':
+        await reactivateAlumni(id);
+        break;
+      case 'Transferred':
+        await reactivateTransferred(id);
+        break;
+      case 'Withdrawn':
+        await reactivateWithdrawn(id);
+        break;
+    }
     fetchStudents(); // Refresh active students
   };
 
-  const handleViewFeeHistory = (studentId: string) => {
-    // Navigate to fee management with student filter
-    window.open(`/fee-management?studentId=${studentId}`, '_blank');
-  };
-
-  const handleViewPaymentHistory = (studentId: string) => {
-    // Navigate to payments management with student filter
-    window.open(`/payments-management?studentId=${studentId}`, '_blank');
+  const handleViewStudent = (student: StudentWithStatus) => {
+    setSelectedStudentForDetails(student);
+    setDetailsDialogOpen(true);
   };
 
   const loadAcademicYears = async () => {
@@ -101,100 +138,39 @@ export function StudentManagement({ onNavigateToParent }: StudentManagementProps
     }
   };
 
-  const loadStudentsByAcademicYear = async () => {
-    if (selectedAcademicYear === "all") {
-      fetchStudents();
-      return;
-    }
-
-    try {
-      let query = supabase
-        .from('v_active_students')
-        .select(`
-          *,
-          student_parent_links(
-            parent_id,
-            parents(
-              id,
-              first_name,
-              last_name,
-              relation,
-              phone_number,
-              email
-            )
-          )
-        `)
-        .order('first_name');
-
-      if (selectedAcademicYear === "current") {
-        // Get current academic year
-        const { data: currentYear } = await supabase
-          .from('academic_years')
-          .select('id')
-          .eq('is_current', true)
-          .single();
-
-        if (currentYear) {
-          // Get students who have fee records in current academic year
-          const { data: studentIds } = await supabase
-            .from('student_fee_records')
-            .select('student_id')
-            .eq('academic_year_id', currentYear.id);
-
-          if (studentIds && studentIds.length > 0) {
-            query = query.in('id', studentIds.map(s => s.student_id));
-          }
-        }
-      } else if (selectedAcademicYear !== "all") {
-        // Get students for specific academic year
-        const { data: studentIds } = await supabase
-          .from('student_fee_records')
-          .select('student_id')
-          .eq('academic_year_id', selectedAcademicYear);
-
-        if (studentIds && studentIds.length > 0) {
-          query = query.in('id', studentIds.map(s => s.student_id));
-        } else {
-          // No students in this academic year
-          return;
-        }
-      }
-
-      const { data, error } = await query;
-      if (error) throw error;
-
-      // Transform data similar to useStudentData
-      const transformedStudents = data?.map(student => ({
-        ...student,
-        parents: student.student_parent_links?.map(link => link.parents) || [],
-        fees: [] // Add empty fees array for compatibility
-      })) || [];
-
-      // This would ideally update the students state, but since we're using useStudentData hook,
-      // we'll need to modify the hook to accept academic year filtering
-      fetchStudents();
-    } catch (error) {
-      console.error('Error loading students by academic year:', error);
-    }
-  };
-
   useEffect(() => {
     loadAcademicYears();
   }, []);
-
-  useEffect(() => {
-    loadStudentsByAcademicYear();
-  }, [selectedAcademicYear]);
 
   const filteredStudents = students.filter((student) =>
     `${student.first_name} ${student.last_name}`.toLowerCase().includes(searchTerm.toLowerCase()) ||
     student.admission_number.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
-  if (loading && inactiveLoading) {
+  const filteredInactiveStudents = inactiveStudents.filter((student) =>
+    `${student.first_name} ${student.last_name}`.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    student.admission_number.toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
+  const filteredAlumniStudents = alumniStudents.filter((student) =>
+    `${student.first_name} ${student.last_name}`.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    student.admission_number.toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
+  const filteredTransferredStudents = transferredStudents.filter((student) =>
+    `${student.first_name} ${student.last_name}`.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    student.admission_number.toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
+  const filteredWithdrawnStudents = withdrawnStudents.filter((student) =>
+    `${student.first_name} ${student.last_name}`.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    student.admission_number.toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
+  if (loading) {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
       </div>
     );
   }
@@ -203,8 +179,8 @@ export function StudentManagement({ onNavigateToParent }: StudentManagementProps
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">Student Management</h1>
-          <p className="text-gray-600 mt-2">Manage student enrollment and information</p>
+          <h1 className="text-3xl font-bold">Student Management</h1>
+          <p className="text-muted-foreground mt-2">Manage student enrollment and information</p>
         </div>
         <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
           <DialogTrigger asChild>
@@ -228,11 +204,11 @@ export function StudentManagement({ onNavigateToParent }: StudentManagementProps
           <div className="flex items-center justify-between">
             <div>
               <CardTitle>Student Management</CardTitle>
-              <CardDescription>Manage active and archived students</CardDescription>
+              <CardDescription>Manage students by status and lifecycle</CardDescription>
             </div>
             <div className="flex items-center space-x-4">
               <div className="flex items-center space-x-2">
-                <Calendar className="w-4 h-4 text-gray-400" />
+                <Calendar className="w-4 h-4 text-muted-foreground" />
                 <Select value={selectedAcademicYear} onValueChange={setSelectedAcademicYear}>
                   <SelectTrigger className="w-48">
                     <SelectValue />
@@ -249,7 +225,7 @@ export function StudentManagement({ onNavigateToParent }: StudentManagementProps
                 </Select>
               </div>
               <div className="flex items-center space-x-2">
-                <Search className="w-4 h-4 text-gray-400" />
+                <Search className="w-4 h-4 text-muted-foreground" />
                 <Input
                   placeholder="Search students..."
                   value={searchTerm}
@@ -262,9 +238,27 @@ export function StudentManagement({ onNavigateToParent }: StudentManagementProps
         </CardHeader>
         <CardContent>
           <Tabs value={activeTab} onValueChange={setActiveTab}>
-            <TabsList className="grid w-full grid-cols-2 mb-6">
-              <TabsTrigger value="active">Active Students ({students.length})</TabsTrigger>
-              <TabsTrigger value="inactive">Inactive Students ({inactiveStudents.length})</TabsTrigger>
+            <TabsList className="grid w-full grid-cols-5 mb-6">
+              <TabsTrigger value="active" className="flex items-center gap-1">
+                <Users className="h-4 w-4" />
+                Active ({students.length})
+              </TabsTrigger>
+              <TabsTrigger value="inactive" className="flex items-center gap-1">
+                <UserX className="h-4 w-4" />
+                Inactive ({inactiveStudents.length})
+              </TabsTrigger>
+              <TabsTrigger value="alumni" className="flex items-center gap-1">
+                <GraduationCap className="h-4 w-4" />
+                Alumni ({alumniStudents.length})
+              </TabsTrigger>
+              <TabsTrigger value="transferred" className="flex items-center gap-1">
+                <ArrowLeftRight className="h-4 w-4" />
+                Transferred ({transferredStudents.length})
+              </TabsTrigger>
+              <TabsTrigger value="withdrawn" className="flex items-center gap-1">
+                <UserX className="h-4 w-4" />
+                Withdrawn ({withdrawnStudents.length})
+              </TabsTrigger>
             </TabsList>
             
             <TabsContent value="active" className="space-y-4">
@@ -288,11 +282,53 @@ export function StudentManagement({ onNavigateToParent }: StudentManagementProps
                   <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary"></div>
                 </div>
               ) : (
-                <InactiveStudentsTable
-                  students={inactiveStudents}
-                  onReactivateStudent={handleReactivateStudent}
-                  onViewFeeHistory={handleViewFeeHistory}
-                  onViewPaymentHistory={handleViewPaymentHistory}
+                <StatusBasedStudentsTable
+                  students={filteredInactiveStudents}
+                  onReactivateStudent={(id) => handleReactivateStudent(id, 'Inactive')}
+                  onViewStudent={handleViewStudent}
+                />
+              )}
+            </TabsContent>
+
+            <TabsContent value="alumni" className="space-y-4">
+              {alumniLoading ? (
+                <div className="flex items-center justify-center py-8">
+                  <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary"></div>
+                </div>
+              ) : (
+                <StatusBasedStudentsTable
+                  students={filteredAlumniStudents}
+                  onReactivateStudent={(id) => handleReactivateStudent(id, 'Alumni')}
+                  onViewStudent={handleViewStudent}
+                  showReactivateButton={false}
+                />
+              )}
+            </TabsContent>
+
+            <TabsContent value="transferred" className="space-y-4">
+              {transferredLoading ? (
+                <div className="flex items-center justify-center py-8">
+                  <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary"></div>
+                </div>
+              ) : (
+                <StatusBasedStudentsTable
+                  students={filteredTransferredStudents}
+                  onReactivateStudent={(id) => handleReactivateStudent(id, 'Transferred')}
+                  onViewStudent={handleViewStudent}
+                />
+              )}
+            </TabsContent>
+
+            <TabsContent value="withdrawn" className="space-y-4">
+              {withdrawnLoading ? (
+                <div className="flex items-center justify-center py-8">
+                  <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary"></div>
+                </div>
+              ) : (
+                <StatusBasedStudentsTable
+                  students={filteredWithdrawnStudents}
+                  onReactivateStudent={(id) => handleReactivateStudent(id, 'Withdrawn')}
+                  onViewStudent={handleViewStudent}
                 />
               )}
             </TabsContent>
@@ -305,6 +341,12 @@ export function StudentManagement({ onNavigateToParent }: StudentManagementProps
         onOpenChange={setStatusDialogOpen}
         student={selectedStudentForStatus}
         onStatusChanged={handleStatusChanged}
+      />
+
+      <StudentDetailsDialog
+        open={detailsDialogOpen}
+        onOpenChange={setDetailsDialogOpen}
+        student={selectedStudentForDetails}
       />
     </div>
   );
