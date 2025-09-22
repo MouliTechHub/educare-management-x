@@ -1,26 +1,25 @@
-
+import React, { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
-import { useState, useEffect } from "react";
-import { Class, Student, FeeStructure } from "@/types/database";
-import { StudentSelectionCardNew } from "./components/StudentSelectionCardNew";
-import { FeeDetailsDisplay } from "./components/FeeDetailsDisplay";
-import { PaymentInformationCard } from "./components/PaymentInformationCard";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Textarea } from "@/components/ui/textarea";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import { usePreviousYearDues } from "../fee-management/hooks/usePreviousYearDues";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { AlertTriangle } from "lucide-react";
 import { useQueryClient } from "@tanstack/react-query";
 
 interface PaymentFormProps {
-  classes: Class[];
-  students: Student[];
-  feeStructures: FeeStructure[];
+  classes: any[];
+  students: any[];
+  feeStructures: any[];
   onSubmit: (data: any) => void;
   onCancel: () => void;
 }
 
-export function PaymentForm({ classes, students, feeStructures, onSubmit, onCancel }: PaymentFormProps) {
+function PaymentForm({ classes, students, feeStructures, onSubmit, onCancel }: PaymentFormProps) {
   const [formData, setFormData] = useState({
     class_id: '',
     student_id: '',
@@ -34,7 +33,6 @@ export function PaymentForm({ classes, students, feeStructures, onSubmit, onCanc
     notes: '',
   });
 
-  // Remove fee details dependency since we're using academic year approach
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -175,47 +173,23 @@ export function PaymentForm({ classes, students, feeStructures, onSubmit, onCanc
   };
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-6">
-      <StudentSelectionCardNew
-        classId={formData.class_id}
-        studentId={formData.student_id}
-        academicYearId={formData.academic_year_id}
-        classes={classes}
-        students={students}
-        onInputChange={handleInputChange}
-      />
-
-      {/* Smart Payment Allocation Info */}
-      {formData.student_id && formData.academic_year_id && (
-        <Alert>
-          <AlertTriangle className="h-4 w-4" />
-          <AlertDescription>
-            <strong>Smart Payment Allocation</strong>
-            <br />
-            Payment will be automatically allocated to outstanding fees using FIFO (First In, First Out) method.
-            Previous year dues will be cleared first, followed by fees for the selected academic year in chronological order.
-            <br />
-            <span className="text-sm text-muted-foreground mt-1 block">
-              Target Academic Year: {formData.academic_year_id ? 'Selected' : 'Current'}
-            </span>
-          </AlertDescription>
-        </Alert>
-      )}
-
-      <PaymentInformationCard
-        formData={formData}
-        feeDetails={null}
-        onInputChange={handleInputChange}
-      />
-
-      <div className="flex justify-end space-x-2 pt-4">
-        <Button type="button" variant="outline" onClick={onCancel}>
-          Cancel
-        </Button>
-        <Button type="submit">
-          Record Payment
-        </Button>
-      </div>
-    </form>
+    <Card className="w-full max-w-2xl mx-auto">
+      <CardHeader>
+        <CardTitle>Record Payment</CardTitle>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        {/* Form fields... */}
+        <div className="flex gap-2">
+          <Button type="button" variant="outline" onClick={onCancel}>
+            Cancel
+          </Button>
+          <Button type="submit" className="flex-1">
+            Record Payment
+          </Button>
+        </div>
+      </CardContent>
+    </Card>
   );
 }
+
+export { PaymentForm };

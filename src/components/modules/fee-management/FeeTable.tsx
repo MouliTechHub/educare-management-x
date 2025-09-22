@@ -31,7 +31,6 @@ export function FeeTable({ fees, onPaymentClick, onDiscountClick, onHistoryClick
             <TableHead>Student</TableHead>
             <TableHead>Class</TableHead>
             <TableHead>Fee Type</TableHead>
-            <TableHead>Previous Year Dues</TableHead>
             <TableHead>Actual Fee</TableHead>
             <TableHead>Discount</TableHead>
             <TableHead>Final Fee</TableHead>

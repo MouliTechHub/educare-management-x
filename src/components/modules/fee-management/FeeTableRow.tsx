@@ -9,15 +9,14 @@ const FeeTypeCell = ({ fee }: { fee: Fee }) => {
   const tags = [];
   
   if (fee.has_tuition) tags.push('Tuition Fee');
-  if (fee.has_pyd) tags.push('Previous Year Dues');
-  if (tags.length === 0) tags.push('N/A');
+  if (tags.length === 0) tags.push(fee.fee_type || 'N/A');
 
   return (
     <div className="flex flex-col gap-1">
       {tags.map(tag => (
         <Badge 
           key={tag} 
-          variant={tag === 'Tuition Fee' ? 'default' : tag === 'Previous Year Dues' ? 'secondary' : 'outline'}
+          variant={tag === 'Tuition Fee' ? 'default' : 'outline'}
           className="text-xs"
         >
           {tag}
@@ -92,19 +91,6 @@ export function FeeTableRow({
       
       <TableCell>
         <FeeTypeCell fee={fee} />
-      </TableCell>
-      
-      <TableCell>
-        {safePreviousYearDues > 0 ? (
-          <div className="text-red-600 font-medium">
-            ₹{safePreviousYearDues.toLocaleString()}
-            <Badge variant="destructive" className="ml-2 text-xs">
-              Blocked
-            </Badge>
-          </div>
-        ) : (
-          <span className="text-gray-400">₹0</span>
-        )}
       </TableCell>
       
       <TableCell>₹{safeActualFee.toLocaleString()}</TableCell>

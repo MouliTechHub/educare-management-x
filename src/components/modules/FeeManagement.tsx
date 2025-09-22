@@ -22,13 +22,9 @@ import { StudentDetailsDialog } from "./fee-management/StudentDetailsDialog";
 import { useFeeRecordsWithDues } from "./fee-management/hooks/useFeeRecordsWithDues";
 import { useFeeData } from "./fee-management/useFeeData";
 import { useFeeManagement } from "./fee-management/useFeeManagement";
-import { usePreviousYearDues } from "./fee-management/hooks/usePreviousYearDues";
-import { BlockedStudentsReport } from "./fee-management/BlockedStudentsReport";
 import { Fee } from "./fee-management/types/feeTypes";
 import EnhancedFeeManagement from "./fee-management/EnhancedFeeManagement";
-import { PreviousYearDuesSummary } from "./fee-management/PreviousYearDuesSummary";
 import { DuesCalculationVerifier } from "./fee-management/DuesCalculationVerifier";
-import { PreviousYearDuesConsolidated } from "./fee-management/PreviousYearDuesConsolidated";
 
 export default function FeeManagement() {
   const {
@@ -56,15 +52,6 @@ export default function FeeManagement() {
     openHistoryDialog,
     applyFilters
   } = useFeeManagement();
-
-  const { 
-    getStudentDues, 
-    hasOutstandingDues, 
-    logPaymentBlockage, 
-    previousYearDues, 
-    summaryData,
-    refetch: refetchDues 
-  } = usePreviousYearDues(currentAcademicYear?.id || '');
 
   const [discountDialogOpen, setDiscountDialogOpen] = React.useState(false);
   const [paymentDialogOpen, setPaymentDialogOpen] = React.useState(false);
@@ -299,7 +286,6 @@ export default function FeeManagement() {
         onRefresh={() => {
           console.info("[FEE-MGMT] Manual refresh triggered");
           refetch();
-          refetchDues();
           fetchPreviousYearDuesFees();
         }}
       />
@@ -442,29 +428,10 @@ export default function FeeManagement() {
           </Collapsible>
           )}
 
-          {/* Collapsible Blocked Students Section */}
-          {!hideAll && (
-            <Collapsible open={showBlockedStudents} onOpenChange={setShowBlockedStudents}>
-            <CollapsibleTrigger asChild>
-              <Button 
-                variant="outline" 
-                className="w-full justify-between h-12 text-left font-medium"
-              >
-                <div className="flex items-center gap-2">
-                  <AlertTriangle className="h-4 w-4" />
-                  Payment Blocked Students
-                </div>
-                {showBlockedStudents ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
-              </Button>
-            </CollapsibleTrigger>
-            <CollapsibleContent className="mt-4">
-              <BlockedStudentsReport 
-                fees={filteredFees as any}
-                currentAcademicYear={currentAcademicYear?.id || ''}
-              />
-            </CollapsibleContent>
-          </Collapsible>
-          )}
+          {/* Enhanced Fee Management */}
+          <EnhancedFeeManagement
+            currentAcademicYear={currentAcademicYear}
+          />
 
           {/* Collapsible Bulk Actions Section */}
           {!hideAll && (

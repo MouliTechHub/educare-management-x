@@ -16,7 +16,6 @@ import {
   FileText
 } from "lucide-react";
 import { Fee } from "./types/feeTypes";
-import { PreviousYearDues } from "./hooks/usePreviousYearDues";
 
 interface EnhancedFeeTableRowProps {
   fee: Fee;
@@ -28,8 +27,6 @@ interface EnhancedFeeTableRowProps {
   onNotesEdit: (feeId: string, notes: string) => void;
   onReminderClick: (fee: Fee) => void;
   onDiscountHistoryClick: (fee: Fee) => void;
-  previousYearDues: PreviousYearDues | null;
-  hasOutstandingDues: boolean;
 }
 
 export function EnhancedFeeTableRow({
@@ -41,9 +38,7 @@ export function EnhancedFeeTableRow({
   onHistoryClick,
   onNotesEdit,
   onReminderClick,
-  onDiscountHistoryClick,
-  previousYearDues,
-  hasOutstandingDues
+  onDiscountHistoryClick
 }: EnhancedFeeTableRowProps) {
   const [isEditingNotes, setIsEditingNotes] = useState(false);
   const [notesValue, setNotesValue] = useState(fee.discount_notes || '');
@@ -69,10 +64,9 @@ export function EnhancedFeeTableRow({
   };
 
   const isOverdue = new Date(fee.due_date) < new Date() && fee.balance_fee > 0;
-  const isPaymentBlocked = hasOutstandingDues;
 
   return (
-    <TableRow className={`${isSelected ? 'bg-blue-50' : ''} ${isPaymentBlocked ? 'bg-red-50' : ''}`}>
+    <TableRow className={`${isSelected ? 'bg-blue-50' : ''}`}>
       <TableCell>
         <Checkbox
           checked={isSelected}
@@ -96,24 +90,7 @@ export function EnhancedFeeTableRow({
       <TableCell>
         <div className="flex items-center gap-2">
           <span>{fee.fee_type}</span>
-          {isPaymentBlocked && (
-            <Badge variant="destructive" className="text-xs">
-              Blocked
-            </Badge>
-          )}
         </div>
-      </TableCell>
-      <TableCell>
-        {previousYearDues ? (
-          <div>
-            <span className="text-red-600 font-medium">₹{previousYearDues.totalDues.toLocaleString()}</span>
-            <div className="text-xs text-gray-500">
-              {previousYearDues.duesDetails.length} overdue fee(s)
-            </div>
-          </div>
-        ) : (
-          <span className="text-green-600">₹0</span>
-        )}
       </TableCell>
       <TableCell>₹{fee.actual_fee.toLocaleString()}</TableCell>
       <TableCell>
@@ -194,9 +171,7 @@ export function EnhancedFeeTableRow({
               variant="outline"
               size="sm"
               onClick={() => onPaymentClick(fee)}
-              title={isPaymentBlocked ? "Payment blocked - clear previous year dues first" : "Record payment"}
-              disabled={isPaymentBlocked}
-              className={isPaymentBlocked ? "opacity-50 cursor-not-allowed" : ""}
+              title="Record payment"
             >
               <CreditCard className="w-3 h-3" />
             </Button>

@@ -201,7 +201,7 @@ export function EnhancedStudentPromotionDialog({
       const feeResults = await processOutstandingFees(targetAcademicYear.id);
       
       // ✅ 2) Call the new RPC that accepts year names and handles everything
-      const { data: result, error: promotionError } = await supabase.rpc('promote_students_with_fees_by_name', {
+      const { data: result, error: promotionError } = await supabase.rpc('promote_students_simple', {
         source_year_name: currentAcademicYear.year_name,
         target_year_name: targetAcademicYear.year_name,
         promoted_by_user: 'Admin'

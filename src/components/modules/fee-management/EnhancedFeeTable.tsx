@@ -4,7 +4,6 @@ import { Table, TableBody, TableHead, TableHeader, TableRow, TableFooter } from 
 import { Checkbox } from "@/components/ui/checkbox";
 import { EnhancedFeeTableRow } from "./EnhancedFeeTableRow";
 import { Fee } from "./types/feeTypes";
-import { usePreviousYearDues } from "./hooks/usePreviousYearDues";
 
 interface EnhancedFeeTableProps {
   fees: Fee[];
@@ -31,7 +30,6 @@ export function EnhancedFeeTable({
   onDiscountHistoryClick,
   currentAcademicYear 
 }: EnhancedFeeTableProps) {
-  const { getStudentDues, hasOutstandingDues } = usePreviousYearDues(currentAcademicYear);
   
   if (fees.length === 0) {
     return (
@@ -79,7 +77,6 @@ export function EnhancedFeeTable({
             <TableHead>Student</TableHead>
             <TableHead>Class</TableHead>
             <TableHead>Fee Type</TableHead>
-            <TableHead>Previous Year Dues</TableHead>
             <TableHead>Actual Fee</TableHead>
             <TableHead>Discount</TableHead>
             <TableHead>Final Fee</TableHead>
@@ -104,15 +101,12 @@ export function EnhancedFeeTable({
               onNotesEdit={onNotesEdit}
               onReminderClick={onReminderClick}
               onDiscountHistoryClick={onDiscountHistoryClick}
-              previousYearDues={getStudentDues(fee.student_id)}
-              hasOutstandingDues={hasOutstandingDues(fee.student_id)}
             />
           ))}
         </TableBody>
         <TableFooter>
           <TableRow className="bg-muted/50 font-semibold">
-            <TableHead colSpan={4}>Total ({fees.length} records)</TableHead>
-            <TableHead>-</TableHead>
+            <TableHead colSpan={3}>Total ({fees.length} records)</TableHead>
             <TableHead>₹{totals.actualAmount.toLocaleString()}</TableHead>
             <TableHead className="text-orange-600">₹{totals.discountAmount.toLocaleString()}</TableHead>
             <TableHead>₹{totals.finalAmount.toLocaleString()}</TableHead>

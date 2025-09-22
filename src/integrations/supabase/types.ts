@@ -3728,163 +3728,6 @@ export type Database = {
           },
         ]
       }
-      v_pyd: {
-        Row: {
-          academic_year_id: string | null
-          class_id: string | null
-          outstanding: number | null
-          student_id: string | null
-        }
-        Insert: {
-          academic_year_id?: string | null
-          class_id?: string | null
-          outstanding?: never
-          student_id?: string | null
-        }
-        Update: {
-          academic_year_id?: string | null
-          class_id?: string | null
-          outstanding?: never
-          student_id?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "fk_sfr_class"
-            columns: ["class_id"]
-            isOneToOne: false
-            referencedRelation: "class_gender_stats"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "fk_sfr_class"
-            columns: ["class_id"]
-            isOneToOne: false
-            referencedRelation: "classes"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "fk_sfr_year"
-            columns: ["academic_year_id"]
-            isOneToOne: false
-            referencedRelation: "academic_years"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "student_fee_records_academic_year_id_fkey"
-            columns: ["academic_year_id"]
-            isOneToOne: false
-            referencedRelation: "academic_years"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "student_fee_records_class_id_fkey"
-            columns: ["class_id"]
-            isOneToOne: false
-            referencedRelation: "class_gender_stats"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "student_fee_records_class_id_fkey"
-            columns: ["class_id"]
-            isOneToOne: false
-            referencedRelation: "classes"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "student_fee_records_student_id_fkey"
-            columns: ["student_id"]
-            isOneToOne: false
-            referencedRelation: "students"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "student_fee_records_student_id_fkey"
-            columns: ["student_id"]
-            isOneToOne: false
-            referencedRelation: "v_active_students"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "student_fee_records_student_id_fkey"
-            columns: ["student_id"]
-            isOneToOne: false
-            referencedRelation: "v_archived_students"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "student_fee_records_student_id_fkey"
-            columns: ["student_id"]
-            isOneToOne: false
-            referencedRelation: "v_fee_grid"
-            referencedColumns: ["student_id_ref"]
-          },
-          {
-            foreignKeyName: "student_fee_records_student_id_fkey"
-            columns: ["student_id"]
-            isOneToOne: false
-            referencedRelation: "v_students_with_fees"
-            referencedColumns: ["student_id"]
-          },
-        ]
-      }
-      v_pyd_per_student: {
-        Row: {
-          academic_year_id: string | null
-          pyd_per_student: number | null
-          student_id: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "fk_sfr_year"
-            columns: ["academic_year_id"]
-            isOneToOne: false
-            referencedRelation: "academic_years"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "student_fee_records_academic_year_id_fkey"
-            columns: ["academic_year_id"]
-            isOneToOne: false
-            referencedRelation: "academic_years"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "student_fee_records_student_id_fkey"
-            columns: ["student_id"]
-            isOneToOne: false
-            referencedRelation: "students"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "student_fee_records_student_id_fkey"
-            columns: ["student_id"]
-            isOneToOne: false
-            referencedRelation: "v_active_students"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "student_fee_records_student_id_fkey"
-            columns: ["student_id"]
-            isOneToOne: false
-            referencedRelation: "v_archived_students"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "student_fee_records_student_id_fkey"
-            columns: ["student_id"]
-            isOneToOne: false
-            referencedRelation: "v_fee_grid"
-            referencedColumns: ["student_id_ref"]
-          },
-          {
-            foreignKeyName: "student_fee_records_student_id_fkey"
-            columns: ["student_id"]
-            isOneToOne: false
-            referencedRelation: "v_students_with_fees"
-            referencedColumns: ["student_id"]
-          },
-        ]
-      }
       v_students_with_fees: {
         Row: {
           academic_year_id: string | null
@@ -3945,18 +3788,6 @@ export type Database = {
         }
         Returns: Json
       }
-      apply_previous_year_dues_discount: {
-        Args: {
-          p_amount: number
-          p_approved_by?: string
-          p_current_year_id: string
-          p_notes?: string
-          p_reason: string
-          p_student_id: string
-          p_type: string
-        }
-        Returns: Json
-      }
       apply_student_discount: {
         Args: {
           p_amount: number
@@ -4008,35 +3839,6 @@ export type Database = {
         Args: { current_class_id: string }
         Returns: string
       }
-      get_pyd_summary: {
-        Args: { p_year: string }
-        Returns: {
-          avg_per_student: number
-          high_count: number
-          low_count: number
-          medium_count: number
-          students_with_dues: number
-          total_outstanding: number
-        }[]
-      }
-      get_pyd_summary_enhanced: {
-        Args: { p_year: string }
-        Returns: {
-          avg_per_student: number
-          high_count: number
-          low_count: number
-          medium_count: number
-          students_with_dues: number
-          total_outstanding: number
-        }[]
-      }
-      get_student_pyd_details: {
-        Args: { p_student_id: string; p_year: string }
-        Returns: {
-          fee_record_id: string
-          outstanding_amount: number
-        }[]
-      }
       get_user_role: {
         Args: { user_uuid?: string }
         Returns: Database["public"]["Enums"]["app_role"]
@@ -4076,24 +3878,7 @@ export type Database = {
         }
         Returns: string
       }
-      promote_students_with_fees: {
-        Args: {
-          idempotency_key?: string
-          promoted_by_user: string
-          promotion_data: Json
-          target_academic_year_id: string
-        }
-        Returns: Json
-      }
-      promote_students_with_fees_by_name: {
-        Args: {
-          promoted_by_user?: string
-          source_year_name: string
-          target_year_name: string
-        }
-        Returns: Json
-      }
-      promote_students_with_fees_safe: {
+      promote_students_simple: {
         Args: {
           promoted_by_user?: string
           source_year_name: string
