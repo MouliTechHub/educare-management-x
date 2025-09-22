@@ -12,8 +12,7 @@ export const STANDARDIZED_FEE_TYPES = [
   'Uniform Fee',
   'Activities Fee',
   'Meals Fee',
-  'Other Fee',
-  'Previous Year Dues'
+  'Other Fee'
 ] as const;
 
 export type StandardizedFeeType = typeof STANDARDIZED_FEE_TYPES[number];
@@ -31,8 +30,7 @@ export const FEE_TYPE_OPTIONS = [
   { value: 'Uniform Fee', label: 'Uniform Fee' },
   { value: 'Activities Fee', label: 'Activities Fee' },
   { value: 'Meals Fee', label: 'Meals Fee' },
-  { value: 'Other Fee', label: 'Other Fee' },
-  { value: 'Previous Year Dues', label: 'Previous Year Dues' }
+  { value: 'Other Fee', label: 'Other Fee' }
 ];
 
 // Helper function to validate fee type
