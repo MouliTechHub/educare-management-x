@@ -38,7 +38,6 @@ function PaymentForm({ classes, students, feeStructures, onSubmit, onCancel }: P
 
   // Get current academic year for dues checking
   const [currentAcademicYear, setCurrentAcademicYear] = useState("");
-  const { getStudentDues, hasOutstandingDues, logPaymentBlockage } = usePreviousYearDues(currentAcademicYear);
 
   // Get current academic year on component mount
   useEffect(() => {
@@ -56,8 +55,7 @@ function PaymentForm({ classes, students, feeStructures, onSubmit, onCancel }: P
     getCurrentAcademicYear();
   }, []);
 
-  const studentDues = formData.student_id ? getStudentDues(formData.student_id) : null;
-  const isPaymentBlocked = formData.student_id ? hasOutstandingDues(formData.student_id) : false;
+  const isPaymentBlocked = false;
 
   // Reset dependent fields when class changes
   useEffect(() => {

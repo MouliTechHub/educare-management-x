@@ -59,7 +59,6 @@ export default function FeeManagement() {
   const [discountHistoryDialogOpen, setDiscountHistoryDialogOpen] = React.useState(false);
   const [selectedFee, setSelectedFee] = React.useState<Fee | null>(null);
   const [selectedFees, setSelectedFees] = React.useState<Set<string>>(new Set());
-  const [previousYearDuesFees, setPreviousYearDuesFees] = React.useState<Fee[]>([]);
   const [calculationIssues, setCalculationIssues] = React.useState<any[]>([]);
   const [showDuesDetails, setShowDuesDetails] = React.useState(false);
   
@@ -94,84 +93,11 @@ export default function FeeManagement() {
     });
   }, [loading, fees, searchTerm, applyFilters]);
 
-  const fetchPreviousYearDuesFees = React.useCallback(async () => {
-    console.log('[FeeManagement] Fetching scoped PYD for current year:', currentAcademicYear?.id);
-    if (!currentAcademicYear?.id) {
-      setPreviousYearDuesFees([]);
-      return;
-    }
 
-    // ✅ FIX: Query PYD records that belong TO the current academic year (not from other years)
-    // These are created when students are promoted and have outstanding balances from previous years
-    const { data, error } = await supabase
-      .from('student_fee_records')
-      .select(`
-        id, student_id, actual_fee, discount_amount, paid_amount, balance_fee, academic_year_id, class_id,
-        students:students (
-          id, first_name, last_name, admission_number, class_id,
-          classes:classes ( name, section )
-        )
-      `)
-      .eq('academic_year_id', currentAcademicYear.id)
-      .eq('fee_type', 'Previous Year Dues')
-      .gt('balance_fee', 0);
-
-    console.debug('[FEE-MGMT-PYD] year=', currentAcademicYear.id, 'pyd_rows=', data?.length || 0, error);
-
-    if (error) {
-      console.error('❌ Error fetching PYD for current year:', error);
-      setPreviousYearDuesFees([]);
-      return;
-    }
-
-    // Process PYD records that already exist in the current academic year
-    // No aggregation needed since each student should have max one PYD record per year
-    const mapped: Fee[] = (data || []).map((row: any) => {
-      const balance = row.balance_fee ?? Math.max((row.actual_fee - (row.discount_amount || 0)) - (row.paid_amount || 0), 0);
-      
-      return {
-        id: row.id,
-        student_id: row.student_id,
-        fee_type: 'Previous Year Dues',
-        actual_fee: row.actual_fee,
-        discount_amount: row.discount_amount || 0,
-        paid_amount: row.paid_amount || 0,
-        final_fee: row.actual_fee - (row.discount_amount || 0),
-        balance_fee: balance,
-        due_date: '',
-        status: balance <= 0 ? 'Paid' : 'Pending' as any,
-        created_at: row.created_at || new Date().toISOString(),
-        updated_at: row.updated_at || new Date().toISOString(),
-        discount_notes: undefined,
-        discount_updated_by: undefined,
-        discount_updated_at: undefined,
-        academic_year_id: row.academic_year_id,
-        class_id: row.class_id,
-        student: row.students ? {
-          id: row.students.id,
-          first_name: row.students.first_name,
-          last_name: row.students.last_name,
-          admission_number: row.students.admission_number,
-          class_name: row.students.classes?.name ?? '',
-          section: row.students.classes?.section ?? undefined,
-          class_id: row.students.class_id,
-        } : undefined,
-      };
-    });
-
-    console.log('[FeeManagement] PYD students found in current year:', mapped.length);
-    setPreviousYearDuesFees(mapped);
-  }, [currentAcademicYear?.id]);
-
-  // Combine current-year fees with standalone Previous Year Dues so students without current fees still appear
   // Only show current academic year's fee records in the main table
   const combinedFeesForTable = React.useMemo(() => {
     return filteredFees as any[];
   }, [filteredFees]);
-
-  React.useEffect(() => {
-    fetchPreviousYearDuesFees();
-  }, [fetchPreviousYearDuesFees]);
 
   const handleDiscountClick = (fee: any) => {
     setSelectedFee(fee as Fee);
@@ -286,7 +212,6 @@ export default function FeeManagement() {
         onRefresh={() => {
           console.info("[FEE-MGMT] Manual refresh triggered");
           refetch();
-          fetchPreviousYearDuesFees();
         }}
       />
 
@@ -312,48 +237,6 @@ export default function FeeManagement() {
             </Button>
           </div>
 
-          {/* Enhanced Previous Year Dues Management */}
-          {!hideAll && (
-            <Collapsible open={showDuesManagement} onOpenChange={setShowDuesManagement}>
-              <CollapsibleTrigger asChild>
-                <Button 
-                  variant="outline" 
-                  className="w-full justify-between h-12 text-left font-medium border-red-200 bg-red-50 hover:bg-red-100"
-                >
-                  <div className="flex items-center gap-2">
-                    <AlertTriangle className="h-4 w-4 text-red-600" />
-                    Previous Year Dues Management
-                    {previousYearDues.length > 0 && (
-                      <Badge variant="destructive" className="ml-2">
-                        {previousYearDues.length} students with dues
-                      </Badge>
-                    )}
-                  </div>
-                  {showDuesManagement ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
-                </Button>
-              </CollapsibleTrigger>
-              <CollapsibleContent className="mt-4">
-                <div className="space-y-4">
-                  <PreviousYearDuesSummary
-                    allDues={previousYearDues}
-                    summaryData={summaryData}
-                    loading={loading}
-                    onRefresh={refetchDues}
-                    onSendBulkReminders={handleSendBulkReminders}
-                    onViewAllDetails={handleViewAllDuesDetails}
-                  />
-                  
-                   {/* Consolidated Previous Year Dues Display */}
-                   <PreviousYearDuesConsolidated
-                     studentFees={[...(filteredFees as any), ...previousYearDuesFees] as any}
-                     onViewDetails={handleHistoryClick}
-                     onMakePayment={handlePaymentClick}
-                     onApplyDiscount={handleDiscountClick}
-                   />
-                </div>
-              </CollapsibleContent>
-            </Collapsible>
-          )}
 
           {/* Calculation Verification */}
           {!hideAll && (
@@ -429,9 +312,7 @@ export default function FeeManagement() {
           )}
 
           {/* Enhanced Fee Management */}
-          <EnhancedFeeManagement
-            currentAcademicYear={currentAcademicYear}
-          />
+          <EnhancedFeeManagement />
 
           {/* Collapsible Bulk Actions Section */}
           {!hideAll && (
@@ -709,8 +590,6 @@ export default function FeeManagement() {
                 button.textContent = originalText;
                 
                 refetch();
-                refetchDues();
-                fetchPreviousYearDuesFees();
 
               } catch (error: any) {
                 console.error('Promotion failed:', error);
@@ -744,8 +623,6 @@ export default function FeeManagement() {
         selectedFee={selectedFee}
         onSuccess={() => {
           refetch();
-          refetchDues();
-          fetchPreviousYearDuesFees();
         }}
       />
 
@@ -755,8 +632,6 @@ export default function FeeManagement() {
         fee={selectedFee}
         onSuccess={() => {
           refetch();
-          refetchDues();
-          fetchPreviousYearDuesFees();
         }}
         currentAcademicYear={currentAcademicYear?.id || ''}
       />

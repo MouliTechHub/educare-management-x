@@ -48,12 +48,12 @@ export function PaymentRecordDialog({
 
       // Validate payment amount
       const paymentAmount = parseFloat(formData.amountPaid);
-      const validation = validatePaymentAmount(paymentAmount, fee.balance_fee);
+      const validation = validatePaymentAmount(fee, paymentAmount);
       
       if (!validation.isValid) {
         toast({
           title: "Invalid Payment Amount",
-          description: validation.error,
+          description: validation.message || "Invalid payment amount",
           variant: "destructive"
         });
         return;
