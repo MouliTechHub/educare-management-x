@@ -1633,7 +1633,7 @@ export type Database = {
           action: string
           details: Json | null
           id: string
-          ip_address: unknown | null
+          ip_address: unknown
           performed_at: string | null
           resource_id: string | null
           resource_type: string | null
@@ -1644,7 +1644,7 @@ export type Database = {
           action: string
           details?: Json | null
           id?: string
-          ip_address?: unknown | null
+          ip_address?: unknown
           performed_at?: string | null
           resource_id?: string | null
           resource_type?: string | null
@@ -1655,7 +1655,7 @@ export type Database = {
           action?: string
           details?: Json | null
           id?: string
-          ip_address?: unknown | null
+          ip_address?: unknown
           performed_at?: string | null
           resource_id?: string | null
           resource_type?: string | null
@@ -3803,10 +3803,7 @@ export type Database = {
         Args: { p_anonymize?: boolean; p_reason?: string; p_student: string }
         Returns: undefined
       }
-      can_manage_finances: {
-        Args: { user_uuid?: string }
-        Returns: boolean
-      }
+      can_manage_finances: { Args: { user_uuid?: string }; Returns: boolean }
       carry_forward_student_fees: {
         Args: {
           p_carry_forward_type?: string
@@ -3821,10 +3818,7 @@ export type Database = {
         Args: { target_academic_year_id: string; target_class_id: string }
         Returns: boolean
       }
-      debug_fee_counts: {
-        Args: { p_year: string }
-        Returns: number
-      }
+      debug_fee_counts: { Args: { p_year: string }; Returns: number }
       enrollment_upsert: {
         Args: {
           p_actor?: string
@@ -3835,10 +3829,7 @@ export type Database = {
         }
         Returns: undefined
       }
-      get_next_class_id: {
-        Args: { current_class_id: string }
-        Returns: string
-      }
+      get_next_class_id: { Args: { current_class_id: string }; Returns: string }
       get_user_role: {
         Args: { user_uuid?: string }
         Returns: Database["public"]["Enums"]["app_role"]
@@ -3850,10 +3841,7 @@ export type Database = {
         }
         Returns: boolean
       }
-      is_admin: {
-        Args: { user_uuid?: string }
-        Returns: boolean
-      }
+      is_admin: { Args: { user_uuid?: string }; Returns: boolean }
       log_fee_audit: {
         Args: {
           p_academic_year_id: string
@@ -3886,10 +3874,7 @@ export type Database = {
         }
         Returns: Json
       }
-      reactivate_student: {
-        Args: { p_student_id: string }
-        Returns: undefined
-      }
+      reactivate_student: { Args: { p_student_id: string }; Returns: undefined }
       record_ledger_entry: {
         Args: {
           p_academic_year_id: string
@@ -3918,6 +3903,12 @@ export type Database = {
           updated_at: string
           year_name: string
         }
+        SetofOptions: {
+          from: "*"
+          to: "academic_years"
+          isOneToOne: true
+          isSetofReturn: false
+        }
       }
       set_student_inactive: {
         Args: {
@@ -3940,10 +3931,7 @@ export type Database = {
         }
         Returns: undefined
       }
-      update_fee_priorities: {
-        Args: Record<PropertyKey, never>
-        Returns: undefined
-      }
+      update_fee_priorities: { Args: never; Returns: undefined }
     }
     Enums: {
       app_role: "admin" | "teacher" | "parent" | "accountant"
